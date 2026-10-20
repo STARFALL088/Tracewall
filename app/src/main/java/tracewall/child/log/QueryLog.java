@@ -29,36 +29,19 @@ public final class QueryLog {
         public final boolean blocked;
         public final int srcPort;
         public final int uid;              // owner of the querying socket, -1 if unknown
-        public final String policy;        // why: category name, "app", "allowlist", ""
         public final long latencyMs;
         public final String resolver;
 
         public Entry(long timeMs, String host, int type, boolean blocked,
-                     int srcPort, int uid, String policy, long latencyMs,
-                     String resolver) {
+                     int srcPort, int uid, long latencyMs, String resolver) {
             this.timeMs = timeMs;
             this.host = host;
             this.type = type;
             this.blocked = blocked;
             this.srcPort = srcPort;
             this.uid = uid;
-            this.policy = policy == null ? "" : policy;
             this.latencyMs = latencyMs;
             this.resolver = resolver;
-        }
-
-        /** The durable form of this entry, for the Room writer. */
-        public QueryRecord toRecord() {
-            QueryRecord r = new QueryRecord();
-            r.timeMs = timeMs;
-            r.host = host;
-            r.type = type;
-            r.blocked = blocked;
-            r.uid = uid;
-            r.policy = policy;
-            r.latencyMs = latencyMs;
-            r.resolver = resolver;
-            return r;
         }
 
         /** One line for the plain-text log view. */

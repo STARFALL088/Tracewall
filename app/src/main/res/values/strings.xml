@@ -11,22 +11,5 @@
     <string name="verdict_block">BLOCK</string>
     <string name="verdict_allow">allow</string>
     <string name="meta">%1$s  ·  %2$s  ·  %3$d ms</string>
-    <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d ms  ·  %4$s</string>
-    <string name="allow_title">Allow this domain?</string>
-    <string name="allow_body">%1$s will be allowed even when a category blocks it.</string>
-    <string name="allow_yes">Allow</string>
-    <string name="action_copy_csv">CSV</string>
-    <string name="action_clear_history">Clear</string>
-    <string name="csv_copied">Copied %1$d rows to the clipboard</string>
-    <string name="csv_failed">Could not read the history database</string>
-    <string name="clear_title">Clear history?</string>
-    <string name="clear_body">The on-device query history will be deleted. Rules are kept.</string>
-    <string name="clear_yes">Clear</string>
-    <string name="clear_done">Cleared %1$d rows</string>
-    <string name="notif_channel">Protection status</string>
-    <string name="notif_channel_desc">Tells you when filtering is not running.</string>
-    <string name="notif_title">Tracewall is not filtering</string>
-    <string name="notif_text_restart">Protection was on before the restart. Tap to turn it back on.</string>
-    <string name="notif_text_off">Protection is off. Tap to open Tracewall.</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
 </resources>

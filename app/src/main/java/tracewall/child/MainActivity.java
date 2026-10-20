@@ -1,50 +1,38 @@
 package tracewall.child;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Build;
 import android.os.Looper;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.util.List;
 
-import tracewall.child.block.BlocklistStore;
 import tracewall.child.databinding.ActivityMainBinding;
 import tracewall.child.log.AppLabels;
 import tracewall.child.log.QueryLog;
-import tracewall.child.log.QueryLogProvider;
 import tracewall.child.ui.QueryAdapter;
 import tracewall.child.ui.TrendView;
 import tracewall.child.vpn.DnsVpnService;
 
 /**
- * One screen: turn protection on, watch what it is doing, export or clear what
- * it has seen.
+ * One screen: turn protection on, watch what it is doing.
  *
  * Polling rather than a bound service: the log writer is a worker pool inside
  * the service, and a 700 ms refresh is cheaper to reason about than an IPC
- * surface at this size. Events (start, stop, export, clear) still go through
- * real Intents and the ContentProvider.
+ * surface for a demo-sized app. The adapter is rebind-everything because the
+ * visible window is small.
  */
 public class MainActivity extends AppCompatActivity {
 
     private static final long TICK_MS = 700;
-    private static final long BUCKET_MS = 60_000L;   // one trend bar = one minute
+    private static final long BUCKET_MS = 60_000L;   // one bar = one minute
 
     private ActivityMainBinding ui;
     private QueryAdapter adapter;
@@ -57,10 +45,6 @@ public class MainActivity extends AppCompatActivity {
             ticker.postDelayed(this, TICK_MS);
         }
     };
-
-    private final ActivityResultLauncher<String> notificationPermission =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(),
-                    granted -> { });
 
     private final ActivityResultLauncher<Intent> consent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -82,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         ui = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
 
-        adapter = new QueryAdapter(new AppLabels(getPackageManager()), this::askAllow);
+        adapter = new QueryAdapter(new AppLabels(getPackageManager()));
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
 
@@ -90,14 +74,6 @@ public class MainActivity extends AppCompatActivity {
             if (updatingToggle) return;
             if (checked) requestStart(); else stopFiltering();
         });
-
-        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this,
-                "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
-            notificationPermission.launch("android.permission.POST_NOTIFICATIONS");
-        }
-
-        ui.copyCsv.setOnClickListener(v -> copyCsv());
-        ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
 
         if (savedInstanceState == null) QueryLog.get().clear();
         render();
@@ -114,8 +90,6 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         ticker.removeCallbacks(refresh);
     }
-
-    // ------------------------------------------------------------ protection
 
     private void requestStart() {
         Intent prepare = VpnService.prepare(this);
@@ -140,94 +114,6 @@ public class MainActivity extends AppCompatActivity {
         render();
     }
 
-    /** Long-press flow: confirm, then let the policy engine reload in place. */
-    private void askAllow(String host) {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.allow_title)
-                .setMessage(getString(R.string.allow_body, host))
-                .setPositiveButton(R.string.allow_yes, (dialog, which) -> {
-                    BlocklistStore.get().allow(this, host);
-                    render();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    // --------------------------------------------------------------- history
-
-    /**
-     * Read history through the ContentProvider rather than the in-memory ring,
-     * so the export path exercises the same component a parent app would use.
-     */
-    private void copyCsv() {
-        new Thread(() -> {
-            StringBuilder sb = new StringBuilder(
-                    "time_ms,host,type,blocked,uid,policy,latency_ms,resolver\n");
-            int rows = 0;
-            try (Cursor c = getContentResolver().query(
-                    QueryLogProvider.CONTENT_URI, null, null, null, null)) {
-                if (c != null) {
-                    while (c.moveToNext()) {
-                        sb.append(c.getLong(c.getColumnIndexOrThrow("time_ms"))).append(',')
-                                .append(c.getString(c.getColumnIndexOrThrow("host"))).append(',')
-                                .append(c.getInt(c.getColumnIndexOrThrow("type"))).append(',')
-                                .append(c.getInt(c.getColumnIndexOrThrow("blocked"))).append(',')
-                                .append(c.getInt(c.getColumnIndexOrThrow("uid"))).append(',')
-                                .append(c.getString(c.getColumnIndexOrThrow("policy"))).append(',')
-                                .append(c.getLong(c.getColumnIndexOrThrow("latency_ms"))).append(',')
-                                .append(c.getString(c.getColumnIndexOrThrow("resolver")))
-                                .append('\n');
-                        rows++;
-                    }
-                }
-            } catch (RuntimeException e) {
-                runOnUiThread(() -> Toast.makeText(this, R.string.csv_failed,
-                        Toast.LENGTH_LONG).show());
-                return;
-            }
-
-            final int count = rows;
-            final String csv = sb.toString();
-            runOnUiThread(() -> {
-                ClipboardManager cm =
-                        (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Tracewall history", csv));
-                Toast.makeText(this, getString(R.string.csv_copied, count),
-                        Toast.LENGTH_LONG).show();
-            });
-        }, "tracewall-export").start();
-    }
-
-    private void confirmClearHistory() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.clear_title)
-                .setMessage(R.string.clear_body)
-                .setPositiveButton(R.string.clear_yes, (dialog, which) -> clearHistory())
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void clearHistory() {
-        new Thread(() -> {
-            int removed = 0;
-            try {
-                removed = getContentResolver().delete(
-                        Uri.parse(QueryLogProvider.CONTENT_URI + "?limit=5000"),
-                        null, null);
-            } catch (RuntimeException ignored) {
-                // the toast reports what actually happened, including a failure
-            }
-            final int count = removed;
-            runOnUiThread(() -> {
-                QueryLog.get().clear();
-                Toast.makeText(this, getString(R.string.clear_done, count),
-                        Toast.LENGTH_SHORT).show();
-            });
-        }, "tracewall-clear").start();
-    }
-
-    // ---------------------------------------------------------------- render
-
     private void render() {
         boolean on = DnsVpnService.isRunning();
         updatingToggle = true;
@@ -237,10 +123,8 @@ public class MainActivity extends AppCompatActivity {
         ui.status.setText(on ? R.string.status_on : R.string.status_off);
 
         QueryLog.Stats s = QueryLog.get().stats();
-        // Rule count comes from the live policy, not the service's boot-time
-        // snapshot: allowing a host changes it without restarting the tunnel.
         ui.detail.setText(getString(R.string.detail, s.total, s.blocked,
-                BlocklistStore.get().size()));
+                DnsVpnService.ruleCount()));
 
         List<QueryLog.Entry> recent = QueryLog.get().snapshot(60);
         adapter.submit(recent);
@@ -248,13 +132,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /** Bucket the visible history into one bar per minute, oldest on the left. */
-    private void updateTrend(List<QueryLog.Entry> recent) {
+    private void updateTrend(List<QueryLog.Entry> entries) {
         int n = TrendView.buckets();
         int[] allowed = new int[n];
         int[] blocked = new int[n];
         long now = System.currentTimeMillis();
 
-        for (QueryLog.Entry e : recent) {
+        for (QueryLog.Entry e : entries) {
             long age = now - e.timeMs;
             if (age < 0) age = 0;
             int idx = n - 1 - (int) (age / BUCKET_MS);

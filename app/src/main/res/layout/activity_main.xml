@@ -48,45 +48,13 @@
         android:layout_marginTop="4dp"
         android:textSize="12sp" />
 
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/last_minutes"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/copyCsv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="6dp"
-            android:text="@string/action_copy_csv"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/clearHistory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="4dp"
-            android:paddingBottom="6dp"
-            android:text="@string/action_clear_history"
-            android:textSize="13sp" />
-    </LinearLayout>
+        android:text="@string/last_minutes"
+        android:textSize="13sp"
+        android:textStyle="bold" />
 
     <tracewall.child.ui.TrendView
         android:id="@+id/trend"
