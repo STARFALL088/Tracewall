@@ -31,9 +31,16 @@ public final class QueryAdapter extends RecyclerView.Adapter<QueryAdapter.Holder
     private final List<QueryLog.Entry> items = new ArrayList<>();
     private final SimpleDateFormat clock = new SimpleDateFormat("HH:mm:ss", Locale.US);
     private final AppLabels labels;
+    private final OnAllow onAllow;
 
-    public QueryAdapter(AppLabels labels) {
+    /** Long-press on a blocked row offers to allow that host. */
+    public interface OnAllow {
+        void allow(String host);
+    }
+
+    public QueryAdapter(AppLabels labels, OnAllow onAllow) {
         this.labels = labels;
+        this.onAllow = onAllow;
     }
 
     public void submit(List<QueryLog.Entry> next) {
@@ -60,8 +67,18 @@ public final class QueryAdapter extends RecyclerView.Adapter<QueryAdapter.Holder
                 blocked ? R.color.tracewall_block : R.color.tracewall_allow));
 
         h.b.host.setText(e.host);
-        h.b.meta.setText(h.b.getRoot().getContext().getString(R.string.meta,
-                DnsMessage.typeName(e.type), labels.label(e.uid), e.latencyMs));
+        h.b.meta.setText(e.blocked
+                ? h.b.getRoot().getContext().getString(R.string.meta_blocked,
+                        DnsMessage.typeName(e.type), labels.label(e.uid),
+                        e.latencyMs, e.policy)
+                : h.b.getRoot().getContext().getString(R.string.meta,
+                        DnsMessage.typeName(e.type), labels.label(e.uid), e.latencyMs));
+
+        h.b.getRoot().setOnLongClickListener(v -> {
+            if (!e.blocked || onAllow == null) return false;
+            onAllow.allow(e.host);
+            return true;
+        });
         h.b.time.setText(clock.format(new Date(e.timeMs)));
     }
 

@@ -11,5 +11,9 @@
     <string name="verdict_block">ব্লক</string>
     <string name="verdict_allow">অনুমোদিত</string>
     <string name="meta">%1$s  ·  %2$s  ·  %3$d মি.সে.</string>
+    <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d মি.সে.  ·  %4$s</string>
+    <string name="allow_title">এই ডোমেইনটি অনুমোদন করবেন?</string>
+    <string name="allow_body">কোনো ক্যাটাগরি ব্লক করলেও %1$s অনুমোদিত থাকবে।</string>
+    <string name="allow_yes">অনুমোদন</string>
     <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
 </resources>

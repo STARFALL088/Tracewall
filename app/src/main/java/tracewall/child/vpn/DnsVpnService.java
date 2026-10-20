@@ -18,7 +18,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -27,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 
 import tracewall.child.R;
+import tracewall.blocklist.PolicyEngine;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.QueryLog;
 import tracewall.net.DnsForwarder;
@@ -78,7 +78,7 @@ public class DnsVpnService extends VpnService implements Runnable {
 
     public static int ruleCount() { return ruleCount; }
 
-    private final BlocklistStore blocklist = new BlocklistStore();
+    private final BlocklistStore blocklist = BlocklistStore.get();
     private UidAttributor uidAttributor;
     private final Object writeLock = new Object();
 
@@ -107,6 +107,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
+            BlocklistStore.setEnabled(this, false);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -125,7 +126,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     @Override
     public void run() {
         try {
-            blocklist.load(this, DEFAULT_CATEGORIES, Collections.<String>emptyList());
+            blocklist.load(this, DEFAULT_CATEGORIES);
             ruleCount = blocklist.size();
 
             Builder b = new Builder();
@@ -146,6 +147,7 @@ public class DnsVpnService extends VpnService implements Runnable {
             }
             tunOut = new FileOutputStream(tun.getFileDescriptor());
             running = true;
+            BlocklistStore.setEnabled(this, true);
             Log.i(TAG, "tunnel up: " + blocklist.summary());
             loop();
         } catch (Exception e) {
@@ -190,7 +192,8 @@ public class DnsVpnService extends VpnService implements Runnable {
         int uid = uidAttributor == null
                 ? UidAttributor.UNKNOWN_UID
                 : uidAttributor.resolve(pkt.srcIpBytes(), pkt.srcPort());
-        boolean blocked = blocklist.blocks(host);
+        PolicyEngine.Decision decision = blocklist.decide(host, uid);
+        boolean blocked = decision.blocked();
         byte[] answer;
         String resolver = "local";
 
@@ -216,7 +219,7 @@ public class DnsVpnService extends VpnService implements Runnable {
         write(reply);
 
         QueryLog.get().add(new QueryLog.Entry(System.currentTimeMillis(), host,
-                q.qType(), blocked, pkt.srcPort(), uid,
+                q.qType(), blocked, pkt.srcPort(), uid, decision.reason,
                 (System.nanoTime() - t0) / 1_000_000L, resolver));
     }
 

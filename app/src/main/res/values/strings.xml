@@ -11,5 +11,9 @@
     <string name="verdict_block">BLOCK</string>
     <string name="verdict_allow">allow</string>
     <string name="meta">%1$s  ·  %2$s  ·  %3$d ms</string>
+    <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d ms  ·  %4$s</string>
+    <string name="allow_title">Allow this domain?</string>
+    <string name="allow_body">%1$s will be allowed even when a category blocks it.</string>
+    <string name="allow_yes">Allow</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
 </resources>

@@ -9,12 +9,14 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.util.List;
 
 import tracewall.child.databinding.ActivityMainBinding;
+import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.AppLabels;
 import tracewall.child.log.QueryLog;
 import tracewall.child.ui.QueryAdapter;
@@ -66,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         ui = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
 
-        adapter = new QueryAdapter(new AppLabels(getPackageManager()));
+        adapter = new QueryAdapter(new AppLabels(getPackageManager()), this::askAllow);
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
 
@@ -112,6 +114,19 @@ public class MainActivity extends AppCompatActivity {
         startService(new Intent(this, DnsVpnService.class)
                 .setAction(DnsVpnService.ACTION_STOP));
         render();
+    }
+
+    /** Long-press flow: confirm, then let the policy engine reload in place. */
+    private void askAllow(String host) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.allow_title)
+                .setMessage(getString(R.string.allow_body, host))
+                .setPositiveButton(R.string.allow_yes, (dialog, which) -> {
+                    BlocklistStore.get().allow(this, host);
+                    render();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void render() {
