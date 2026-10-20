@@ -8,6 +8,23 @@ Built for the Advanced Programming Laboratory Android project (30 marks), which
 is why the feature set maps week-by-week onto that syllabus. It is also a
 genuinely useful app rather than a rubric exercise.
 
+## Verified on a device (emulator, API 37)
+
+```
+$ adb shell ping -c 1 example.com      # allowed
+PING example.com (104.20.23.154)
+
+$ adb shell ping -c 1 xvideos.com      # category: adult
+PING xvideos.com (127.0.0.1)           # sinkholed 0.0.0.0 -> 127.0.0.1
+
+$ adb shell ping -c 1 pornhub.com      # after long-press -> Allow
+PING pornhub.com (66.254.114.41)       # allowlist beats the category, live
+```
+
+Screenshots in `docs/screenshots/`: blocking with per-app attribution, and the
+allowlist dialog. The header read `Rules: 516` after the allow, which is the
+policy engine reloading in place without restarting the tunnel.
+
 ## Modules
 
     blocklist/   pure JVM. No android.* imports at all.
@@ -16,12 +33,13 @@ genuinely useful app rather than a rubric exercise.
                  - DnsForwarder    upstream UDP, TCP retry on truncation, socket pool
                  - DomainPattern   exact + label-aligned wildcard matching
                  - HostListParser  hosts-format lists with honest parse counts
-    app/         Android. VpnService, blocklist store, live query log, UI.
+                 - PolicyEngine    precedence: allow > app block > category
+    app/         Android. VpnService, rule store, Room history, provider, UI.
 
 The split is the point: the hardest code (wire formats, checksums) is testable
 on a laptop in milliseconds with JUnit and no emulator. `./gradlew
-:blocklist:test` runs 65 tests, including checksum re-verification against an
-independent RFC 1071 reference implementation.
+:blocklist:test` runs 76 tests, including checksum re-verification against an
+independent RFC 1071 reference implementation and 11 policy-precedence tests.
 
 ## How the tunnel works
 
@@ -30,35 +48,60 @@ independent RFC 1071 reference implementation.
     routed           10.66.0.1/32 only
 
 Only packets to that one address enter the tunnel, so nothing but DNS can be
-affected by a bug here. Each query is parsed, checked against the rule set, and
-either answered locally (`0.0.0.0`, TTL 0) or forwarded to the network's real
-resolver over a socket that is passed through `VpnService.protect()` - without
-that call the forwarder's own queries loop back into the tunnel forever.
+affected by a bug here. Each query is parsed, decided, and either answered
+locally (`0.0.0.0`, TTL 0) or forwarded to the network's real resolver over a
+socket that is passed through `VpnService.protect()` - without that call the
+forwarder's own queries loop back into the tunnel forever.
 
-Replies are rebuilt with correct IPv4 header and UDP checksums. Android does not
+Replies are rebuilt with correct IPv4 header and UDP checksums: Android does not
 fix those up for a TUN write, and a wrong checksum means the client silently
 discards the answer.
+
+The service follows the default network, so a Wi-Fi to mobile-data switch
+rebuilds the forwarder instead of leaving every lookup to time out.
+
+## Rule precedence
+
+1. Explicit allow (exact or wildcard) - wins over everything. Long-press a
+   blocked row to add one.
+2. Per-app block (whole uid).
+3. Category blocklist (malware, gambling, adult, ads).
+4. Default allow.
+
+Categories live in a sorted map, so a host that appears in two of them always
+reports the same reason.
+
+## History
+
+`HistoryWriter` batches inserts into Room (1.5 s flush, bounded queue, one-week
+retention) so the packet path never waits on disk. `QueryLogProvider` exposes the
+table read-only with `exported=false`, and backs both the CSV export and the
+clear action. The parent app will read through that authority rather than
+opening a second database.
 
 ## Build
 
     ./gradlew :blocklist:test        # engine, no Android SDK needed
     ./gradlew :app:assembleDebug     # APK -> app/build/outputs/apk/debug/
 
-Requires JDK 17 (pinned in `gradle.properties`; AGP 8.5 does not tolerate the
-newer default JDK) and the Android SDK with platform 34 + build-tools 34.
-`local.properties` points at `~/Android/Sdk` on this machine.
+Requires JDK 17 (pinned in `gradle.properties`) and Gradle 8.9 (pinned in the
+wrapper). AGP 8.5 supports neither JDK 27 nor Gradle 9, and both failures are
+opaque - set the pins before bisecting anything.
 
 ## Status
 
-Working: DNS interception, blocking, forwarding, live log, English + Bengali.
+Working and verified on device: DNS interception, blocking, forwarding, per-app
+attribution, live log, custom trend view, allowlist override, Room history, CSV
+export, clear, English + Bengali.
 
-Not yet: per-app attribution (`getConnectionOwnerUid`), RecyclerView history,
-Room persistence, custom trend view, ContentProvider export, boot receiver,
-remote rules from the parent app.
+Not built yet: remote rules from a parent app (Firebase needs a
+`google-services.json` from the project owner), boot receiver, app-level block
+UI, and a DoH/Private-DNS warning screen.
 
-Known limits, deliberately: UDP DNS only (no DNS-over-TLS), IPv4 only, and a
-user who turns on Private DNS bypasses the filter entirely - the app should say
-so rather than pretend.
+Known limits, deliberately: UDP DNS only (no DNS-over-TLS), IPv4 tunnel, and a
+user who enables Private DNS bypasses the filter entirely. The device also asks
+for `_dns.resolver.arpa` (type SVCB) at boot - that is the encrypted-DNS
+discovery path and it is not blocked yet.
 
 ## Rule data
 

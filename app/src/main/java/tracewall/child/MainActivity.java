@@ -225,8 +225,10 @@ public class MainActivity extends AppCompatActivity {
         ui.status.setText(on ? R.string.status_on : R.string.status_off);
 
         QueryLog.Stats s = QueryLog.get().stats();
+        // Rule count comes from the live policy, not the service's boot-time
+        // snapshot: allowing a host changes it without restarting the tunnel.
         ui.detail.setText(getString(R.string.detail, s.total, s.blocked,
-                DnsVpnService.ruleCount()));
+                BlocklistStore.get().size()));
 
         List<QueryLog.Entry> recent = QueryLog.get().snapshot(60);
         adapter.submit(recent);

@@ -73,12 +73,9 @@ public class DnsVpnService extends VpnService implements Runnable {
             Arrays.asList("malware", "gambling", "adult", "ads"));
 
     private static volatile boolean running = false;
-    private static volatile int ruleCount = 0;
 
     /** True between establish() and teardown, for the UI to trust. */
     public static boolean isRunning() { return running; }
-
-    public static int ruleCount() { return ruleCount; }
 
     private final BlocklistStore blocklist = BlocklistStore.get();
     private UidAttributor uidAttributor;
@@ -151,7 +148,6 @@ public class DnsVpnService extends VpnService implements Runnable {
     public void run() {
         try {
             blocklist.load(this, DEFAULT_CATEGORIES);
-            ruleCount = blocklist.size();
 
             Builder b = new Builder();
             b.setSession(getString(R.string.app_name));
@@ -274,7 +270,6 @@ public class DnsVpnService extends VpnService implements Runnable {
             tun = null;
         }
         tunThread = null;
-        ruleCount = 0;
         Log.i(TAG, "tunnel down");
     }
 
