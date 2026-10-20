@@ -20,6 +20,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Read-only history. exported=false: other apps cannot read a
+             child's browsing history, which is the whole point. -->
+        <provider
+            android:name=".log.QueryLogProvider"
+            android:authorities="tracewall.child.log"
+            android:exported="false" />
+
         <!-- The VPN service. BIND_VPN_SERVICE is what makes the system trust
              it: without that permission the consent dialog never appears and
              prepare() returns a null intent that goes nowhere. -->

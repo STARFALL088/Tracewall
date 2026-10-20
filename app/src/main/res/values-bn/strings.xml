@@ -15,5 +15,13 @@
     <string name="allow_title">এই ডোমেইনটি অনুমোদন করবেন?</string>
     <string name="allow_body">কোনো ক্যাটাগরি ব্লক করলেও %1$s অনুমোদিত থাকবে।</string>
     <string name="allow_yes">অনুমোদন</string>
+    <string name="action_copy_csv">সিএসভি</string>
+    <string name="action_clear_history">মুছুন</string>
+    <string name="csv_copied">%1$d সারি ক্লিপবোর্ডে কপি হয়েছে</string>
+    <string name="csv_failed">ইতিহাস ডাটাবেস পড়া যায়নি</string>
+    <string name="clear_title">ইতিহাস মুছবেন?</string>
+    <string name="clear_body">ডিভাইসে থাকা প্রশ্নের ইতিহাস মুছে যাবে। নিয়মগুলো থাকবে।</string>
+    <string name="clear_yes">মুছুন</string>
+    <string name="clear_done">%1$d সারি মুছে ফেলা হয়েছে</string>
     <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
 </resources>

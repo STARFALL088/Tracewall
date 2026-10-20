@@ -15,5 +15,13 @@
     <string name="allow_title">Allow this domain?</string>
     <string name="allow_body">%1$s will be allowed even when a category blocks it.</string>
     <string name="allow_yes">Allow</string>
+    <string name="action_copy_csv">CSV</string>
+    <string name="action_clear_history">Clear</string>
+    <string name="csv_copied">Copied %1$d rows to the clipboard</string>
+    <string name="csv_failed">Could not read the history database</string>
+    <string name="clear_title">Clear history?</string>
+    <string name="clear_body">The on-device query history will be deleted. Rules are kept.</string>
+    <string name="clear_yes">Clear</string>
+    <string name="clear_done">Cleared %1$d rows</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
 </resources>

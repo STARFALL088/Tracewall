@@ -47,6 +47,20 @@ public final class QueryLog {
             this.resolver = resolver;
         }
 
+        /** The durable form of this entry, for the Room writer. */
+        public QueryRecord toRecord() {
+            QueryRecord r = new QueryRecord();
+            r.timeMs = timeMs;
+            r.host = host;
+            r.type = type;
+            r.blocked = blocked;
+            r.uid = uid;
+            r.policy = policy;
+            r.latencyMs = latencyMs;
+            r.resolver = resolver;
+            return r;
+        }
+
         /** One line for the plain-text log view. */
         public String line() {
             String t = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date(timeMs));
