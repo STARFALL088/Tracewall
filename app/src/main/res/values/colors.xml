@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tracewall_block">#C0392B</color>
+    <color name="tracewall_allow">#7F8C8D</color>
+</resources>

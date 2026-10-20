@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tracewall</string>
+    <string name="tagline">এই ডিভাইসেই ডিএনএস ফিল্টারিং। কোনো অ্যাকাউন্ট নেই, কোনো সার্ভার নেই।</string>
+    <string name="protection">সুরক্ষা</string>
+    <string name="status_on">সুরক্ষা চালু আছে</string>
+    <string name="status_off">সুরক্ষা বন্ধ আছে</string>
+    <string name="detail">প্রশ্ন: %1$d  ·  ব্লক: %2$d  ·  নিয়ম: %3$d</string>
+    <string name="recent">সাম্প্রতিক প্রশ্ন</string>
+    <string name="last_minutes">শেষ ২০ মিনিট</string>
+    <string name="verdict_block">ব্লক</string>
+    <string name="verdict_allow">অনুমোদিত</string>
+    <string name="meta">%1$s  ·  %2$s  ·  %3$d মি.সে.</string>
+    <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d মি.সে.  ·  %4$s</string>
+    <string name="allow_title">এই ডোমেইনটি অনুমোদন করবেন?</string>
+    <string name="allow_body">কোনো ক্যাটাগরি ব্লক করলেও %1$s অনুমোদিত থাকবে।</string>
+    <string name="allow_yes">অনুমোদন</string>
+    <string name="action_copy_csv">সিএসভি</string>
+    <string name="action_clear_history">মুছুন</string>
+    <string name="csv_copied">%1$d সারি ক্লিপবোর্ডে কপি হয়েছে</string>
+    <string name="csv_failed">ইতিহাস ডাটাবেস পড়া যায়নি</string>
+    <string name="clear_title">ইতিহাস মুছবেন?</string>
+    <string name="clear_body">ডিভাইসে থাকা প্রশ্নের ইতিহাস মুছে যাবে। নিয়মগুলো থাকবে।</string>
+    <string name="clear_yes">মুছুন</string>
+    <string name="clear_done">%1$d সারি মুছে ফেলা হয়েছে</string>
+    <string name="notif_channel">সুরক্ষার অবস্থা</string>
+    <string name="notif_channel_desc">ফিল্টার চালু না থাকলে জানায়।</string>
+    <string name="notif_title">Tracewall ফিল্টার করছে না</string>
+    <string name="notif_text_restart">পুনরায় চালুর আগে সুরক্ষা চালু ছিল। চালু করতে ট্যাপ করুন।</string>
+    <string name="notif_text_off">সুরক্ষা বন্ধ আছে। Tracewall খুলতে ট্যাপ করুন।</string>
+    <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
+</resources>
