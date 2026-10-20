@@ -4,11 +4,13 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Build;
 import android.os.Looper;
 import android.widget.Toast;
 
@@ -16,6 +18,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import java.util.List;
@@ -55,6 +58,10 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final ActivityResultLauncher<String> notificationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+                    granted -> { });
+
     private final ActivityResultLauncher<Intent> consent = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -83,6 +90,11 @@ public class MainActivity extends AppCompatActivity {
             if (updatingToggle) return;
             if (checked) requestStart(); else stopFiltering();
         });
+
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this,
+                "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch("android.permission.POST_NOTIFICATIONS");
+        }
 
         ui.copyCsv.setOnClickListener(v -> copyCsv());
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());

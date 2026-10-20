@@ -23,5 +23,10 @@
     <string name="clear_body">ডিভাইসে থাকা প্রশ্নের ইতিহাস মুছে যাবে। নিয়মগুলো থাকবে।</string>
     <string name="clear_yes">মুছুন</string>
     <string name="clear_done">%1$d সারি মুছে ফেলা হয়েছে</string>
+    <string name="notif_channel">সুরক্ষার অবস্থা</string>
+    <string name="notif_channel_desc">ফিল্টার চালু না থাকলে জানায়।</string>
+    <string name="notif_title">Tracewall ফিল্টার করছে না</string>
+    <string name="notif_text_restart">পুনরায় চালুর আগে সুরক্ষা চালু ছিল। চালু করতে ট্যাপ করুন।</string>
+    <string name="notif_text_off">সুরক্ষা বন্ধ আছে। Tracewall খুলতে ট্যাপ করুন।</string>
     <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
 </resources>

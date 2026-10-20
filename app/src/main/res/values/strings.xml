@@ -23,5 +23,10 @@
     <string name="clear_body">The on-device query history will be deleted. Rules are kept.</string>
     <string name="clear_yes">Clear</string>
     <string name="clear_done">Cleared %1$d rows</string>
+    <string name="notif_channel">Protection status</string>
+    <string name="notif_channel_desc">Tells you when filtering is not running.</string>
+    <string name="notif_title">Tracewall is not filtering</string>
+    <string name="notif_text_restart">Protection was on before the restart. Tap to turn it back on.</string>
+    <string name="notif_text_off">Protection is off. Tap to open Tracewall.</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
 </resources>
