@@ -1,0 +1,22 @@
+# Gambling and betting. Kept separate from adult because a parent usually
+# wants to toggle the two independently.
+0.0.0.0 bet365.com
+0.0.0.0 1xbet.com
+0.0.0.0 betway.com
+0.0.0.0 pokerstars.com
+0.0.0.0 888casino.com
+0.0.0.0 betfair.com
+0.0.0.0 williamhill.com
+0.0.0.0 dafabet.com
+0.0.0.0 mostbet.com
+0.0.0.0 melbet.com
+0.0.0.0 parimatch.com
+0.0.0.0 stake.com
+0.0.0.0 bc.game
+0.0.0.0 roobet.com
+0.0.0.0 bitcasino.io
+0.0.0.0 betsson.com
+0.0.0.0 unibet.com
+0.0.0.0 bwin.com
+0.0.0.0 sportingbet.com
+0.0.0.0 22bet.com

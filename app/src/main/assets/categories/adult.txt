@@ -1,0 +1,22 @@
+# Adult content. A short, high-traffic seed list - the real thing is a
+# 50k+ domain feed, and this file is just evidence the category works.
+0.0.0.0 pornhub.com
+0.0.0.0 xvideos.com
+0.0.0.0 xnxx.com
+0.0.0.0 xhamster.com
+0.0.0.0 redtube.com
+0.0.0.0 youporn.com
+0.0.0.0 spankbang.com
+0.0.0.0 eporner.com
+0.0.0.0 txxx.com
+0.0.0.0 thumbzilla.com
+0.0.0.0 hqporner.com
+0.0.0.0 beeg.com
+0.0.0.0 chaturbate.com
+0.0.0.0 livejasmin.com
+0.0.0.0 bongacams.com
+0.0.0.0 stripchat.com
+0.0.0.0 brazzers.com
+0.0.0.0 onlyfans.com
+0.0.0.0 fansly.com
+0.0.0.0 literotica.com
