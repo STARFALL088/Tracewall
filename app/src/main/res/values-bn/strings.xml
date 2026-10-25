@@ -12,11 +12,17 @@
     <string name="verdict_allow">অনুমোদিত</string>
     <string name="meta">%1$s  ·  %2$s  ·  %3$d মি.সে.</string>
     <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d মি.সে.  ·  %4$s</string>
-    <string name="allow_title">এই ডোমেইনটি অনুমোদন করবেন?</string>
-    <string name="allow_body">কোনো ক্যাটাগরি ব্লক করলেও %1$s অনুমোদিত থাকবে।</string>
     <string name="allow_yes">অনুমোদন</string>
     <string name="action_copy_csv">সিএসভি</string>
     <string name="action_clear_history">মুছুন</string>
+    <string name="action_apps">অ্যাপ</string>
+    <string name="apps_title">ব্লকড অ্যাপ</string>
+    <string name="apps_count">%1$d ব্লকড</string>
+    <string name="apps_filter">ইনস্টল করা অ্যাপ খুঁজুন</string>
+    <string name="apps_empty">কোনো ইউজার অ্যাপ পাওয়া যায়নি</string>
+    <string name="row_body">%1$s এই ডোমেইনটি চেয়েছিল। অ্যাপটি ব্লক করলে তার প্রতিটি লুকআপ ব্লক হবে।</string>
+    <string name="block_app_yes">অ্যাপ ব্লক</string>
+    <string name="app_blocked_toast">%1$s ব্লক করা হয়েছে</string>
     <string name="csv_copied">%1$d সারি ক্লিপবোর্ডে কপি হয়েছে</string>
     <string name="csv_failed">ইতিহাস ডাটাবেস পড়া যায়নি</string>
     <string name="clear_title">ইতিহাস মুছবেন?</string>
@@ -29,4 +35,7 @@
     <string name="notif_text_restart">পুনরায় চালুর আগে সুরক্ষা চালু ছিল। চালু করতে ট্যাপ করুন।</string>
     <string name="notif_text_off">সুরক্ষা বন্ধ আছে। Tracewall খুলতে ট্যাপ করুন।</string>
     <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
+    <string name="private_dns_warning">⚠ প্রাইভেট ডিএনএস চালু আছে — ডিএনএস ট্র্যাফিক এই ফিল্টার এড়িয়ে যেতে পারে। সেটিংস › নেটওয়ার্ক › প্রাইভেট ডিএনএস থেকে বন্ধ করুন।</string>
+    <string name="device_code_label">ডিভাইস কোড: %1$s</string>
+    <string name="device_code_copied">ডিভাইস কোড কপি হয়েছে</string>
 </resources>

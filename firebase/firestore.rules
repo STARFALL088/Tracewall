@@ -4,10 +4,28 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // Each device's data lives under /devices/{uid}/.
-    // Only a request authenticated with that exact UID (anonymous auth from
-    // either the child or parent app) can read or write any document inside.
+    // Access is granted to:
+    //   - the child device itself (request.auth.uid == uid)
+    //   - any parent registered in the RTDB parentUid map for that child.
+    //
+    // Note: Firestore rules cannot directly query the Realtime Database, so
+    // parent access is mirrored here via a /devices/{uid}/parents/{parentUid}
+    // document that FirebaseParent.registerAsParent() writes alongside the
+    // RTDB entry.
     match /devices/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write:
+        if request.auth != null
+        && (
+          request.auth.uid == uid
+          || exists(/databases/$(database)/documents/devices/$(uid)/parents/$(request.auth.uid))
+        );
+    }
+
+    // The parents sub-collection: the child (or the parent claiming the slot)
+    // can create a document here. Only the child can delete it.
+    match /devices/{uid}/parents/{parentUid} {
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
   }

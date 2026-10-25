@@ -4,13 +4,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
-import android.net.NetworkCapabilities;
 import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,9 +24,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-
-import tracewall.child.R;
+import java.util.concurrent.atomic.AtomicBoolean;
 import tracewall.blocklist.PolicyEngine;
+import tracewall.child.R;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.HistoryWriter;
 import tracewall.child.log.QueryLog;
@@ -70,12 +69,15 @@ public class DnsVpnService extends VpnService implements Runnable {
     private static final String DNS_ADDRESS = "10.66.0.1";
 
     private static final Set<String> DEFAULT_CATEGORIES = new HashSet<>(
-            Arrays.asList("malware", "gambling", "adult", "ads"));
+        Arrays.asList("malware", "gambling", "adult", "ads")
+    );
 
-    private static volatile boolean running = false;
+    private static final AtomicBoolean running = new AtomicBoolean(false);
 
     /** True between establish() and teardown, for the UI to trust. */
-    public static boolean isRunning() { return running; }
+    public static boolean isRunning() {
+        return running.get();
+    }
 
     private final BlocklistStore blocklist = BlocklistStore.get();
     private UidAttributor uidAttributor;
@@ -90,10 +92,18 @@ public class DnsVpnService extends VpnService implements Runnable {
     private volatile boolean stop;
 
     /** Android side of the pure-JVM forwarder's binder contract. */
-    private final DnsForwarder.SocketBinder binder = new DnsForwarder.SocketBinder() {
-        @Override public void bind(DatagramSocket s) { protect(s); }
-        @Override public void bind(Socket s) { protect(s); }
-    };
+    private final DnsForwarder.SocketBinder binder =
+        new DnsForwarder.SocketBinder() {
+            @Override
+            public void bind(DatagramSocket s) {
+                protect(s);
+            }
+
+            @Override
+            public void bind(Socket s) {
+                protect(s);
+            }
+        };
 
     @Override
     public void onCreate() {
@@ -102,24 +112,38 @@ public class DnsVpnService extends VpnService implements Runnable {
         uidAttributor = new UidAttributor(this);
         HistoryWriter.get().start(this);
 
-        forwarder = new DnsForwarder(systemResolvers(),
-                DnsForwarder.DEFAULT_TIMEOUT_MS, binder);
+        forwarder = new DnsForwarder(
+            systemResolvers(),
+            DnsForwarder.DEFAULT_TIMEOUT_MS,
+            binder
+        );
         Log.i(TAG, "upstream resolvers: " + forwarder.resolvers());
 
         // Wi-Fi to mobile data is the classic way a DNS VPN silently dies: the
         // old resolvers become unroutable and every lookup times out. Following
         // the default network keeps upstream alive without restarting the tunnel.
-        ConnectivityManager cm =
-                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(
+            Context.CONNECTIVITY_SERVICE
+        );
         if (cm != null) {
             networkCallback = new ConnectivityManager.NetworkCallback() {
-                @Override public void onAvailable(Network network) { refreshUpstream(); }
-                @Override public void onLost(Network network) { refreshUpstream(); }
+                @Override
+                public void onAvailable(Network network) {
+                    refreshUpstream();
+                }
+
+                @Override
+                public void onLost(Network network) {
+                    refreshUpstream();
+                }
             };
             try {
                 cm.registerDefaultNetworkCallback(networkCallback);
             } catch (RuntimeException e) {
-                Log.w(TAG, "cannot watch the default network: " + e.getMessage());
+                Log.w(
+                    TAG,
+                    "cannot watch the default network: " + e.getMessage()
+                );
             }
         }
     }
@@ -137,7 +161,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     }
 
     private synchronized void startTunnel() {
-        if (tunThread != null) return;         // already up or starting
+        if (tunThread != null) return; // already up or starting
         stop = false;
         tunThread = new Thread(this, "tracewall-tun");
         tunThread.start();
@@ -166,7 +190,7 @@ public class DnsVpnService extends VpnService implements Runnable {
                 return;
             }
             tunOut = new FileOutputStream(tun.getFileDescriptor());
-            running = true;
+            running.set(true);
             BlocklistStore.setEnabled(this, true);
             Log.i(TAG, "tunnel up: " + blocklist.summary());
             loop();
@@ -182,17 +206,26 @@ public class DnsVpnService extends VpnService implements Runnable {
         byte[] buf = new byte[32767];
         while (!stop) {
             int n = in.read(buf);
-            if (n < 0) break;                  // fd closed by teardown
+            if (n < 0) break; // fd closed by teardown
             if (n == 0) continue;
 
             final IpPacket pkt = IpPacket.parse(buf, 0, n);
-            if (pkt == null || !pkt.isUdp() || pkt.dstPort() != IpPacket.PORT_DNS) {
-                continue;                      // nothing else is routed here
+            if (
+                pkt == null ||
+                !pkt.isUdp() ||
+                pkt.dstPort() != IpPacket.PORT_DNS
+            ) {
+                continue; // nothing else is routed here
             }
             try {
-                workers.execute(new Runnable() {
-                    @Override public void run() { handle(pkt); }
-                });
+                workers.execute(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            handle(pkt);
+                        }
+                    }
+                );
             } catch (RejectedExecutionException ignored) {
                 // shutting down; drop the packet
             }
@@ -209,7 +242,8 @@ public class DnsVpnService extends VpnService implements Runnable {
         String host = q.qName();
         // Attribution first: a blocked query is never forwarded, so there is
         // no later point at which the socket still exists to look up.
-        int uid = uidAttributor == null
+        int uid =
+            uidAttributor == null
                 ? UidAttributor.UNKNOWN_UID
                 : uidAttributor.resolve(pkt.srcIpBytes(), pkt.srcPort());
         PolicyEngine.Decision decision = blocklist.decide(host, uid);
@@ -218,29 +252,41 @@ public class DnsVpnService extends VpnService implements Runnable {
         String resolver = "local";
 
         if (blocked) {
-            answer = DnsMessage.buildAResponse(q, new byte[] {0, 0, 0, 0});
+            answer = DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 });
         } else {
             try {
-                int wireId = forwarder.nextId();          // our id, not the client's
+                int wireId = forwarder.nextId(); // our id, not the client's
                 DnsForwarder.Reply r = forwarder.forward(query, wireId);
                 answer = DnsMessage.normalizeResponse(r.bytes, q.id(), false);
                 resolver = r.resolver;
             } catch (DnsForwarder.ForwardException e) {
                 Log.w(TAG, "forward " + host + ": " + e.getMessage());
-                answer = DnsMessage.buildServFail(q);     // fail fast, do not retry-loop
+                answer = DnsMessage.buildServFail(q); // fail fast, do not retry-loop
                 resolver = "servfail";
             }
         }
         if (answer == null) return;
 
-        byte[] reply = pkt.buildResponse(pkt.dstIpBytes(), pkt.srcIpBytes(),
-                answer, pkt.identification());
+        byte[] reply = pkt.buildResponse(
+            pkt.dstIpBytes(),
+            pkt.srcIpBytes(),
+            answer,
+            pkt.identification()
+        );
         if (reply == null) return;
         write(reply);
 
-        QueryLog.Entry entry = new QueryLog.Entry(System.currentTimeMillis(), host,
-                q.qType(), blocked, pkt.srcPort(), uid, decision.reason,
-                (System.nanoTime() - t0) / 1_000_000L, resolver);
+        QueryLog.Entry entry = new QueryLog.Entry(
+            System.currentTimeMillis(),
+            host,
+            q.qType(),
+            blocked,
+            pkt.srcPort(),
+            uid,
+            decision.reason,
+            (System.nanoTime() - t0) / 1_000_000L,
+            resolver
+        );
         QueryLog.get().add(entry);
         HistoryWriter.get().offer(entry.toRecord());
     }
@@ -258,15 +304,19 @@ public class DnsVpnService extends VpnService implements Runnable {
 
     private void teardown() {
         stop = true;
-        running = false;
+        running.set(false);
         synchronized (writeLock) {
             if (tunOut != null) {
-                try { tunOut.close(); } catch (IOException ignored) { }
+                try {
+                    tunOut.close();
+                } catch (IOException ignored) {}
                 tunOut = null;
             }
         }
         if (tun != null) {
-            try { tun.close(); } catch (IOException ignored) { }
+            try {
+                tun.close();
+            } catch (IOException ignored) {}
             tun = null;
         }
         tunThread = null;
@@ -275,18 +325,22 @@ public class DnsVpnService extends VpnService implements Runnable {
 
     @Override
     public void onRevoke() {
-        Log.i(TAG, "permission revoked - another VPN took over, or the user said no");
+        Log.i(
+            TAG,
+            "permission revoked - another VPN took over, or the user said no"
+        );
         stopSelf();
     }
 
     @Override
     public void onDestroy() {
         stop = true;
-        running = false;
+        running.set(false);
         if (networkCallback != null) {
             try {
-                ConnectivityManager cm =
-                        (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+                ConnectivityManager cm = (ConnectivityManager) getSystemService(
+                    Context.CONNECTIVITY_SERVICE
+                );
                 if (cm != null) cm.unregisterNetworkCallback(networkCallback);
             } catch (RuntimeException ignored) {
                 // already unregistered, or the process is going away
@@ -296,7 +350,9 @@ public class DnsVpnService extends VpnService implements Runnable {
         if (workers != null) workers.shutdownNow();
         if (forwarder != null) forwarder.close();
         if (tun != null) {
-            try { tun.close(); } catch (IOException ignored) { }
+            try {
+                tun.close();
+            } catch (IOException ignored) {}
             tun = null;
         }
         super.onDestroy();
@@ -315,21 +371,31 @@ public class DnsVpnService extends VpnService implements Runnable {
     private List<String> systemResolvers() {
         List<String> out = new ArrayList<>();
         try {
-            ConnectivityManager cm =
-                    (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager cm = (ConnectivityManager) getSystemService(
+                Context.CONNECTIVITY_SERVICE
+            );
             if (cm == null) return out;
             for (Network net : cm.getAllNetworks()) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(net);
-                if (caps == null || caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) continue;
+                if (
+                    caps == null ||
+                    caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                ) continue;
                 LinkProperties lp = cm.getLinkProperties(net);
                 if (lp == null) continue;
                 for (InetAddress a : lp.getDnsServers()) {
-                    if (a == null || a.isLoopbackAddress() || a.isLinkLocalAddress()) continue;
+                    if (
+                        a == null ||
+                        a.isLoopbackAddress() ||
+                        a.isLinkLocalAddress()
+                    ) continue;
                     String host = a.getHostAddress();
-                    if (DNS_ADDRESS.equals(host) || out.contains(host)) continue;
+                    if (
+                        DNS_ADDRESS.equals(host) || out.contains(host)
+                    ) continue;
                     out.add(host);
                 }
-                if (!out.isEmpty()) break;      // first connected physical network wins
+                if (!out.isEmpty()) break; // first connected physical network wins
             }
         } catch (RuntimeException e) {
             Log.w(TAG, "cannot read system resolvers: " + e.getMessage());
@@ -342,7 +408,11 @@ public class DnsVpnService extends VpnService implements Runnable {
         List<String> resolvers = systemResolvers();
         if (resolvers.isEmpty()) return;
         DnsForwarder old = forwarder;
-        forwarder = new DnsForwarder(resolvers, DnsForwarder.DEFAULT_TIMEOUT_MS, binder);
+        forwarder = new DnsForwarder(
+            resolvers,
+            DnsForwarder.DEFAULT_TIMEOUT_MS,
+            binder
+        );
         if (old != null) old.close();
         Log.i(TAG, "upstream resolvers refreshed: " + resolvers);
     }

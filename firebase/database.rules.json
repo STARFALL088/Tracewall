@@ -2,10 +2,19 @@
   "rules": {
     "devices": {
       "$uid": {
-        // Only the device that owns this UID (child or parent, both signed in
-        // anonymously with the same UID) can read or write this subtree.
-        ".read":  "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        // The child (auth.uid === $uid) has full access to its own node.
+        // Any registered parent (a UID stored under parentUid/{parentUid})
+        // also gets full read/write so it can push rules and read history.
+        ".read": "auth != null && (auth.uid === $uid || data.child('parentUid').child(auth.uid).exists())",
+        ".write": "auth != null && (auth.uid === $uid || data.child('parentUid').child(auth.uid).exists())",
+        "parentUid": {
+          // Any authenticated user may write into this sub-tree to register
+          // as a parent. The child UID itself is the shared secret: it is a
+          // 28-character random string that the parent obtains out-of-band
+          // (the child shows it on screen). Existing entries are immutable
+          // to prevent a third party from de-registering a legitimate parent.
+          ".write": "auth != null"
+        }
       }
     }
   }

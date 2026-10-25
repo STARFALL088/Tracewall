@@ -24,6 +24,29 @@
         android:text="@string/tagline"
         android:textSize="13sp" />
 
+    <!-- Shown only when Private DNS / DoH is active and may bypass the filter. -->
+    <TextView
+        android:id="@+id/privateDnsWarning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="#FFF3CD"
+        android:padding="8dp"
+        android:text="@string/private_dns_warning"
+        android:textColor="#664D03"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <!-- Tapping copies the full UID to the clipboard for pairing with the parent app. -->
+    <TextView
+        android:id="@+id/deviceCode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="?attr/selectableItemBackground"
+        android:textSize="11sp"
+        android:visibility="gone" />
+
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/toggle"
         android:layout_width="match_parent"
@@ -62,6 +85,18 @@
             android:text="@string/last_minutes"
             android:textSize="13sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/actionApps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:paddingStart="10dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="6dp"
+            android:text="@string/action_apps"
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/copyCsv"

@@ -12,11 +12,17 @@
     <string name="verdict_allow">allow</string>
     <string name="meta">%1$s  ·  %2$s  ·  %3$d ms</string>
     <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d ms  ·  %4$s</string>
-    <string name="allow_title">Allow this domain?</string>
-    <string name="allow_body">%1$s will be allowed even when a category blocks it.</string>
     <string name="allow_yes">Allow</string>
     <string name="action_copy_csv">CSV</string>
     <string name="action_clear_history">Clear</string>
+    <string name="action_apps">Apps</string>
+    <string name="apps_title">Blocked apps</string>
+    <string name="apps_count">%1$d blocked</string>
+    <string name="apps_filter">Search installed apps</string>
+    <string name="apps_empty">No user-installed apps found</string>
+    <string name="row_body">%1$s asked for this domain. Blocking the app sinks every lookup from it.</string>
+    <string name="block_app_yes">Block app</string>
+    <string name="app_blocked_toast">%1$s is blocked</string>
     <string name="csv_copied">Copied %1$d rows to the clipboard</string>
     <string name="csv_failed">Could not read the history database</string>
     <string name="clear_title">Clear history?</string>
@@ -29,4 +35,7 @@
     <string name="notif_text_restart">Protection was on before the restart. Tap to turn it back on.</string>
     <string name="notif_text_off">Protection is off. Tap to open Tracewall.</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
+    <string name="private_dns_warning">⚠ Private DNS is active — DNS traffic may bypass this filter. Disable it in Settings › Network › Private DNS.</string>
+    <string name="device_code_label">Device code: %1$s</string>
+    <string name="device_code_copied">Device code copied</string>
 </resources>
