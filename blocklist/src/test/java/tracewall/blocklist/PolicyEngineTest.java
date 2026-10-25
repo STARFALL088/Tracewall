@@ -79,6 +79,15 @@ class PolicyEngineTest {
     }
 
     @Test
+    void isAppBlockedAnswersOnlyForTheBlockedSet() {
+        PolicyEngine p = new PolicyEngine(null, null,
+                new HashSet<>(Arrays.asList(10123)));
+        assertTrue(p.isAppBlocked(10123));
+        assertFalse(p.isAppBlocked(10124));    // a sibling uid stays free
+        assertFalse(p.isAppBlocked(-1));       // unknown uid can never be blocked
+    }
+
+    @Test
     void unknownUidDoesNotMatchAPerAppBlock() {
         Set<Integer> blockedApps = new HashSet<>(Arrays.asList(10123));
         PolicyEngine p = new PolicyEngine(null, null, blockedApps);

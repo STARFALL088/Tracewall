@@ -90,6 +90,11 @@ public final class PolicyEngine {
         return n;
     }
 
+    /** Does this uid sit in the per-app block set? Nothing matches on it. */
+    public boolean isAppBlocked(int uid) {
+        return blockedApps.contains(uid);
+    }
+
     public int categoryCount() { return categories.size(); }
 
     public int allowCount() { return allowList.size(); }

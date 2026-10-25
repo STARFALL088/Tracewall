@@ -31,16 +31,16 @@ public final class QueryAdapter extends RecyclerView.Adapter<QueryAdapter.Holder
     private final List<QueryLog.Entry> items = new ArrayList<>();
     private final SimpleDateFormat clock = new SimpleDateFormat("HH:mm:ss", Locale.US);
     private final AppLabels labels;
-    private final OnAllow onAllow;
+    private final OnRowAction onRow;
 
-    /** Long-press on a blocked row offers to allow that host. */
-    public interface OnAllow {
-        void allow(String host);
+    /** Long-press on any row: the screen decides allow-host vs block-app. */
+    public interface OnRowAction {
+        void act(QueryLog.Entry entry);
     }
 
-    public QueryAdapter(AppLabels labels, OnAllow onAllow) {
+    public QueryAdapter(AppLabels labels, OnRowAction onRow) {
         this.labels = labels;
-        this.onAllow = onAllow;
+        this.onRow = onRow;
     }
 
     public void submit(List<QueryLog.Entry> next) {
@@ -75,8 +75,8 @@ public final class QueryAdapter extends RecyclerView.Adapter<QueryAdapter.Holder
                         DnsMessage.typeName(e.type), labels.label(e.uid), e.latencyMs));
 
         h.b.getRoot().setOnLongClickListener(v -> {
-            if (!e.blocked || onAllow == null) return false;
-            onAllow.allow(e.host);
+            if (onRow == null) return false;
+            onRow.act(e);
             return true;
         });
         h.b.time.setText(clock.format(new Date(e.timeMs)));
