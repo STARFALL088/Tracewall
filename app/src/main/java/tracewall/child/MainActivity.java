@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
@@ -14,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -21,6 +23,9 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.common.BitMatrix;
 import java.util.List;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.databinding.ActivityMainBinding;
@@ -121,7 +126,11 @@ public class MainActivity extends AppCompatActivity {
         );
         ui.copyCsv.setOnClickListener(v -> copyCsv());
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
-        ui.deviceCode.setOnClickListener(v -> copyDeviceCode());
+        ui.deviceCode.setOnClickListener(v -> showQrDialog());
+        ui.deviceCode.setOnLongClickListener(v -> {
+            copyDeviceCode();
+            return true;
+        });
 
         if (savedInstanceState == null) QueryLog.get().clear();
         render();
@@ -170,6 +179,45 @@ public class MainActivity extends AppCompatActivity {
         ui.deviceCode.setVisibility(View.VISIBLE);
     }
 
+    /** Tap: show the UID as a QR code the parent can scan directly. */
+    private void showQrDialog() {
+        String uid = FirebaseSync.get().uid();
+        if (uid == null) return;
+        try {
+            int size = 512;
+            BitMatrix matrix = new MultiFormatWriter().encode(
+                uid,
+                BarcodeFormat.QR_CODE,
+                size,
+                size
+            );
+            int[] pixels = new int[size * size];
+            for (int y = 0; y < size; y++) for (
+                int x = 0;
+                x < size;
+                x++
+            ) pixels[y * size + x] = matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF;
+            Bitmap bmp = Bitmap.createBitmap(
+                pixels,
+                size,
+                size,
+                Bitmap.Config.ARGB_8888
+            );
+            ImageView iv = new ImageView(this);
+            iv.setImageBitmap(bmp);
+            iv.setPadding(32, 32, 32, 32);
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.qr_title)
+                .setView(iv)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+        } catch (Exception e) {
+            android.util.Log.e("Tracewall", "QR generation failed", e);
+            copyDeviceCode(); // fall back to clipboard
+        }
+    }
+
+    /** Long-press: copy the full UID to the clipboard as plain text. */
     private void copyDeviceCode() {
         String uid = FirebaseSync.get().uid();
         if (uid == null) return;

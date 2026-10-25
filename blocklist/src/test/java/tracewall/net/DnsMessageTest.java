@@ -1,13 +1,13 @@
 package tracewall.net;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
 
 class DnsMessageTest {
 
@@ -16,13 +16,20 @@ class DnsMessageTest {
         byte[] n = DnsMessage.encodeName(name);
         byte[] out = new byte[DnsMessage.HEADER_LEN + n.length + 4];
         int p = 0;
-        DnsMessage.putU16(out, p, id); p += 2;
-        DnsMessage.putU16(out, p, DnsMessage.FLAGS_RD); p += 2;
-        DnsMessage.putU16(out, p, 1); p += 2;   // QDCOUNT
-        DnsMessage.putU16(out, p, 0); p += 2;   // ANCOUNT
-        DnsMessage.putU16(out, p, 0); p += 2;   // NSCOUNT
-        DnsMessage.putU16(out, p, 0); p += 2;   // ARCOUNT
-        System.arraycopy(n, 0, out, p, n.length); p += n.length;
+        DnsMessage.putU16(out, p, id);
+        p += 2;
+        DnsMessage.putU16(out, p, DnsMessage.FLAGS_RD);
+        p += 2;
+        DnsMessage.putU16(out, p, 1);
+        p += 2; // QDCOUNT
+        DnsMessage.putU16(out, p, 0);
+        p += 2; // ANCOUNT
+        DnsMessage.putU16(out, p, 0);
+        p += 2; // NSCOUNT
+        DnsMessage.putU16(out, p, 0);
+        p += 2; // ARCOUNT
+        System.arraycopy(n, 0, out, p, n.length);
+        p += n.length;
         DnsMessage.putU16(out, p, type);
         DnsMessage.putU16(out, p + 2, DnsMessage.CLASS_IN);
         return out;
@@ -30,7 +37,9 @@ class DnsMessageTest {
 
     @Test
     void parsesASimpleQuery() {
-        DnsMessage m = DnsMessage.parse(query(0x1234, "example.com", DnsMessage.TYPE_A));
+        DnsMessage m = DnsMessage.parse(
+            query(0x1234, "example.com", DnsMessage.TYPE_A)
+        );
         assertNotNull(m);
         assertEquals(0x1234, m.id());
         assertEquals("example.com", m.qName());
@@ -44,7 +53,7 @@ class DnsMessageTest {
     @Test
     void qdCountZeroYieldsHeaderOnly() {
         byte[] q = query(1, "example.com", DnsMessage.TYPE_A);
-        DnsMessage.putU16(q, 4, 0);          // QDCOUNT = 0
+        DnsMessage.putU16(q, 4, 0); // QDCOUNT = 0
         DnsMessage m = DnsMessage.parse(q);
         assertNotNull(m);
         assertNull(m.qName());
@@ -96,13 +105,24 @@ class DnsMessageTest {
         byte[] n = DnsMessage.encodeName("example.com");
         byte[] out = new byte[DnsMessage.HEADER_LEN + n.length + 4 + 16];
         int p = 0;
-        DnsMessage.putU16(out, p, 0x4242); p += 2;
-        DnsMessage.putU16(out, p, DnsMessage.FLAGS_QR | DnsMessage.FLAGS_RD | DnsMessage.FLAGS_RA); p += 2;
-        DnsMessage.putU16(out, p, 1); p += 2;
-        DnsMessage.putU16(out, p, 1); p += 2;   // one answer
-        DnsMessage.putU16(out, p, 0); p += 2;
-        DnsMessage.putU16(out, p, 0); p += 2;
-        System.arraycopy(n, 0, out, p, n.length); p += n.length;
+        DnsMessage.putU16(out, p, 0x4242);
+        p += 2;
+        DnsMessage.putU16(
+            out,
+            p,
+            DnsMessage.FLAGS_QR | DnsMessage.FLAGS_RD | DnsMessage.FLAGS_RA
+        );
+        p += 2;
+        DnsMessage.putU16(out, p, 1);
+        p += 2;
+        DnsMessage.putU16(out, p, 1);
+        p += 2; // one answer
+        DnsMessage.putU16(out, p, 0);
+        p += 2;
+        DnsMessage.putU16(out, p, 0);
+        p += 2;
+        System.arraycopy(n, 0, out, p, n.length);
+        p += n.length;
         DnsMessage.putU16(out, p, DnsMessage.TYPE_A);
         DnsMessage.putU16(out, p, DnsMessage.CLASS_IN);
         p += 4;
@@ -110,13 +130,20 @@ class DnsMessageTest {
         int ptrOff = p;
         out[p++] = (byte) 0xC0;
         out[p++] = (byte) 0x0C;
-        DnsMessage.putU16(out, p, DnsMessage.TYPE_A); p += 2;
-        DnsMessage.putU16(out, p, DnsMessage.CLASS_IN); p += 2;
-        DnsMessage.putU16(out, p, 0x0000); p += 2;   // TTL high
-        DnsMessage.putU16(out, p, 0x003C); p += 2;   // TTL low = 60
-        DnsMessage.putU16(out, p, 4); p += 2;        // RDLENGTH
-        out[p++] = (byte) 93; out[p++] = (byte) 184;
-        out[p++] = (byte) 216; out[p++] = (byte) 34;
+        DnsMessage.putU16(out, p, DnsMessage.TYPE_A);
+        p += 2;
+        DnsMessage.putU16(out, p, DnsMessage.CLASS_IN);
+        p += 2;
+        DnsMessage.putU16(out, p, 0x0000);
+        p += 2; // TTL high
+        DnsMessage.putU16(out, p, 0x003C);
+        p += 2; // TTL low = 60
+        DnsMessage.putU16(out, p, 4);
+        p += 2; // RDLENGTH
+        out[p++] = (byte) 93;
+        out[p++] = (byte) 184;
+        out[p++] = (byte) 216;
+        out[p++] = (byte) 34;
 
         DnsMessage m = DnsMessage.parse(out);
         assertNotNull(m);
@@ -135,7 +162,7 @@ class DnsMessageTest {
         DnsMessage.putU16(out, 2, DnsMessage.FLAGS_RD);
         DnsMessage.putU16(out, 4, 1);
         out[p] = (byte) 0xC0;
-        out[p + 1] = (byte) 0x0C;      // points at itself
+        out[p + 1] = (byte) 0x0C; // points at itself
         out[p + 2] = (byte) 0xC0;
         out[p + 3] = (byte) 0x0C;
         assertNull(DnsMessage.parse(out));
@@ -150,7 +177,7 @@ class DnsMessageTest {
         DnsMessage.putU16(out, 4, 1);
         int p = DnsMessage.HEADER_LEN;
         out[p] = (byte) 0xC0;
-        out[p + 1] = (byte) 0x20;      // forward
+        out[p + 1] = (byte) 0x20; // forward
         assertNull(DnsMessage.parse(out));
     }
 
@@ -166,7 +193,11 @@ class DnsMessageTest {
     @Test
     void rCodeIsRead() {
         byte[] q = query(1, "example.com", DnsMessage.TYPE_A);
-        DnsMessage.putU16(q, 2, DnsMessage.FLAGS_QR | DnsMessage.RCODE_NXDOMAIN);
+        DnsMessage.putU16(
+            q,
+            2,
+            DnsMessage.FLAGS_QR | DnsMessage.RCODE_NXDOMAIN
+        );
         DnsMessage m = DnsMessage.parse(q);
         assertNotNull(m);
         assertEquals(DnsMessage.RCODE_NXDOMAIN, m.rCode());
@@ -176,20 +207,29 @@ class DnsMessageTest {
 
     @Test
     void blockResponseIsZeroedAddressWithZeroTtl() {
-        DnsMessage q = DnsMessage.parse(query(0xAAAA, "ads.example.com", DnsMessage.TYPE_A));
-        byte[] r = DnsMessage.buildAResponse(q, new byte[] {0, 0, 0, 0});
+        DnsMessage q = DnsMessage.parse(
+            query(0xAAAA, "ads.example.com", DnsMessage.TYPE_A)
+        );
+        byte[] r = DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 });
         assertNotNull(r);
         DnsMessage m = DnsMessage.parse(r);
         assertNotNull(m);
         assertTrue(m.isResponse());
-        assertEquals(0xAAAA, m.id(), "client's transaction id must be preserved");
+        assertEquals(
+            0xAAAA,
+            m.id(),
+            "client's transaction id must be preserved"
+        );
         assertEquals("ads.example.com", m.qName());
         assertEquals(DnsMessage.RCODE_NOERROR, m.rCode());
         assertEquals(1, m.anCount(), "exactly one A record");
-        assertTrue((m.flags() & DnsMessage.FLAGS_RD) != 0, "RD copied from the query");
+        assertTrue(
+            (m.flags() & DnsMessage.FLAGS_RD) != 0,
+            "RD copied from the query"
+        );
         assertTrue((m.flags() & DnsMessage.FLAGS_RA) != 0, "RA set");
         // TTL must be 0 in both halves.
-        int ttlOff = r.length - 4 - 4 - 6;    // back from RDLEN + rdata end
+        int ttlOff = r.length - 4 - 4 - 6; // back from RDLEN + rdata end
         assertEquals(0, DnsMessage.u16(r, ttlOff + 4));
         assertEquals(0, DnsMessage.u16(r, ttlOff + 5));
         assertEquals(0, r[r.length - 1], "address must be 0.0.0.0");
@@ -197,8 +237,15 @@ class DnsMessageTest {
 
     @Test
     void blockResponseIsTheSameLengthAsARealOne() {
-        DnsMessage q = DnsMessage.parse(query(1, "a.example", DnsMessage.TYPE_A));
-        byte[] blocked = DnsMessage.buildAResponse(q, new byte[] {0, 0, 0, 0});
+        DnsMessage q = DnsMessage.parse(
+            query(1, "a.example", DnsMessage.TYPE_A)
+        );
+        byte[] blocked = DnsMessage.buildAResponse(q, new byte[] {
+            0,
+            0,
+            0,
+            0,
+        });
         assertNotNull(blocked);
         int nameLen = DnsMessage.encodeName("a.example").length;
         int expected = DnsMessage.HEADER_LEN + nameLen + 4 + (nameLen + 10 + 4);
@@ -207,7 +254,9 @@ class DnsMessageTest {
 
     @Test
     void emptyResponseCarriesNoAnswers() {
-        DnsMessage q = DnsMessage.parse(query(7, "blocked.test", DnsMessage.TYPE_AAAA));
+        DnsMessage q = DnsMessage.parse(
+            query(7, "blocked.test", DnsMessage.TYPE_AAAA)
+        );
         byte[] r = DnsMessage.buildEmptyResponse(q);
         DnsMessage m = DnsMessage.parse(r);
         assertNotNull(m);
@@ -218,7 +267,9 @@ class DnsMessageTest {
 
     @Test
     void nxDomainResponseCarriesNxDomain() {
-        DnsMessage q = DnsMessage.parse(query(9, "nope.test", DnsMessage.TYPE_A));
+        DnsMessage q = DnsMessage.parse(
+            query(9, "nope.test", DnsMessage.TYPE_A)
+        );
         DnsMessage m = DnsMessage.parse(DnsMessage.buildNxDomain(q));
         assertNotNull(m);
         assertEquals(DnsMessage.RCODE_NXDOMAIN, m.rCode());
@@ -227,7 +278,9 @@ class DnsMessageTest {
 
     @Test
     void servFailResponseCarriesServFail() {
-        DnsMessage q = DnsMessage.parse(query(11, "timeout.test", DnsMessage.TYPE_A));
+        DnsMessage q = DnsMessage.parse(
+            query(11, "timeout.test", DnsMessage.TYPE_A)
+        );
         DnsMessage m = DnsMessage.parse(DnsMessage.buildServFail(q));
         assertNotNull(m);
         assertEquals(DnsMessage.RCODE_SERVFAIL, m.rCode());
@@ -235,7 +288,9 @@ class DnsMessageTest {
 
     @Test
     void refusedResponseCarriesRefused() {
-        DnsMessage q = DnsMessage.parse(query(13, "refused.test", DnsMessage.TYPE_A));
+        DnsMessage q = DnsMessage.parse(
+            query(13, "refused.test", DnsMessage.TYPE_A)
+        );
         DnsMessage m = DnsMessage.parse(DnsMessage.buildRefused(q));
         assertNotNull(m);
         assertEquals(DnsMessage.RCODE_REFUSED, m.rCode());
@@ -266,14 +321,19 @@ class DnsMessageTest {
     @Test
     void normalizeRewritesIdAndSetsFlags() {
         byte[] upstream = DnsMessage.buildAResponse(
-                DnsMessage.parse(query(0x1111, "x.test", DnsMessage.TYPE_A)), new byte[4]);
+            DnsMessage.parse(query(0x1111, "x.test", DnsMessage.TYPE_A)),
+            new byte[4]
+        );
         byte[] fixed = DnsMessage.normalizeResponse(upstream, 0x2222, true);
         assertNotNull(fixed);
         DnsMessage m = DnsMessage.parse(fixed);
         assertEquals(0x2222, m.id());
         assertTrue(m.isResponse());
         assertTrue((m.flags() & DnsMessage.FLAGS_RA) != 0);
-        assertFalse(m.isTruncated(), "TC cleared when we completed it over TCP");
+        assertFalse(
+            m.isTruncated(),
+            "TC cleared when we completed it over TCP"
+        );
         // The original must not be mutated - it may still be in a socket buffer.
         assertEquals(0x1111, DnsMessage.u16(upstream, 0));
     }
@@ -282,7 +342,9 @@ class DnsMessageTest {
     void normalizeKeepsTruncatedWhenNotOverTcp() {
         byte[] upstream = new byte[DnsMessage.HEADER_LEN];
         DnsMessage.putU16(upstream, 2, DnsMessage.FLAGS_TC);
-        DnsMessage m = DnsMessage.parse(DnsMessage.normalizeResponse(upstream, 1, false));
+        DnsMessage m = DnsMessage.parse(
+            DnsMessage.normalizeResponse(upstream, 1, false)
+        );
         assertTrue(m.isTruncated());
     }
 
@@ -300,29 +362,37 @@ class DnsMessageTest {
         assertNotNull(DnsMessage.encodeName("."));
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 64; i++) sb.append('a');
-        assertNull(DnsMessage.encodeName(sb.toString() + ".test"), "label over 63 chars");
+        assertNull(
+            DnsMessage.encodeName(sb.toString() + ".test"),
+            "label over 63 chars"
+        );
     }
 
     @Test
     void encodeNameAcceptsTrailingDotAndRoot() {
-        assertArrayEquals(DnsMessage.encodeName("example.com"),
-                DnsMessage.encodeName("example.com."));
-        assertArrayEquals(new byte[] {0}, DnsMessage.encodeName("."));
+        assertArrayEquals(
+            DnsMessage.encodeName("example.com"),
+            DnsMessage.encodeName("example.com.")
+        );
+        assertArrayEquals(new byte[] { 0 }, DnsMessage.encodeName("."));
     }
 
     @Test
     void typeNamesAreHumanReadable() {
         assertEquals("A", DnsMessage.typeName(DnsMessage.TYPE_A));
         assertEquals("AAAA", DnsMessage.typeName(DnsMessage.TYPE_AAAA));
-        assertEquals("T65", DnsMessage.typeName(65));
+        assertEquals("SVCB", DnsMessage.typeName(DnsMessage.TYPE_SVCB));
+        assertEquals("HTTPS", DnsMessage.typeName(DnsMessage.TYPE_HTTPS));
         assertEquals("T99", DnsMessage.typeName(99));
     }
 
     @Test
     void roundTripThroughEncodeAndParse() {
         String[] names = {
-                "a.test", "x.y.z.example.co.uk", "very-long-label-that-is-fine.test",
-                "1.2.3.4.test",
+            "a.test",
+            "x.y.z.example.co.uk",
+            "very-long-label-that-is-fine.test",
+            "1.2.3.4.test",
         };
         for (String n : names) {
             DnsMessage m = DnsMessage.parse(query(1, n, DnsMessage.TYPE_A));

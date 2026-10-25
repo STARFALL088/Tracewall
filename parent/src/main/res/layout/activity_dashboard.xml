@@ -62,11 +62,60 @@
         android:layout_marginTop="4dp"
         android:text="@string/dashboard_block_button" />
 
+    <!-- Category toggles -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/dashboard_categories"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/catMalware"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="@string/cat_malware" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/catGambling"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="@string/cat_gambling" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/catAdult"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="@string/cat_adult" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/catAds"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="@string/cat_ads" />
+
+    </LinearLayout>
+
     <!-- History -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="16dp"
         android:text="@string/dashboard_history"
         android:textSize="13sp"
         android:textStyle="bold" />

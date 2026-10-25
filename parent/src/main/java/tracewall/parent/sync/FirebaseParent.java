@@ -141,46 +141,62 @@ public class FirebaseParent {
     // ---------------------------------------------------------------- rules
 
     /**
-     * Push a new rule set to the child device. Replaces the entire
-     * {@code /devices/{childUid}/rules} node; the child's
-     * {@code BlocklistStore} reloads atomically when the snapshot arrives.
-     *
-     * <p>The {@code allow} list and {@code blockedUids} list are stored as
-     * Firebase integer-keyed objects (Firebase does not have native arrays).
-     *
-     * @param childUid   the paired child's UID
-     * @param allow      domains to allow through every category
-     * @param blockedUids Android UIDs whose DNS traffic should be sunk
+     * Push allow-list and blocked-UID rules to the child device.
+     * Uses {@code updateChildren} so that a concurrent {@link #pushCategories}
+     * call on the same node is not overwritten.
      */
     public void pushRules(
         @NonNull String childUid,
         @NonNull List<String> allow,
         @NonNull List<Integer> blockedUids
     ) {
-        Map<String, Object> rules = new HashMap<>();
-
         Map<String, Object> allowMap = new HashMap<>();
         for (int i = 0; i < allow.size(); i++) allowMap.put(
             String.valueOf(i),
             allow.get(i)
         );
-        rules.put("allow", allowMap);
 
         Map<String, Object> uidsMap = new HashMap<>();
         for (int i = 0; i < blockedUids.size(); i++) uidsMap.put(
             String.valueOf(i),
             blockedUids.get(i).longValue()
         );
-        rules.put("blocked_uids", uidsMap);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("allow", allowMap);
+        updates.put("blocked_uids", uidsMap);
 
         db.getReference("devices")
             .child(childUid)
             .child("rules")
-            .setValue(rules)
+            .updateChildren(updates)
             .addOnSuccessListener(v ->
                 Log.i(TAG, "rules pushed to " + childUid)
             )
             .addOnFailureListener(e -> Log.e(TAG, "rule push failed", e));
+    }
+
+    /**
+     * Push category toggles to the child device.
+     * The child's {@code BlocklistStore} reloads with only the enabled
+     * categories when the snapshot arrives.
+     *
+     * @param childUid   the paired child's UID
+     * @param categories map of category name → enabled; e.g. {"ads": false}
+     */
+    public void pushCategories(
+        @NonNull String childUid,
+        @NonNull Map<String, Boolean> categories
+    ) {
+        db.getReference("devices")
+            .child(childUid)
+            .child("rules")
+            .child("categories")
+            .setValue(categories)
+            .addOnSuccessListener(v ->
+                Log.i(TAG, "categories pushed to " + childUid)
+            )
+            .addOnFailureListener(e -> Log.e(TAG, "category push failed", e));
     }
 
     // -------------------------------------------------------------- history

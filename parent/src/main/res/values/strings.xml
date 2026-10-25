@@ -4,9 +4,11 @@
 
     <!-- Pairing screen -->
     <string name="pairing_title">Connect to a child device</string>
-    <string name="pairing_body">Enter the device code shown on the child\'s Tracewall screen.</string>
+    <string name="pairing_body">Enter the device code shown on the child\'s Tracewall screen, or tap Scan QR to read it automatically.</string>
     <string name="pairing_hint">Device code (child\'s Firebase UID)</string>
     <string name="pairing_connect">Connect</string>
+    <string name="pairing_scan">Scan QR Code</string>
+    <string name="pairing_scan_prompt">Point the camera at the child\'s QR code</string>
     <string name="pairing_uid_empty">Please enter the device code</string>
     <string name="pairing_failed">Could not connect. Check the code and try again.</string>
 
@@ -16,6 +18,12 @@
     <string name="dashboard_allow_button">Push Allow Rule</string>
     <string name="dashboard_block_hint">App UID to block</string>
     <string name="dashboard_block_button">Push Block Rule</string>
+    <string name="dashboard_categories">Blocked categories</string>
+    <string name="cat_malware">Malware</string>
+    <string name="cat_gambling">Gambling</string>
+    <string name="cat_adult">Adult</string>
+    <string name="cat_ads">Ads</string>
+    <string name="categories_pushed">Categories updated on child device</string>
     <string name="dashboard_history">Recent queries</string>
     <string name="rule_domain_empty">Enter a domain</string>
     <string name="rule_pushed">Rule pushed: allow %1$s</string>

@@ -36,6 +36,10 @@ public final class DnsMessage {
     public static final int TYPE_AAAA = 28;
     public static final int TYPE_SRV = 33;
     public static final int TYPE_OPT = 41;
+    /** SVCB (RFC 9460) - the encrypted-DNS server-discovery record type. */
+    public static final int TYPE_SVCB = 64;
+    /** HTTPS (RFC 9460) - the HTTPS-specific variant of SVCB. */
+    public static final int TYPE_HTTPS = 65;
 
     public static final int CLASS_IN = 1;
 
@@ -47,10 +51,10 @@ public final class DnsMessage {
     public static final int RCODE_REFUSED = 5;
 
     /** Header + flags word. */
-    public static final int FLAGS_QR = 0x8000;   // query=0, response=1
-    public static final int FLAGS_TC = 0x0200;   // truncated
-    public static final int FLAGS_RD = 0x0100;   // recursion desired
-    public static final int FLAGS_RA = 0x0080;   // recursion available
+    public static final int FLAGS_QR = 0x8000; // query=0, response=1
+    public static final int FLAGS_TC = 0x0200; // truncated
+    public static final int FLAGS_RD = 0x0100; // recursion desired
+    public static final int FLAGS_RA = 0x0080; // recursion available
 
     private final int id;
     private final int flags;
@@ -63,8 +67,18 @@ public final class DnsMessage {
     private final int qClass;
     private final byte[] raw;
 
-    private DnsMessage(int id, int flags, int qdCount, int anCount, int nsCount,
-                      int arCount, String qName, int qType, int qClass, byte[] raw) {
+    private DnsMessage(
+        int id,
+        int flags,
+        int qdCount,
+        int anCount,
+        int nsCount,
+        int arCount,
+        String qName,
+        int qType,
+        int qClass,
+        byte[] raw
+    ) {
         this.id = id;
         this.flags = flags;
         this.qdCount = qdCount;
@@ -77,27 +91,62 @@ public final class DnsMessage {
         this.raw = raw;
     }
 
-    public int id() { return id; }
-    public int flags() { return flags; }
-    public boolean isResponse() { return (flags & FLAGS_QR) != 0; }
-    public boolean isTruncated() { return (flags & FLAGS_TC) != 0; }
-    public int rCode() { return flags & 0x000F; }
-    public int qdCount() { return qdCount; }
-    public int anCount() { return anCount; }
-    public int arCount() { return arCount; }
-    public byte[] raw() { return raw; }
+    public int id() {
+        return id;
+    }
+
+    public int flags() {
+        return flags;
+    }
+
+    public boolean isResponse() {
+        return (flags & FLAGS_QR) != 0;
+    }
+
+    public boolean isTruncated() {
+        return (flags & FLAGS_TC) != 0;
+    }
+
+    public int rCode() {
+        return flags & 0x000F;
+    }
+
+    public int qdCount() {
+        return qdCount;
+    }
+
+    public int anCount() {
+        return anCount;
+    }
+
+    public int arCount() {
+        return arCount;
+    }
+
+    public byte[] raw() {
+        return raw;
+    }
 
     /** The wire bytes of this packet, safe to write back to the TUN fd. */
-    public byte[] toBytes() { return raw; }
+    public byte[] toBytes() {
+        return raw;
+    }
 
     /**
      * The queried name, or {@code null} when this message has no question or
      * could not be parsed past the header. Never throws.
      */
-    public String qName() { return qName; }
+    public String qName() {
+        return qName;
+    }
 
-    public int qType() { return qType; }
-    public int qClass() { return qClass; }
+    public int qType() {
+        return qType;
+    }
+
+    public int qClass() {
+        return qClass;
+    }
 
     /** True when this message is a plain recursive query for one question. */
     public boolean isSimpleQuery() {
@@ -127,8 +176,18 @@ public final class DnsMessage {
             // qd == 0 is legal for some response shapes, and qd > 1 means we
             // have no single name to attribute or log. Both go to the slow
             // path in the service; parse the header only.
-            return new DnsMessage(id, flags, qd, an, ns, ar, null, 0, 0,
-                    copy(buf, off, len));
+            return new DnsMessage(
+                id,
+                flags,
+                qd,
+                an,
+                ns,
+                ar,
+                null,
+                0,
+                0,
+                copy(buf, off, len)
+            );
         }
 
         int p = off + HEADER_LEN;
@@ -138,8 +197,18 @@ public final class DnsMessage {
         if (end[0] + 4 > off + len) return null;
         int qtype = u16(buf, end[0]);
         int qclass = u16(buf, end[0] + 2);
-        return new DnsMessage(id, flags, qd, an, ns, ar, name, qtype, qclass,
-                copy(buf, off, len));
+        return new DnsMessage(
+            id,
+            flags,
+            qd,
+            an,
+            ns,
+            ar,
+            name,
+            qtype,
+            qclass,
+            copy(buf, off, len)
+        );
     }
 
     public static DnsMessage parse(byte[] buf) {
@@ -162,25 +231,27 @@ public final class DnsMessage {
         boolean jumped = false;
         int start = p;
         int hops = 0;
-        int end = base + buf.length;      // conservative: real limit is tighter
+        int end = base + buf.length; // conservative: real limit is tighter
 
         while (true) {
             if (p < 0 || p >= end) return null;
             int len = buf[p] & 0xFF;
-            if ((len & 0xC0) == 0xC0) {           // compression pointer
+            if ((len & 0xC0) == 0xC0) {
+                // compression pointer
                 if (p + 1 >= end) return null;
                 int target = ((len & 0x3F) << 8) | (buf[p + 1] & 0xFF);
                 if (!jumped) {
-                    start = p + 2;                // caller resumes after the ptr
+                    start = p + 2; // caller resumes after the ptr
                     jumped = true;
                 }
                 if (target >= start) return null; // must point backwards
-                if (++hops > 64) return null;     // pointer loop guard
+                if (++hops > 64) return null; // pointer loop guard
                 p = base + target;
                 continue;
             }
-            if ((len & 0xC0) != 0) return null;   // reserved label type
-            if (len == 0) {                        // end of name
+            if ((len & 0xC0) != 0) return null; // reserved label type
+            if (len == 0) {
+                // end of name
                 if (!jumped) start = p + 1;
                 cursor[0] = start;
                 return sb.length() == 0 ? "." : sb.toString();
@@ -195,7 +266,12 @@ public final class DnsMessage {
     }
 
     /** Append one label, escaping the three bytes that are not plain text. */
-    private static void appendLabel(StringBuilder sb, byte[] buf, int off, int len) {
+    private static void appendLabel(
+        StringBuilder sb,
+        byte[] buf,
+        int off,
+        int len
+    ) {
         for (int i = 0; i < len; i++) {
             int c = buf[off + i] & 0xFF;
             if (c == '.' || c == '\\') {
@@ -203,7 +279,7 @@ public final class DnsMessage {
                 sb.append((char) c);
             } else if (c < 0x21 || c > 0x7E) {
                 sb.append('\\');
-                sb.append((char) ('0' + (c / 100)));
+                sb.append((char) ('0' + c / 100));
                 sb.append((char) ('0' + ((c / 10) % 10)));
                 sb.append((char) ('0' + (c % 10)));
             } else {
@@ -224,7 +300,11 @@ public final class DnsMessage {
      * genuine answer and does not retry in a loop.
      */
     public static byte[] buildAResponse(DnsMessage query, byte[] address) {
-        return buildSynthetic(query, TYPE_A, address == null ? 4 : address.length);
+        return buildSynthetic(
+            query,
+            TYPE_A,
+            address == null ? 4 : address.length
+        );
     }
 
     /**
@@ -252,21 +332,32 @@ public final class DnsMessage {
      * A record with TTL 0 and no address, which is the honest "we are not
      * going to tell you" answer and keeps clients from caching our block.
      */
-    private static byte[] buildSynthetic(DnsMessage query, int rtype, int rdlen) {
+    private static byte[] buildSynthetic(
+        DnsMessage query,
+        int rtype,
+        int rdlen
+    ) {
         return buildSynthetic(query, rtype, rdlen, RCODE_NOERROR);
     }
 
-    private static byte[] buildSynthetic(DnsMessage query, int rtype, int rdlen,
-                                         int rcode) {
+    private static byte[] buildSynthetic(
+        DnsMessage query,
+        int rtype,
+        int rdlen,
+        int rcode
+    ) {
         if (query == null || query.qName() == null) return null;
         byte[] name = encodeName(query.qName());
         if (name == null) return null;
 
-        int ancount = (rdlen > 0) ? 1 : 0;
+        int ancount = rdlen > 0 ? 1 : 0;
         // header(12) + question(name + TYPE(2) + CLASS(2))
         // + answer(name + TYPE(2) + CLASS(2) + TTL(4) + RDLENGTH(2) + rdata)
-        int total = HEADER_LEN + name.length + 4
-                + (ancount == 1 ? name.length + 10 + rdlen : 0);
+        int total =
+            HEADER_LEN +
+            name.length +
+            4 +
+            (ancount == 1 ? name.length + 10 + rdlen : 0);
         byte[] out = new byte[total];
         int p = 0;
 
@@ -279,27 +370,41 @@ public final class DnsMessage {
         int flags = FLAGS_QR | (qflags & 0x7900) | FLAGS_RA | (rcode & 0x0F);
         putU16(out, p, flags);
         p += 2;
-        putU16(out, p, 1);        p += 2;  // QDCOUNT
-        putU16(out, p, ancount);  p += 2;  // ANCOUNT
-        putU16(out, p, 0);        p += 2;  // NSCOUNT
-        putU16(out, p, 0);        p += 2;  // ARCOUNT
+        putU16(out, p, 1);
+        p += 2; // QDCOUNT
+        putU16(out, p, ancount);
+        p += 2; // ANCOUNT
+        putU16(out, p, 0);
+        p += 2; // NSCOUNT
+        putU16(out, p, 0);
+        p += 2; // ARCOUNT
 
         System.arraycopy(name, 0, out, p, name.length);
         p += name.length;
-        putU16(out, p, query.qType());   p += 2;
-        putU16(out, p, query.qClass());  p += 2;
+        putU16(out, p, query.qType());
+        p += 2;
+        putU16(out, p, query.qClass());
+        p += 2;
 
         if (ancount == 1) {
             // Answer reuses the question's name (allowed, and avoids a pointer).
             System.arraycopy(name, 0, out, p, name.length);
             p += name.length;
-            putU16(out, p, rtype);    p += 2;
-            putU16(out, p, CLASS_IN); p += 2;
-            putU16(out, p, 0);        p += 2;  // TTL high  -> 0
-            putU16(out, p, 0);        p += 2;  // TTL low   -> 0, do not cache
-            putU16(out, p, rdlen);    p += 2;  // RDLENGTH
+            putU16(out, p, rtype);
+            p += 2;
+            putU16(out, p, CLASS_IN);
+            p += 2;
+            putU16(out, p, 0);
+            p += 2; // TTL high  -> 0
+            putU16(out, p, 0);
+            p += 2; // TTL low   -> 0, do not cache
+            putU16(out, p, rdlen);
+            p += 2; // RDLENGTH
             if (rdlen == 4) {
-                out[p] = 0; out[p + 1] = 0; out[p + 2] = 0; out[p + 3] = 0;
+                out[p] = 0;
+                out[p + 1] = 0;
+                out[p + 2] = 0;
+                out[p + 3] = 0;
             }
         }
         return out;
@@ -314,8 +419,11 @@ public final class DnsMessage {
      * what makes every record type, DNSSEC AD bit and EDNS padding survive
      * untouched - we never have to understand a record to relay it.
      */
-    public static byte[] normalizeResponse(byte[] upstream, int queryId,
-                                           boolean wasTruncatedOverTcp) {
+    public static byte[] normalizeResponse(
+        byte[] upstream,
+        int queryId,
+        boolean wasTruncatedOverTcp
+    ) {
         if (upstream == null || upstream.length < HEADER_LEN) return null;
         byte[] out = copy(upstream, 0, upstream.length);
         putU16(out, 0, queryId & 0xFFFF);
@@ -328,7 +436,9 @@ public final class DnsMessage {
     /** Encode a dotted name as length-prefixed labels. FQDN dot optional. */
     public static byte[] encodeName(String name) {
         if (name == null || name.isEmpty()) return new byte[] { 0 };
-        String s = name.endsWith(".") ? name.substring(0, name.length() - 1) : name;
+        String s = name.endsWith(".")
+            ? name.substring(0, name.length() - 1)
+            : name;
         if (s.isEmpty()) return new byte[] { 0 };
         String[] labels = s.split("\\.");
         int len = 1;
@@ -366,24 +476,51 @@ public final class DnsMessage {
         return out;
     }
 
-    @Override public String toString() {
-        return "Dns{id=" + id() + " " + (isResponse() ? "resp" : "query")
-                + " q=" + qName + " type=" + typeName(qType) + " rcode=" + rCode() + "}";
+    @Override
+    public String toString() {
+        return (
+            "Dns{id=" +
+            id() +
+            " " +
+            (isResponse() ? "resp" : "query") +
+            " q=" +
+            qName +
+            " type=" +
+            typeName(qType) +
+            " rcode=" +
+            rCode() +
+            "}"
+        );
     }
 
     public static String typeName(int t) {
         switch (t) {
-            case TYPE_A: return "A";
-            case TYPE_NS: return "NS";
-            case TYPE_CNAME: return "CNAME";
-            case TYPE_SOA: return "SOA";
-            case TYPE_PTR: return "PTR";
-            case TYPE_MX: return "MX";
-            case TYPE_TXT: return "TXT";
-            case TYPE_AAAA: return "AAAA";
-            case TYPE_SRV: return "SRV";
-            case TYPE_OPT: return "OPT";
-            default: return "T" + t;
+            case TYPE_A:
+                return "A";
+            case TYPE_NS:
+                return "NS";
+            case TYPE_CNAME:
+                return "CNAME";
+            case TYPE_SOA:
+                return "SOA";
+            case TYPE_PTR:
+                return "PTR";
+            case TYPE_MX:
+                return "MX";
+            case TYPE_TXT:
+                return "TXT";
+            case TYPE_AAAA:
+                return "AAAA";
+            case TYPE_SRV:
+                return "SRV";
+            case TYPE_OPT:
+                return "OPT";
+            case TYPE_SVCB:
+                return "SVCB";
+            case TYPE_HTTPS:
+                return "HTTPS";
+            default:
+                return "T" + t;
         }
     }
 }

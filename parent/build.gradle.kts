@@ -42,6 +42,10 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
+    // ZXing embedded scanner: scan the child's QR code during pairing.
+    // Brings in zxing:core transitively and declares CAMERA in its manifest.
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
     // Firebase - same BOM as the child module so versions stay in sync.
     // Replace parent/google-services.json with the real file from your Firebase console.
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))

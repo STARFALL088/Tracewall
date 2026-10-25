@@ -239,6 +239,27 @@ public class DnsVpnService extends VpnService implements Runnable {
         DnsMessage q = DnsMessage.parse(query);
         if (q == null || !q.isSimpleQuery()) return;
 
+        // SVCB (type 64) and HTTPS (type 65) are the encrypted-DNS discovery
+        // records defined in RFC 9460. Android queries _dns.resolver.arpa SVCB
+        // at boot to auto-discover DoH/DoT servers. Returning NXDOMAIN prevents
+        // the system from finding a server that would bypass this filter.
+        if (
+            q.qType() == DnsMessage.TYPE_SVCB ||
+            q.qType() == DnsMessage.TYPE_HTTPS
+        ) {
+            byte[] nxd = DnsMessage.buildNxDomain(q);
+            if (nxd != null) {
+                byte[] reply = pkt.buildResponse(
+                    pkt.dstIpBytes(),
+                    pkt.srcIpBytes(),
+                    nxd,
+                    pkt.identification()
+                );
+                if (reply != null) write(reply);
+            }
+            return;
+        }
+
         String host = q.qName();
         // Attribution first: a blocked query is never forwarded, so there is
         // no later point at which the socket still exists to look up.

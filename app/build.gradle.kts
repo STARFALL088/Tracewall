@@ -47,6 +47,10 @@ dependencies {
     annotationProcessor("androidx.room:room-compiler:2.6.1")
     testImplementation("junit:junit:4.13.2")
 
+    // ZXing core: generate QR codes for the device-code pairing dialog.
+    // No camera permission needed - this is the encode-only library.
+    implementation("com.google.zxing:core:3.5.3")
+
     // Firebase - use the BOM so all Firebase libraries stay version-consistent.
     // Replace app/google-services.json with the real one from your Firebase console.
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))

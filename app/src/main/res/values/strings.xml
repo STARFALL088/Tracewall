@@ -36,6 +36,7 @@
     <string name="notif_text_off">Protection is off. Tap to open Tracewall.</string>
     <string name="vpn_denied">Tracewall needs the VPN permission to filter DNS.</string>
     <string name="private_dns_warning">⚠ Private DNS is active — DNS traffic may bypass this filter. Disable it in Settings › Network › Private DNS.</string>
-    <string name="device_code_label">Device code: %1$s</string>
+    <string name="device_code_label">Device code: %1$s  (tap for QR · long-press to copy)</string>
     <string name="device_code_copied">Device code copied</string>
+    <string name="qr_title">Scan this on the parent device</string>
 </resources>

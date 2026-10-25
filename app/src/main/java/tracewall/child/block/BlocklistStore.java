@@ -38,6 +38,8 @@ public final class BlocklistStore {
      *  atomically without disturbing rules the child set on-device. */
     public static final String KEY_REMOTE_ALLOW = "remote_allow";
     public static final String KEY_REMOTE_BLOCKED_UIDS = "remote_blocked_uids";
+    /** Active category names pushed by the parent; null = use device default. */
+    public static final String KEY_REMOTE_CATEGORIES = "remote_categories";
 
     private static final BlocklistStore INSTANCE = new BlocklistStore();
 
@@ -74,10 +76,20 @@ public final class BlocklistStore {
         if (app == null) return;
         if (categories != null) lastCategories = new HashSet<>(categories);
 
+        // If the parent has pushed a category list remotely, use it instead of
+        // the local default so the parent can enable/disable categories live.
+        SharedPreferences spEarly = prefs(app);
+        Set<String> remoteCats = spEarly.getStringSet(
+            KEY_REMOTE_CATEGORIES,
+            null
+        );
+        Set<String> activeCategories =
+            remoteCats != null ? remoteCats : lastCategories;
+
         Map<String, DomainSet> perCategory = new LinkedHashMap<>();
         int malformed = 0;
         int duplicates = 0;
-        for (String c : lastCategories) {
+        for (String c : activeCategories) {
             String text = readAsset(app, "categories/" + c + ".txt");
             if (text == null) {
                 Log.w(TAG, "missing category asset: " + c);
@@ -158,14 +170,23 @@ public final class BlocklistStore {
      * Local rules (set on-device) are preserved under their own keys and
      * merged back in by {@link #load}.
      */
+    /**
+     * Replace the remote rule set pushed by the parent via Realtime Database.
+     * Local rules (set on-device) are preserved under their own keys and
+     * merged back in by {@link #load}.
+     *
+     * @param categories active category names, or {@code null} to keep the
+     *                   on-device default (malware, gambling, adult, ads).
+     */
     public synchronized void applyRemoteRules(
         Context ctx,
         Set<String> allow,
-        Set<String> blockedUidStrings
+        Set<String> blockedUidStrings,
+        Set<String> categories
     ) {
         if (ctx != null) app = ctx.getApplicationContext();
         if (app == null) return;
-        prefs(app)
+        SharedPreferences.Editor edit = prefs(app)
             .edit()
             .putStringSet(
                 KEY_REMOTE_ALLOW,
@@ -176,8 +197,13 @@ public final class BlocklistStore {
                 blockedUidStrings != null
                     ? blockedUidStrings
                     : Collections.<String>emptySet()
-            )
-            .apply();
+            );
+        if (categories != null) {
+            edit.putStringSet(KEY_REMOTE_CATEGORIES, categories);
+        } else {
+            edit.remove(KEY_REMOTE_CATEGORIES);
+        }
+        edit.apply();
         reload();
         Log.i(
             TAG,
@@ -185,7 +211,8 @@ public final class BlocklistStore {
                 (allow != null ? allow.size() : 0) +
                 " allow, " +
                 (blockedUidStrings != null ? blockedUidStrings.size() : 0) +
-                " blocked uids"
+                " blocked uids, categories=" +
+                (categories != null ? categories : "default")
         );
     }
 

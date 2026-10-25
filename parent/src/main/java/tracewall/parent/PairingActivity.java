@@ -6,9 +6,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
-
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
-
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanIntentResult;
+import com.journeyapps.barcodescanner.ScanOptions;
 import tracewall.parent.databinding.ActivityPairingBinding;
 import tracewall.parent.sync.FirebaseParent;
 
@@ -28,6 +30,9 @@ public class PairingActivity extends AppCompatActivity {
 
     private ActivityPairingBinding ui;
 
+    private final ActivityResultLauncher<ScanOptions> qrScanner =
+        registerForActivityResult(new ScanContract(), this::onScanResult);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +48,7 @@ public class PairingActivity extends AppCompatActivity {
         setContentView(ui.getRoot());
 
         ui.connectButton.setOnClickListener(v -> attemptPairing());
+        ui.scanButton.setOnClickListener(v -> launchScanner());
     }
 
     private void attemptPairing() {
@@ -55,16 +61,38 @@ public class PairingActivity extends AppCompatActivity {
         ui.connectButton.setEnabled(false);
         ui.progress.setVisibility(View.VISIBLE);
 
-        FirebaseParent.get().registerAsParent(childUid,
-                /* onSuccess */ () -> {
-                    prefs().edit().putString(KEY_CHILD_UID, childUid).apply();
-                    openDashboard();
-                },
-                /* onFail */ () -> {
-                    ui.connectButton.setEnabled(true);
-                    ui.progress.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.pairing_failed, Toast.LENGTH_LONG).show();
-                });
+        FirebaseParent.get().registerAsParent(
+            childUid,
+            /* onSuccess */ () -> {
+                prefs().edit().putString(KEY_CHILD_UID, childUid).apply();
+                openDashboard();
+            },
+            /* onFail */ () -> {
+                ui.connectButton.setEnabled(true);
+                ui.progress.setVisibility(View.GONE);
+                Toast.makeText(
+                    this,
+                    R.string.pairing_failed,
+                    Toast.LENGTH_LONG
+                ).show();
+            }
+        );
+    }
+
+    private void launchScanner() {
+        ScanOptions opts = new ScanOptions()
+            .setPrompt(getString(R.string.pairing_scan_prompt))
+            .setBeepEnabled(false)
+            .setOrientationLocked(false);
+        qrScanner.launch(opts);
+    }
+
+    private void onScanResult(ScanIntentResult result) {
+        String content = result.getContents();
+        if (content != null && !content.isEmpty()) {
+            ui.childUidInput.setText(content);
+            attemptPairing();
+        }
     }
 
     private void openDashboard() {

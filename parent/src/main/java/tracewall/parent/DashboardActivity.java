@@ -7,24 +7,22 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.firebase.firestore.ListenerRegistration;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
 import tracewall.parent.databinding.ActivityDashboardBinding;
 import tracewall.parent.databinding.ItemHistoryBinding;
 import tracewall.parent.sync.FirebaseParent;
@@ -53,7 +51,9 @@ public class DashboardActivity extends AppCompatActivity {
         setContentView(ui.getRoot());
 
         childUid = prefs().getString(PairingActivity.KEY_CHILD_UID, "");
-        ui.childUidLabel.setText(getString(R.string.dashboard_connected, childUid));
+        ui.childUidLabel.setText(
+            getString(R.string.dashboard_connected, childUid)
+        );
 
         adapter = new HistoryAdapter();
         ui.historyList.setLayoutManager(new LinearLayoutManager(this));
@@ -61,14 +61,26 @@ public class DashboardActivity extends AppCompatActivity {
 
         ui.allowButton.setOnClickListener(v -> pushAllowRule());
         ui.blockUidButton.setOnClickListener(v -> pushBlockUidRule());
+
+        // Category toggles: each change immediately pushes the full category
+        // map so the child reloads with the new active set.
+        CompoundButton.OnCheckedChangeListener catListener = (btn, checked) ->
+            pushCurrentCategories();
+        ui.catMalware.setOnCheckedChangeListener(catListener);
+        ui.catGambling.setOnCheckedChangeListener(catListener);
+        ui.catAdult.setOnCheckedChangeListener(catListener);
+        ui.catAds.setOnCheckedChangeListener(catListener);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         if (childUid.isEmpty()) return;
-        historyReg = FirebaseParent.get().listenHistory(childUid, HISTORY_LIMIT,
-                records -> adapter.submit(records));
+        historyReg = FirebaseParent.get().listenHistory(
+            childUid,
+            HISTORY_LIMIT,
+            records -> adapter.submit(records)
+        );
     }
 
     @Override
@@ -98,16 +110,41 @@ public class DashboardActivity extends AppCompatActivity {
     // ----------------------------------------------------------------- rules
 
     private void pushAllowRule() {
-        String domain = ui.allowInput.getText().toString().trim().toLowerCase(Locale.ROOT);
+        String domain = ui.allowInput
+            .getText()
+            .toString()
+            .trim()
+            .toLowerCase(Locale.ROOT);
         if (TextUtils.isEmpty(domain)) {
             ui.allowInput.setError(getString(R.string.rule_domain_empty));
             return;
         }
-        FirebaseParent.get().pushRules(childUid,
-                Collections.singletonList(domain),
-                Collections.emptyList());
+        FirebaseParent.get().pushRules(
+            childUid,
+            Collections.singletonList(domain),
+            Collections.emptyList()
+        );
         ui.allowInput.setText("");
-        Toast.makeText(this, getString(R.string.rule_pushed, domain), Toast.LENGTH_SHORT).show();
+        Toast.makeText(
+            this,
+            getString(R.string.rule_pushed, domain),
+            Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    private void pushCurrentCategories() {
+        if (childUid.isEmpty()) return;
+        Map<String, Boolean> cats = new LinkedHashMap<>();
+        cats.put("malware", ui.catMalware.isChecked());
+        cats.put("gambling", ui.catGambling.isChecked());
+        cats.put("adult", ui.catAdult.isChecked());
+        cats.put("ads", ui.catAds.isChecked());
+        FirebaseParent.get().pushCategories(childUid, cats);
+        Toast.makeText(
+            this,
+            R.string.categories_pushed,
+            Toast.LENGTH_SHORT
+        ).show();
     }
 
     private void pushBlockUidRule() {
@@ -123,22 +160,28 @@ public class DashboardActivity extends AppCompatActivity {
             ui.blockUidInput.setError(getString(R.string.rule_uid_invalid));
             return;
         }
-        FirebaseParent.get().pushRules(childUid,
-                Collections.emptyList(),
-                Collections.singletonList(uid));
+        FirebaseParent.get().pushRules(
+            childUid,
+            Collections.emptyList(),
+            Collections.singletonList(uid)
+        );
         ui.blockUidInput.setText("");
-        Toast.makeText(this, getString(R.string.rule_uid_pushed, uid), Toast.LENGTH_SHORT).show();
+        Toast.makeText(
+            this,
+            getString(R.string.rule_uid_pushed, uid),
+            Toast.LENGTH_SHORT
+        ).show();
     }
 
     // --------------------------------------------------------------- unpair
 
     private void confirmUnpair() {
         new AlertDialog.Builder(this)
-                .setTitle(R.string.unpair_title)
-                .setMessage(R.string.unpair_body)
-                .setPositiveButton(R.string.unpair_yes, (d, w) -> unpair())
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
+            .setTitle(R.string.unpair_title)
+            .setMessage(R.string.unpair_body)
+            .setPositiveButton(R.string.unpair_yes, (d, w) -> unpair())
+            .setNegativeButton(android.R.string.cancel, null)
+            .show();
     }
 
     private void unpair() {
@@ -154,7 +197,8 @@ public class DashboardActivity extends AppCompatActivity {
 
     /** Adapter for the Firestore history rows. */
     private static final class HistoryAdapter
-            extends RecyclerView.Adapter<HistoryAdapter.VH> {
+        extends RecyclerView.Adapter<HistoryAdapter.VH>
+    {
 
         private List<Map<String, Object>> items = Collections.emptyList();
 
@@ -166,8 +210,13 @@ public class DashboardActivity extends AppCompatActivity {
         @NonNull
         @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new VH(ItemHistoryBinding.inflate(
-                    LayoutInflater.from(parent.getContext()), parent, false));
+            return new VH(
+                ItemHistoryBinding.inflate(
+                    LayoutInflater.from(parent.getContext()),
+                    parent,
+                    false
+                )
+            );
         }
 
         @Override
@@ -175,8 +224,11 @@ public class DashboardActivity extends AppCompatActivity {
             Map<String, Object> r = items.get(position);
 
             Object timeObj = r.get("time_ms");
-            long timeMs = timeObj instanceof Number ? ((Number) timeObj).longValue() : 0L;
-            String time = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date(timeMs));
+            long timeMs =
+                timeObj instanceof Number ? ((Number) timeObj).longValue() : 0L;
+            String time = new SimpleDateFormat("HH:mm:ss", Locale.US).format(
+                new Date(timeMs)
+            );
 
             String host = String.valueOf(r.getOrDefault("host", "?"));
             boolean blocked = Boolean.TRUE.equals(r.get("blocked"));
@@ -189,11 +241,18 @@ public class DashboardActivity extends AppCompatActivity {
         }
 
         @Override
-        public int getItemCount() { return items.size(); }
+        public int getItemCount() {
+            return items.size();
+        }
 
         static final class VH extends RecyclerView.ViewHolder {
+
             final ItemHistoryBinding b;
-            VH(ItemHistoryBinding b) { super(b.getRoot()); this.b = b; }
+
+            VH(ItemHistoryBinding b) {
+                super(b.getRoot());
+                this.b = b;
+            }
         }
     }
 }
