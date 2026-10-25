@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each device's data lives under /devices/{uid}/.
+    // Only a request authenticated with that exact UID (anonymous auth from
+    // either the child or parent app) can read or write any document inside.
+    match /devices/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+  }
+}

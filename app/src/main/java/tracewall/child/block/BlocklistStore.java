@@ -3,7 +3,6 @@ package tracewall.child.block;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -13,7 +12,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-
 import tracewall.blocklist.DomainSet;
 import tracewall.blocklist.HostListParser;
 import tracewall.blocklist.PolicyEngine;
@@ -36,25 +34,35 @@ public final class BlocklistStore {
     public static final String KEY_ALLOW = "allow";
     public static final String KEY_BLOCKED_UIDS = "blocked_uids";
     public static final String KEY_ENABLED = "enabled";
+    /** Parent-pushed rules live under separate keys so they can be replaced
+     *  atomically without disturbing rules the child set on-device. */
+    public static final String KEY_REMOTE_ALLOW = "remote_allow";
+    public static final String KEY_REMOTE_BLOCKED_UIDS = "remote_blocked_uids";
 
     private static final BlocklistStore INSTANCE = new BlocklistStore();
 
-    public static BlocklistStore get() { return INSTANCE; }
+    public static BlocklistStore get() {
+        return INSTANCE;
+    }
 
     private Context app;
     private Set<String> lastCategories = Collections.emptySet();
     private volatile PolicyEngine engine = new PolicyEngine(null, null, null);
     private volatile String summary = "not loaded";
 
-    private BlocklistStore() { }
+    private BlocklistStore() {}
 
     public PolicyEngine.Decision decide(String host, int uid) {
         return engine.decide(host, uid);
     }
 
-    public int size() { return engine.size(); }
+    public int size() {
+        return engine.size();
+    }
 
-    public String summary() { return summary; }
+    public String summary() {
+        return summary;
+    }
 
     /**
      * Build the policy from the selected category assets plus the user's own
@@ -82,14 +90,37 @@ public final class BlocklistStore {
         }
 
         SharedPreferences sp = prefs(app);
-        DomainSet allow = DomainSet.of(sp.getStringSet(KEY_ALLOW,
-                Collections.<String>emptySet()));
-        Set<Integer> uids = parseUids(sp.getStringSet(KEY_BLOCKED_UIDS,
-                Collections.<String>emptySet()));
+
+        // Merge local rules (set on the child device) with remote rules
+        // pushed by the parent. Both sources are honoured; the parent can
+        // add allows and blocks without erasing anything the child set.
+        Set<String> mergedAllow = new HashSet<>(
+            sp.getStringSet(KEY_ALLOW, Collections.<String>emptySet())
+        );
+        mergedAllow.addAll(
+            sp.getStringSet(KEY_REMOTE_ALLOW, Collections.<String>emptySet())
+        );
+        DomainSet allow = DomainSet.of(mergedAllow);
+
+        Set<String> mergedUids = new HashSet<>(
+            sp.getStringSet(KEY_BLOCKED_UIDS, Collections.<String>emptySet())
+        );
+        mergedUids.addAll(
+            sp.getStringSet(
+                KEY_REMOTE_BLOCKED_UIDS,
+                Collections.<String>emptySet()
+            )
+        );
+        Set<Integer> uids = parseUids(mergedUids);
 
         engine = new PolicyEngine(allow, perCategory, uids);
-        summary = engine.summary() + " (" + malformed + " malformed, "
-                + duplicates + " dupes)";
+        summary =
+            engine.summary() +
+            " (" +
+            malformed +
+            " malformed, " +
+            duplicates +
+            " dupes)";
         Log.i(TAG, "policy loaded: " + summary);
     }
 
@@ -102,8 +133,9 @@ public final class BlocklistStore {
         if (ctx != null) app = ctx.getApplicationContext();
         if (app == null || host == null || host.isEmpty()) return;
         SharedPreferences sp = prefs(app);
-        Set<String> next = new HashSet<>(sp.getStringSet(KEY_ALLOW,
-                Collections.<String>emptySet()));
+        Set<String> next = new HashSet<>(
+            sp.getStringSet(KEY_ALLOW, Collections.<String>emptySet())
+        );
         next.add(host.toLowerCase());
         sp.edit().putStringSet(KEY_ALLOW, next).apply();
         reload();
@@ -113,11 +145,66 @@ public final class BlocklistStore {
         if (ctx != null) app = ctx.getApplicationContext();
         if (app == null || uid < 0) return;
         SharedPreferences sp = prefs(app);
-        Set<String> next = new HashSet<>(sp.getStringSet(KEY_BLOCKED_UIDS,
-                Collections.<String>emptySet()));
+        Set<String> next = new HashSet<>(
+            sp.getStringSet(KEY_BLOCKED_UIDS, Collections.<String>emptySet())
+        );
         next.add(Integer.toString(uid));
         sp.edit().putStringSet(KEY_BLOCKED_UIDS, next).apply();
         reload();
+    }
+
+    /**
+     * Replace the remote rule set pushed by the parent via Realtime Database.
+     * Local rules (set on-device) are preserved under their own keys and
+     * merged back in by {@link #load}.
+     */
+    public synchronized void applyRemoteRules(
+        Context ctx,
+        Set<String> allow,
+        Set<String> blockedUidStrings
+    ) {
+        if (ctx != null) app = ctx.getApplicationContext();
+        if (app == null) return;
+        prefs(app)
+            .edit()
+            .putStringSet(
+                KEY_REMOTE_ALLOW,
+                allow != null ? allow : Collections.<String>emptySet()
+            )
+            .putStringSet(
+                KEY_REMOTE_BLOCKED_UIDS,
+                blockedUidStrings != null
+                    ? blockedUidStrings
+                    : Collections.<String>emptySet()
+            )
+            .apply();
+        reload();
+        Log.i(
+            TAG,
+            "remote rules applied: " +
+                (allow != null ? allow.size() : 0) +
+                " allow, " +
+                (blockedUidStrings != null ? blockedUidStrings.size() : 0) +
+                " blocked uids"
+        );
+    }
+
+    /** The per-app undo: mirrors blockApp, same rule set, no restart either. */
+    public synchronized void unblockApp(Context ctx, int uid) {
+        if (ctx != null) app = ctx.getApplicationContext();
+        if (app == null || uid < 0) return;
+        SharedPreferences sp = prefs(app);
+        Set<String> next = new HashSet<>(
+            sp.getStringSet(KEY_BLOCKED_UIDS, Collections.<String>emptySet())
+        );
+        next.remove(Integer.toString(uid));
+        sp.edit().putStringSet(KEY_BLOCKED_UIDS, next).apply();
+        reload();
+    }
+
+    /** Switch state for the per-app screen, read from the live policy. */
+    public boolean isAppBlocked(int uid) {
+        return engine.isAppBlocked(uid);
     }
 
     // -------------------------------------------------------------- prefs
@@ -132,8 +219,9 @@ public final class BlocklistStore {
     }
 
     private static SharedPreferences prefs(Context ctx) {
-        return ctx.getApplicationContext()
-                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return ctx
+            .getApplicationContext()
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
     private static Set<Integer> parseUids(Set<String> raw) {
@@ -150,8 +238,14 @@ public final class BlocklistStore {
     }
 
     private static String readAsset(Context ctx, String path) {
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(
-                ctx.getAssets().open(path), StandardCharsets.UTF_8))) {
+        try (
+            BufferedReader r = new BufferedReader(
+                new InputStreamReader(
+                    ctx.getAssets().open(path),
+                    StandardCharsets.UTF_8
+                )
+            )
+        ) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = r.readLine()) != null) sb.append(line).append('\n');

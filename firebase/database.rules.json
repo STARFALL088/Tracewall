@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "devices": {
+      "$uid": {
+        // Only the device that owns this UID (child or parent, both signed in
+        // anonymously with the same UID) can read or write this subtree.
+        ".read":  "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

@@ -1,21 +1,21 @@
 package tracewall.child.sync;
 
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseException;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-
+import com.google.firebase.firestore.FirebaseFirestoreSettings;
+import com.google.firebase.firestore.PersistentCacheSettings;
 import java.util.HashMap;
 import java.util.Map;
-
-import androidx.annotation.NonNull;
 
 /**
  * Central access point for all three Firebase services used by Tracewall.
@@ -58,7 +58,25 @@ public class FirebaseSync {
         void onRulesUpdated(DataSnapshot snapshot);
     }
 
-    private FirebaseSync() {}
+    private FirebaseSync() {
+        // Enable disk persistence for the Realtime Database before any
+        // DatabaseReference is obtained. Throws DatabaseException if called
+        // more than once in a process (e.g. during instrumented tests), so
+        // we swallow the duplicate-call exception only.
+        try {
+            realtimeDb.setPersistenceEnabled(true);
+        } catch (DatabaseException ignored) {}
+
+        // Persist Firestore reads and pending writes across process restarts
+        // so the child's history and rule state survive offline periods.
+        FirebaseFirestoreSettings firestoreSettings =
+            new FirebaseFirestoreSettings.Builder()
+                .setLocalCacheSettings(
+                    PersistentCacheSettings.newBuilder().build()
+                )
+                .build();
+        firestore.setFirestoreSettings(firestoreSettings);
+    }
 
     public static FirebaseSync get() {
         return INSTANCE;
@@ -82,12 +100,13 @@ public class FirebaseSync {
         }
 
         auth.signInAnonymously()
-                .addOnSuccessListener(result -> {
-                    Log.d(TAG, "Signed in as " + result.getUser().getUid());
-                    callback.run();
-                })
-                .addOnFailureListener(e ->
-                        Log.e(TAG, "Anonymous sign-in failed", e));
+            .addOnSuccessListener(result -> {
+                Log.d(TAG, "Signed in as " + result.getUser().getUid());
+                callback.run();
+            })
+            .addOnFailureListener(e ->
+                Log.e(TAG, "Anonymous sign-in failed", e)
+            );
     }
 
     /** @return the current Firebase UID, or {@code null} if not yet signed in. */
@@ -112,7 +131,10 @@ public class FirebaseSync {
         String uid = requireUid("listenForRules");
         if (uid == null) return null;
 
-        DatabaseReference ref = realtimeDb.getReference("devices").child(uid).child("rules");
+        DatabaseReference ref = realtimeDb
+            .getReference("devices")
+            .child(uid)
+            .child("rules");
         ValueEventListener vel = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -132,8 +154,11 @@ public class FirebaseSync {
     public void removeRulesListener(@NonNull ValueEventListener vel) {
         String uid = uid();
         if (uid == null) return;
-        realtimeDb.getReference("devices").child(uid).child("rules")
-                .removeEventListener(vel);
+        realtimeDb
+            .getReference("devices")
+            .child(uid)
+            .child("rules")
+            .removeEventListener(vel);
     }
 
     // ----------------------------------------------------------- firestore
@@ -150,7 +175,13 @@ public class FirebaseSync {
      * @param uid       Android UID of the app that made the query
      * @param policy    policy reason string (e.g. "category:adult")
      */
-    public void logQuery(long timeMs, String host, boolean blocked, int uid, String policy) {
+    public void logQuery(
+        long timeMs,
+        String host,
+        boolean blocked,
+        int uid,
+        String policy
+    ) {
         String firebaseUid = requireUid("logQuery");
         if (firebaseUid == null) return;
 
@@ -162,12 +193,13 @@ public class FirebaseSync {
         record.put("policy", policy);
 
         CollectionReference history = firestore
-                .collection("devices")
-                .document(firebaseUid)
-                .collection("history");
+            .collection("devices")
+            .document(firebaseUid)
+            .collection("history");
 
-        history.add(record)
-                .addOnFailureListener(e -> Log.e(TAG, "Firestore write failed", e));
+        history
+            .add(record)
+            .addOnFailureListener(e -> Log.e(TAG, "Firestore write failed", e));
     }
 
     /**
@@ -179,7 +211,10 @@ public class FirebaseSync {
     public CollectionReference historyCollection() {
         String uid = requireUid("historyCollection");
         if (uid == null) return null;
-        return firestore.collection("devices").document(uid).collection("history");
+        return firestore
+            .collection("devices")
+            .document(uid)
+            .collection("history");
     }
 
     // ---------------------------------------------------------------- helpers
@@ -187,7 +222,11 @@ public class FirebaseSync {
     private String requireUid(String caller) {
         String uid = uid();
         if (uid == null) {
-            Log.w(TAG, caller + " called before sign-in; call signInAnonymously() first");
+            Log.w(
+                TAG,
+                caller +
+                    " called before sign-in; call signInAnonymously() first"
+            );
         }
         return uid;
     }
