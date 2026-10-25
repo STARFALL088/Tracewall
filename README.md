@@ -94,9 +94,18 @@ Working and verified on device: DNS interception, blocking, forwarding, per-app
 attribution, live log, custom trend view, allowlist override, Room history, CSV
 export, clear, English + Bengali.
 
-Not built yet: remote rules from a parent app (Firebase needs a
-`google-services.json` from the project owner), boot receiver, app-level block
-UI, and a DoH/Private-DNS warning screen.
+New, built but not yet re-verified on device: per-app blocking. Long-press any
+history row to block the app that made the query, or manage the list from the
+`Apps` action on the main screen (switch per installed app, search included).
+The policy path underneath is exactly the per-app rule the tests cover: all DNS
+from a blocked uid sinks, allowlist entries still win, and unblocking resets
+without a tunnel restart.
+
+Firebase is wired up (Authentication, Realtime Database, Firestore) but the
+remote-rules flow from the parent app is not yet connected end-to-end.
+Replace `app/google-services.json` with the real file from your Firebase
+console before running on a real device. A DoH/Private-DNS warning screen is
+also not yet built.
 
 Known limits, deliberately: UDP DNS only (no DNS-over-TLS), IPv4 tunnel, and a
 user who enables Private DNS bypasses the filter entirely. The device also asks

@@ -2,6 +2,7 @@
 // and mixing Kotlin in would be one more toolchain to explain.
 plugins {
     id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -45,4 +46,11 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
     testImplementation("junit:junit:4.13.2")
+
+    // Firebase - use the BOM so all Firebase libraries stay version-consistent.
+    // Replace app/google-services.json with the real one from your Firebase console.
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-firestore")
 }
