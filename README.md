@@ -277,8 +277,8 @@ here can sink DNS; it cannot route arbitrary traffic or MITM HTTPS.
    This kills the `_dns.resolver.arpa` auto-discovery that would let the OS find
    a DoH/DoT server to route around the filter.
 4. `PolicyEngine.decide(host, uid)` evaluates the query (see precedence below).
-5. **Block** → `DnsMessage.buildAResponse(q, 0.0.0.0)`. TTL=0 so the client
-   never caches the lie.
+5. **Block** → A queries receive `0.0.0.0` with TTL 0; other policy-blocked
+   types receive NOERROR with zero answers, preserving the question type.
 6. **Allow** → `DnsForwarder.forward()` sends the query on a `protect()`-ed
    socket. Without `protect()` the forwarder's own queries go back into the
    tunnel and loop until file descriptors run out.
@@ -455,6 +455,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Blocked non-A responses                       | ✅ JVM tested             | NOERROR, zero answers; question preserved |
 | DNS interception (VpnService)                  | ✅ Verified on device    | Emulator API 37                          |
 | Category blocking (malware/gambling/adult/ads) | ✅ Verified              | 4 built-in lists, hot-reload             |
 | Per-app attribution                            | ✅ Verified              | `ConnectivityManager` UID lookup         |

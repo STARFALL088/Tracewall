@@ -261,6 +261,10 @@ class DnsMessageTest {
         DnsMessage m = DnsMessage.parse(r);
         assertNotNull(m);
         assertEquals(0, m.anCount());
+        assertEquals(DnsMessage.TYPE_AAAA, m.qType());
+        assertEquals(DnsMessage.CLASS_IN, m.qClass());
+        assertEquals(DnsMessage.RCODE_NOERROR, m.rCode());
+        assertTrue(m.isResponse());
         assertEquals(7, m.id());
         assertEquals("blocked.test", m.qName());
     }

@@ -273,7 +273,9 @@ public class DnsVpnService extends VpnService implements Runnable {
         String resolver = "local";
 
         if (blocked) {
-            answer = DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 });
+            answer = q.qType() == DnsMessage.TYPE_A
+                ? DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 })
+                : DnsMessage.buildEmptyResponse(q);
         } else {
             try {
                 int wireId = forwarder.nextId(); // our id, not the client's
