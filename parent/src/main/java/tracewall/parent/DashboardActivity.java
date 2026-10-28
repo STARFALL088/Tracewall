@@ -42,6 +42,8 @@ public class DashboardActivity extends AppCompatActivity {
     private ActivityDashboardBinding ui;
     private HistoryAdapter adapter;
     private ListenerRegistration historyReg;
+    private ListenerRegistration eventsReg;
+    private String latestEventId;
     private String childUid;
 
     @Override
@@ -79,13 +81,40 @@ public class DashboardActivity extends AppCompatActivity {
         historyReg = FirebaseParent.get().listenHistory(
             childUid,
             HISTORY_LIMIT,
-            records -> adapter.submit(records)
+            records -> {
+                adapter.submit(records);
+                if (!records.isEmpty()) {
+                    ui.lastSeen.setText(getString(R.string.last_seen,
+                        formatTime(records.get(0).get("time_ms"))));
+                } else ui.lastSeen.setText(R.string.last_seen_unknown);
+            }
         );
+        eventsReg = FirebaseParent.get().listenEvents(childUid, events -> {
+            ui.tamperBanner.setVisibility(android.view.View.GONE);
+            if (events.isEmpty()) return;
+            Map<String, Object> event = events.get(0);
+            latestEventId = String.valueOf(event.get("id"));
+            if (latestEventId.equals(prefs().getString("dismissed_event_" + childUid, ""))) return;
+            ui.tamperText.setText(getString(R.string.protection_off_event,
+                String.valueOf(event.get("reason")), formatTime(event.get("time_ms"))));
+            ui.tamperBanner.setVisibility(android.view.View.VISIBLE);
+        });
+        ui.dismissTamper.setOnClickListener(v -> {
+            if (latestEventId != null) prefs().edit()
+                .putString("dismissed_event_" + childUid, latestEventId).apply();
+            ui.tamperBanner.setVisibility(android.view.View.GONE);
+        });
+    }
+
+    private static String formatTime(Object value) {
+        long time = value instanceof Number ? ((Number) value).longValue() : 0;
+        return java.text.DateFormat.getDateTimeInstance().format(new Date(time));
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        if (eventsReg != null) { eventsReg.remove(); eventsReg = null; }
         if (historyReg != null) {
             historyReg.remove();
             historyReg = null;

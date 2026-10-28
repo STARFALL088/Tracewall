@@ -1,0 +1,6 @@
+<resources>
+    <string name="protection_off_event">সুরক্ষা বন্ধ: %1$s\n%2$s</string>
+    <string name="dismiss_event">সরান</string>
+    <string name="last_seen">শেষ ডিএনএস কার্যকলাপ: %1$s</string>
+    <string name="last_seen_unknown">শেষ ডিএনএস কার্যকলাপ: অজানা</string>
+</resources>

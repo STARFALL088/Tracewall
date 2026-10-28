@@ -455,6 +455,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
 | Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
 | Always-on VPN guidance                        | 🔄 Compiles              | Make it permanent opens VPN settings |
 | Upstream handover                             | 🔄 Compiles + JVM tested | Volatile snapshot, one retry on closed pool |

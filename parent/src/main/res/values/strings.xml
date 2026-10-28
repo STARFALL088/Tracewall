@@ -36,4 +36,8 @@
     <string name="unpair_title">Disconnect from child?</string>
     <string name="unpair_body">You will need to re-enter the device code to reconnect.</string>
     <string name="unpair_yes">Disconnect</string>
+    <string name="protection_off_event">Protection stopped: %1$s\n%2$s</string>
+    <string name="dismiss_event">Dismiss</string>
+    <string name="last_seen">Last DNS activity: %1$s</string>
+    <string name="last_seen_unknown">Last DNS activity: unknown</string>
 </resources>
