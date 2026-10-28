@@ -140,6 +140,28 @@ public class FirebaseParent {
 
     // ---------------------------------------------------------------- rules
 
+    public com.google.firebase.database.ValueEventListener listenRules(
+        String childUid, java.util.function.Consumer<com.google.firebase.database.DataSnapshot> listener,
+        Runnable onError
+    ) {
+        com.google.firebase.database.ValueEventListener registration =
+            new com.google.firebase.database.ValueEventListener() {
+                @Override public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                    listener.accept(snapshot);
+                }
+                @Override public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+                    Log.e(TAG, "rules listen failed: " + error.getMessage());
+                    onError.run();
+                }
+            };
+        db.getReference("devices").child(childUid).child("rules").addValueEventListener(registration);
+        return registration;
+    }
+
+    public void removeRulesListener(String childUid, com.google.firebase.database.ValueEventListener listener) {
+        db.getReference("devices").child(childUid).child("rules").removeEventListener(listener);
+    }
+
     /**
      * Push allow-list and blocked-UID rules to the child device.
      * Uses {@code updateChildren} so that a concurrent {@link #pushCategories}

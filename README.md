@@ -455,6 +455,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
 | Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
 | Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
 | Always-on VPN guidance                        | 🔄 Compiles              | Make it permanent opens VPN settings |
@@ -490,11 +491,6 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## Known gaps
 
 These are honest, not excuses — the filter works correctly for everything in ✅ above.
-
-- **`pushRules` is replace-not-merge.** The parent dashboard pushes one allow
-  entry at a time, but each push replaces the entire `allow` sub-node, so a
-  second allow wipes the first. The parent should maintain the full list locally
-  and push it whole, or the RTDB listener should read-modify-write.
 
 - **Parent-side UID entry has no app picker.** The dashboard takes a raw
   Android UID to block. The parent app cannot see the child's installed app list

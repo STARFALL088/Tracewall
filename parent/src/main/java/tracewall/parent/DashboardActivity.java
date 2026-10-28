@@ -44,6 +44,9 @@ public class DashboardActivity extends AppCompatActivity {
     private ListenerRegistration historyReg;
     private ListenerRegistration eventsReg;
     private String latestEventId;
+    private final tracewall.blocklist.RuleLists rules = new tracewall.blocklist.RuleLists();
+    private com.google.firebase.database.ValueEventListener rulesReg;
+    private boolean renderingRules;
     private String childUid;
 
     @Override
@@ -64,6 +67,9 @@ public class DashboardActivity extends AppCompatActivity {
         ui.allowButton.setOnClickListener(v -> pushAllowRule());
         ui.blockUidButton.setOnClickListener(v -> pushBlockUidRule());
 
+        ui.editRules.setOnClickListener(v -> removeRule());
+        setRuleControls(false);
+
         // Category toggles: each change immediately pushes the full category
         // map so the child reloads with the new active set.
         CompoundButton.OnCheckedChangeListener catListener = (btn, checked) ->
@@ -78,6 +84,29 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (childUid.isEmpty()) return;
+        rules.pause();
+        setRuleControls(false);
+        rulesReg = FirebaseParent.get().listenRules(childUid, snapshot -> {
+            List<String> allows = new ArrayList<>();
+            List<Integer> uids = new ArrayList<>();
+            for (com.google.firebase.database.DataSnapshot row : snapshot.child("allow").getChildren()) {
+                String host = row.getValue(String.class);
+                if (host != null) allows.add(host);
+            }
+            for (com.google.firebase.database.DataSnapshot row : snapshot.child("blocked_uids").getChildren()) {
+                Long uid = row.getValue(Long.class);
+                if (uid != null) uids.add(uid.intValue());
+            }
+            rules.load(allows, uids);
+            renderingRules = true;
+            com.google.firebase.database.DataSnapshot cats = snapshot.child("categories");
+            ui.catMalware.setChecked(!Boolean.FALSE.equals(cats.child("malware").getValue(Boolean.class)));
+            ui.catGambling.setChecked(!Boolean.FALSE.equals(cats.child("gambling").getValue(Boolean.class)));
+            ui.catAdult.setChecked(!Boolean.FALSE.equals(cats.child("adult").getValue(Boolean.class)));
+            ui.catAds.setChecked(!Boolean.FALSE.equals(cats.child("ads").getValue(Boolean.class)));
+            renderingRules = false;
+            setRuleControls(true);
+        }, () -> { rules.pause(); setRuleControls(false); });
         historyReg = FirebaseParent.get().listenHistory(
             childUid,
             HISTORY_LIMIT,
@@ -114,6 +143,12 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        rules.pause();
+        setRuleControls(false);
+        if (rulesReg != null) {
+            FirebaseParent.get().removeRulesListener(childUid, rulesReg);
+            rulesReg = null;
+        }
         if (eventsReg != null) { eventsReg.remove(); eventsReg = null; }
         if (historyReg != null) {
             historyReg.remove();
@@ -138,7 +173,38 @@ public class DashboardActivity extends AppCompatActivity {
 
     // ----------------------------------------------------------------- rules
 
+    private void setRuleControls(boolean enabled) {
+        ui.allowButton.setEnabled(enabled);
+        ui.blockUidButton.setEnabled(enabled);
+        ui.editRules.setEnabled(enabled);
+        ui.catMalware.setEnabled(enabled);
+        ui.catGambling.setEnabled(enabled);
+        ui.catAdult.setEnabled(enabled);
+        ui.catAds.setEnabled(enabled);
+    }
+
+    private void pushLists() {
+        if (rules.isReady()) FirebaseParent.get().pushRules(childUid, rules.allows(), rules.blockedUids());
+    }
+
+    private void removeRule() {
+        if (!rules.isReady()) return;
+        List<String> allows = rules.allows();
+        List<Integer> uids = rules.blockedUids();
+        List<String> rows = new ArrayList<>();
+        for (String host : allows) rows.add(getString(R.string.allow_entry, host));
+        for (int uid : uids) rows.add(getString(R.string.uid_entry, uid));
+        new AlertDialog.Builder(this).setTitle(R.string.remove_rule)
+            .setItems(rows.toArray(new String[0]), (d, which) -> {
+                if (!rules.isReady()) return;
+                if (which < allows.size()) rules.removeAllow(allows.get(which));
+                else rules.unblock(uids.get(which - allows.size()));
+                pushLists();
+            }).setNegativeButton(android.R.string.cancel, null).show();
+    }
+
     private void pushAllowRule() {
+        if (!rules.isReady()) return;
         String domain = ui.allowInput
             .getText()
             .toString()
@@ -148,11 +214,8 @@ public class DashboardActivity extends AppCompatActivity {
             ui.allowInput.setError(getString(R.string.rule_domain_empty));
             return;
         }
-        FirebaseParent.get().pushRules(
-            childUid,
-            Collections.singletonList(domain),
-            Collections.emptyList()
-        );
+        rules.addAllow(domain);
+        pushLists();
         ui.allowInput.setText("");
         Toast.makeText(
             this,
@@ -162,7 +225,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void pushCurrentCategories() {
-        if (childUid.isEmpty()) return;
+        if (childUid.isEmpty() || !rules.isReady() || renderingRules) return;
         Map<String, Boolean> cats = new LinkedHashMap<>();
         cats.put("malware", ui.catMalware.isChecked());
         cats.put("gambling", ui.catGambling.isChecked());
@@ -177,6 +240,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void pushBlockUidRule() {
+        if (!rules.isReady()) return;
         String raw = ui.blockUidInput.getText().toString().trim();
         if (TextUtils.isEmpty(raw)) {
             ui.blockUidInput.setError(getString(R.string.rule_uid_empty));
@@ -189,11 +253,12 @@ public class DashboardActivity extends AppCompatActivity {
             ui.blockUidInput.setError(getString(R.string.rule_uid_invalid));
             return;
         }
-        FirebaseParent.get().pushRules(
-            childUid,
-            Collections.emptyList(),
-            Collections.singletonList(uid)
-        );
+        if (uid < 0) {
+            ui.blockUidInput.setError(getString(R.string.rule_uid_invalid));
+            return;
+        }
+        rules.block(uid);
+        pushLists();
         ui.blockUidInput.setText("");
         Toast.makeText(
             this,

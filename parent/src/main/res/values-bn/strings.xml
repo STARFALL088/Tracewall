@@ -3,4 +3,7 @@
     <string name="dismiss_event">সরান</string>
     <string name="last_seen">শেষ ডিএনএস কার্যকলাপ: %1$s</string>
     <string name="last_seen_unknown">শেষ ডিএনএস কার্যকলাপ: অজানা</string>
+    <string name="remove_rule">অনুমতি বা ব্লক করা ইউআইডি সরান</string>
+    <string name="allow_entry">অনুমতি: %1$s</string>
+    <string name="uid_entry">ব্লক করা ইউআইডি: %1$d</string>
 </resources>

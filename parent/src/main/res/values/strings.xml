@@ -40,4 +40,7 @@
     <string name="dismiss_event">Dismiss</string>
     <string name="last_seen">Last DNS activity: %1$s</string>
     <string name="last_seen_unknown">Last DNS activity: unknown</string>
+    <string name="remove_rule">Remove an allow or blocked UID</string>
+    <string name="allow_entry">Allow: %1$s</string>
+    <string name="uid_entry">Blocked UID: %1$d</string>
 </resources>

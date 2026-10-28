@@ -77,6 +77,10 @@
         android:layout_marginTop="4dp"
         android:text="@string/dashboard_block_button" />
 
+    <Button android:id="@+id/editRules"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/remove_rule" />
+
     <!-- Category toggles -->
     <TextView
         android:layout_width="match_parent"
