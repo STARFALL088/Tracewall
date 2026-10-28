@@ -455,6 +455,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Upstream handover                             | 🔄 Compiles + JVM tested | Volatile snapshot, one retry on closed pool |
 | Blocked non-A responses                       | ✅ JVM tested             | NOERROR, zero answers; question preserved |
 | DNS interception (VpnService)                  | ✅ Verified on device    | Emulator API 37                          |
 | Category blocking (malware/gambling/adult/ads) | ✅ Verified              | 4 built-in lists, hot-reload             |

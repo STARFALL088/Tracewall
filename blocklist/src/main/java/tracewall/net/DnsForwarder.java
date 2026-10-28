@@ -64,6 +64,7 @@ public final class DnsForwarder {
     private final int timeoutMs;
     private final SocketBinder binder;
     private final BlockingQueue<DatagramSocket> pool = new ArrayBlockingQueue<>(64);
+    private volatile boolean closed;
     private final AtomicInteger idSeq = new AtomicInteger(0x2000);
 
     public DnsForwarder(List<String> resolvers, int timeoutMs, SocketBinder binder) {
@@ -93,6 +94,7 @@ public final class DnsForwarder {
         }
         StringBuilder tried = new StringBuilder();
         for (String r : resolvers) {
+            if (closed) throw new ForwardException("forwarder closed");
             if (r == null || r.trim().isEmpty()) continue;
             try {
                 return forwardOne(r.trim(), query, queryId);
@@ -206,12 +208,17 @@ public final class DnsForwarder {
      * ephemeral port allocation, so reuse pays. Capped so a burst of queries
      * cannot exhaust the process's file descriptors.
      */
-    private DatagramSocket acquire() throws IOException {
+    private synchronized DatagramSocket acquire() throws IOException {
+        if (closed) throw new IOException("forwarder closed");
         DatagramSocket s = pool.poll();
         return s != null ? s : new DatagramSocket();
     }
 
-    private void release(DatagramSocket s) {
+    private synchronized void release(DatagramSocket s) {
+        if (closed) {
+            if (s != null) s.close();
+            return;
+        }
         if (s == null || s.isClosed()) return;
         try {
             s.disconnect();
@@ -219,7 +226,10 @@ public final class DnsForwarder {
         if (!pool.offer(s)) s.close();
     }
 
-    public void close() {
+    public boolean isClosed() { return closed; }
+
+    public synchronized void close() {
+        closed = true;
         DatagramSocket s;
         while ((s = pool.poll()) != null) {
             s.close();

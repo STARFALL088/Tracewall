@@ -87,7 +87,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     private ParcelFileDescriptor tun;
     private FileOutputStream tunOut;
     private ExecutorService workers;
-    private DnsForwarder forwarder;
+    private volatile DnsForwarder forwarder;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean stop;
 
@@ -278,8 +278,16 @@ public class DnsVpnService extends VpnService implements Runnable {
                 : DnsMessage.buildEmptyResponse(q);
         } else {
             try {
-                int wireId = forwarder.nextId(); // our id, not the client's
-                DnsForwarder.Reply r = forwarder.forward(query, wireId);
+                DnsForwarder current = forwarder;
+                DnsForwarder.Reply r;
+                try {
+                    r = current.forward(query, current.nextId());
+                } catch (DnsForwarder.ForwardException e) {
+                    // Only a retired pool warrants one retry after handover.
+                    DnsForwarder replacement = forwarder;
+                    if (!current.isClosed() || replacement == current) throw e;
+                    r = replacement.forward(query, replacement.nextId());
+                }
                 answer = DnsMessage.normalizeResponse(r.bytes, q.id(), false);
                 resolver = r.resolver;
             } catch (DnsForwarder.ForwardException e) {
