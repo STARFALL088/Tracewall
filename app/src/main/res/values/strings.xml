@@ -39,4 +39,16 @@
     <string name="device_code_label">Device code: %1$s  (tap for QR · long-press to copy)</string>
     <string name="device_code_copied">Device code copied</string>
     <string name="qr_title">Scan this on the parent device</string>
+    <string name="pin_setup">Set parent PIN</string>
+    <string name="pin_required">Enter parent PIN</string>
+    <string name="pin_body">Use 4–6 digits. Keep this PIN with the parent.</string>
+    <string name="pin_hint">Parent PIN</string>
+    <string name="pin_confirm">Confirm PIN</string>
+    <string name="pin_invalid">Enter matching PINs with 4–6 digits.</string>
+    <string name="pin_wrong">Incorrect PIN</string>
+    <string name="pin_locked">Too many attempts. Try again in %1$d seconds.</string>
+    <string name="make_permanent">Make it permanent</string>
+    <string name="permanent_body">In VPN settings, open Tracewall and enable Always-on VPN. Android also offers Block connections without VPN; test connectivity after enabling it because Tracewall routes only DNS. These settings help prevent bypassing protection.</string>
+    <string name="manage_allows">Remove an allow</string>
+    <string name="no_allows">No local allowlist entries.</string>
 </resources>

@@ -202,6 +202,21 @@ public class FirebaseSync {
             .addOnFailureListener(e -> Log.e(TAG, "Firestore write failed", e));
     }
 
+    /** Firestore's persistent queue retains this event while offline. */
+    public void reportProtectionOff(String reason) {
+        long time = System.currentTimeMillis();
+        signInAnonymously(() -> {
+            String deviceUid = uid();
+            if (deviceUid == null) return;
+            Map<String, Object> event = new HashMap<>();
+            event.put("type", "protection_off");
+            event.put("reason", reason);
+            event.put("time_ms", time);
+            firestore.collection("devices").document(deviceUid).collection("events")
+                .add(event).addOnFailureListener(e -> Log.e(TAG, "event write failed", e));
+        });
+    }
+
     /**
      * Expose the Firestore history collection reference directly for callers
      * that want to run queries (e.g. paged reads by the parent app).

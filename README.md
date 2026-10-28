@@ -455,6 +455,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
+| Always-on VPN guidance                        | 🔄 Compiles              | Make it permanent opens VPN settings |
 | Upstream handover                             | 🔄 Compiles + JVM tested | Volatile snapshot, one retry on closed pool |
 | Blocked non-A responses                       | ✅ JVM tested             | NOERROR, zero answers; question preserved |
 | DNS interception (VpnService)                  | ✅ Verified on device    | Emulator API 37                          |
@@ -515,8 +517,13 @@ These are honest, not excuses — the filter works correctly for everything in �
   sees all queries in plaintext regardless — it intercepts before encryption).
 
 - **Private DNS is warned, not disabled.** A determined user can keep Private DNS
-  on. Always-on VPN (Android Settings → Network → VPN) is the proper fix and
-  is not yet guided from within the app.
+  on. The new **Make it permanent** button explains always-on VPN and
+  lockdown, then opens Android VPN settings; this still needs device testing.
+
+- **Tamper reporting is best effort.** Android may kill or force-stop a process
+  without a lifecycle callback. Events cannot be guaranteed in that case; anonymous
+  Firebase sign-in must have succeeded for offline event queueing. A local PIN
+  cannot prevent uninstall, clearing app data, or changing system settings.
 
 - **VPN cannot self-restart after a reboot.** `BootReceiver` posts a notification
   instead; always-on VPN is the system-supported solution.

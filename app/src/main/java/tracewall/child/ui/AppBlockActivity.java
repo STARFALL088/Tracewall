@@ -40,7 +40,16 @@ public class AppBlockActivity extends AppCompatActivity {
 
         adapter = new AppBlockAdapter((app, block) -> {
             if (block) BlocklistStore.get().blockApp(this, app.uid);
-            else BlocklistStore.get().unblockApp(this, app.uid);
+            else {
+                app.blocked = true;
+                adapter.notifyDataSetChanged();
+                PinGate.require(this, () -> {
+                    BlocklistStore.get().unblockApp(this, app.uid);
+                    app.blocked = BlocklistStore.get().isAppBlocked(app.uid);
+                    adapter.notifyDataSetChanged();
+                    renderCount();
+                });
+            }
             renderCount();
         });
         ui.list.setLayoutManager(new LinearLayoutManager(this));

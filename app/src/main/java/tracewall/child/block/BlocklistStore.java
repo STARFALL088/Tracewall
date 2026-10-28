@@ -153,6 +153,17 @@ public final class BlocklistStore {
         reload();
     }
 
+    public Set<String> localAllows(Context ctx) {
+        return new java.util.TreeSet<>(prefs(ctx).getStringSet(KEY_ALLOW, Collections.emptySet()));
+    }
+
+    public synchronized void removeAllow(Context ctx, String host) {
+        Set<String> next = localAllows(ctx);
+        next.remove(host);
+        prefs(ctx).edit().putStringSet(KEY_ALLOW, next).apply();
+        reload();
+    }
+
     public synchronized void blockApp(Context ctx, int uid) {
         if (ctx != null) app = ctx.getApplicationContext();
         if (app == null || uid < 0) return;

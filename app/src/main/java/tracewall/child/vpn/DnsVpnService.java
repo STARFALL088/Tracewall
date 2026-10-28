@@ -27,6 +27,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import tracewall.blocklist.PolicyEngine;
 import tracewall.child.R;
+import tracewall.child.sync.FirebaseSync;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.HistoryWriter;
 import tracewall.child.log.QueryLog;
@@ -90,6 +91,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     private volatile DnsForwarder forwarder;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean stop;
+    private final AtomicBoolean offReported = new AtomicBoolean();
 
     /** Android side of the pure-JVM forwarder's binder contract. */
     private final DnsForwarder.SocketBinder binder =
@@ -152,6 +154,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
+            reportOff("user_toggle");
             BlocklistStore.setEnabled(this, false);
             stopSelf();
             return START_NOT_STICKY;
@@ -334,6 +337,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     }
 
     private void teardown() {
+        reportOff("unexpected_stop");
         stop = true;
         running.set(false);
         synchronized (writeLock) {
@@ -354,8 +358,16 @@ public class DnsVpnService extends VpnService implements Runnable {
         Log.i(TAG, "tunnel down");
     }
 
+    private void reportOff(String reason) {
+        if ((running.get() || BlocklistStore.isEnabled(this))
+                && offReported.compareAndSet(false, true)) {
+            FirebaseSync.get().reportProtectionOff(reason);
+        }
+    }
+
     @Override
     public void onRevoke() {
+        reportOff("vpn_revoked");
         Log.i(
             TAG,
             "permission revoked - another VPN took over, or the user said no"
@@ -365,6 +377,7 @@ public class DnsVpnService extends VpnService implements Runnable {
 
     @Override
     public void onDestroy() {
+        reportOff("service_destroyed");
         stop = true;
         running.set(false);
         if (networkCallback != null) {

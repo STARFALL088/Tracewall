@@ -35,6 +35,7 @@ import tracewall.child.log.QueryLogProvider;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.child.ui.AppBlockActivity;
 import tracewall.child.ui.QueryAdapter;
+import tracewall.child.ui.PinGate;
 import tracewall.child.ui.TrendView;
 import tracewall.child.vpn.DnsVpnService;
 
@@ -106,7 +107,10 @@ public class MainActivity extends AppCompatActivity {
         ui.toggle.setOnCheckedChangeListener((button, checked) -> {
             if (updatingToggle) return;
             if (checked) requestStart();
-            else stopFiltering();
+            else {
+                render();
+                PinGate.require(this, this::stopFiltering);
+            }
         });
 
         if (
@@ -124,6 +128,14 @@ public class MainActivity extends AppCompatActivity {
         ui.actionApps.setOnClickListener(v ->
             startActivity(new Intent(this, AppBlockActivity.class))
         );
+        ui.makePermanent.setOnClickListener(v -> new AlertDialog.Builder(this)
+            .setTitle(R.string.make_permanent)
+            .setMessage(R.string.permanent_body)
+            .setPositiveButton(android.R.string.ok, (d, w) ->
+                startActivity(new Intent(Settings.ACTION_VPN_SETTINGS)))
+            .setNegativeButton(android.R.string.cancel, null).show());
+        ui.manageAllows.setOnClickListener(v -> showAllows());
+        PinGate.ensureSet(this);
         ui.copyCsv.setOnClickListener(v -> copyCsv());
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
         ui.deviceCode.setOnClickListener(v -> showQrDialog());
@@ -236,6 +248,17 @@ public class MainActivity extends AppCompatActivity {
 
     // ------------------------------------------------------------ protection
 
+    private void showAllows() {
+        String[] hosts = BlocklistStore.get().localAllows(this).toArray(new String[0]);
+        new AlertDialog.Builder(this).setTitle(R.string.manage_allows)
+            .setItems(hosts, (d, which) -> PinGate.require(this, () -> {
+                BlocklistStore.get().removeAllow(this, hosts[which]);
+                render();
+            }))
+            .setMessage(hosts.length == 0 ? getString(R.string.no_allows) : null)
+            .setNegativeButton(android.R.string.cancel, null).show();
+    }
+
     private void requestStart() {
         Intent prepare = VpnService.prepare(this);
         if (prepare != null) {
@@ -279,8 +302,10 @@ public class MainActivity extends AppCompatActivity {
             .setTitle(e.host)
             .setMessage(getString(R.string.row_body, labels.label(e.uid)))
             .setPositiveButton(R.string.allow_yes, (dialog, which) -> {
-                BlocklistStore.get().allow(this, e.host);
-                render();
+                PinGate.require(this, () -> {
+                    BlocklistStore.get().allow(this, e.host);
+                    render();
+                });
             });
         if (e.uid >= 10000) {
             b.setNegativeButton(R.string.block_app_yes, (dialog, which) -> {

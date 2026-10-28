@@ -39,4 +39,16 @@
     <string name="device_code_label">ডিভাইস কোড: %1$s  (ট্যাপ করলে QR · দীর্ঘ ট্যাপে কপি)</string>
     <string name="device_code_copied">ডিভাইস কোড কপি হয়েছে</string>
     <string name="qr_title">প্যারেন্ট ডিভাইসে স্ক্যান করুন</string>
+    <string name="pin_setup">অভিভাবকের পিন সেট করুন</string>
+    <string name="pin_required">অভিভাবকের পিন দিন</string>
+    <string name="pin_body">৪–৬ সংখ্যার পিন ব্যবহার করুন। পিনটি অভিভাবকের কাছে রাখুন।</string>
+    <string name="pin_hint">অভিভাবকের পিন</string>
+    <string name="pin_confirm">পিন আবার দিন</string>
+    <string name="pin_invalid">৪–৬ সংখ্যার একই পিন দুবার দিন।</string>
+    <string name="pin_wrong">ভুল পিন</string>
+    <string name="pin_locked">অনেকবার ভুল হয়েছে। %1$d সেকেন্ড পরে আবার চেষ্টা করুন।</string>
+    <string name="make_permanent">সর্বদা চালু রাখুন</string>
+    <string name="permanent_body">ভিপিএন সেটিংসে Tracewall খুলে Always-on VPN চালু করুন। Android-এর Block connections without VPN চালু করলে সংযোগ পরীক্ষা করুন, কারণ Tracewall শুধু ডিএনএস রাউট করে। এই সেটিংস সুরক্ষা এড়ানো কঠিন করে।</string>
+    <string name="manage_allows">অনুমতি সরান</string>
+    <string name="no_allows">স্থানীয় অনুমতির তালিকা খালি।</string>
 </resources>
