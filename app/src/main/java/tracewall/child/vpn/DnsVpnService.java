@@ -25,9 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import tracewall.blocklist.PolicyEngine;
 import tracewall.child.R;
 import tracewall.child.ui.Notifications;
@@ -36,6 +36,7 @@ import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.HistoryWriter;
 import tracewall.child.log.QueryLog;
 import tracewall.net.DnsForwarder;
+import tracewall.net.BoundedWorkPool;
 import tracewall.net.DnsMessage;
 import tracewall.net.IpPacket;
 
@@ -77,6 +78,9 @@ public class DnsVpnService extends VpnService implements Runnable {
     );
 
     private static final AtomicBoolean running = new AtomicBoolean(false);
+    private static final AtomicLong rejectedPackets = new AtomicLong();
+
+    public static long rejectedPackets() { return rejectedPackets.get(); }
 
     /** True between establish() and teardown, for the UI to trust. */
     public static boolean isRunning() {
@@ -91,6 +95,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     private ParcelFileDescriptor tun;
     private FileOutputStream tunOut;
     private ExecutorService workers;
+    private ExecutorService events;
     private volatile DnsForwarder forwarder;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean stop;
@@ -101,20 +106,22 @@ public class DnsVpnService extends VpnService implements Runnable {
     private final DnsForwarder.SocketBinder binder =
         new DnsForwarder.SocketBinder() {
             @Override
-            public void bind(DatagramSocket s) {
-                protect(s);
+            public void bind(DatagramSocket s) throws IOException {
+                if (!protect(s)) throw new IOException("Could not protect upstream UDP socket");
             }
 
             @Override
-            public void bind(Socket s) {
-                protect(s);
+            public void bind(Socket s) throws IOException {
+                if (!protect(s)) throw new IOException("Could not protect upstream TCP socket");
             }
         };
 
     @Override
     public void onCreate() {
         super.onCreate();
-        workers = Executors.newFixedThreadPool(4);
+        rejectedPackets.set(0);
+        workers = BoundedWorkPool.create("tracewall-dns", 4, 128);
+        events = BoundedWorkPool.create("tracewall-events", 1, 16);
         uidAttributor = new UidAttributor(this);
         HistoryWriter.get().start(this);
         packageReceiver = new BroadcastReceiver() {
@@ -126,7 +133,7 @@ public class DnsVpnService extends VpnService implements Runnable {
                 long installedAt = System.currentTimeMillis();
                 PendingResult pending = goAsync();
                 try {
-                    workers.execute(() -> {
+                    events.execute(() -> {
                         try {
                             String label = packageName;
                             try { label = String.valueOf(getPackageManager().getApplicationLabel(
@@ -277,7 +284,11 @@ public class DnsVpnService extends VpnService implements Runnable {
                     }
                 );
             } catch (RejectedExecutionException ignored) {
-                // shutting down; drop the packet
+                if (!workers.isShutdown()) {
+                    long dropped = rejectedPackets.incrementAndGet();
+                    // Log only at powers of two, not once per packet during a burst.
+                    if ((dropped & (dropped - 1)) == 0) Log.w(TAG, "DNS queue full; dropped packets=" + dropped);
+                }
             }
         }
     }
@@ -443,6 +454,8 @@ public class DnsVpnService extends VpnService implements Runnable {
             networkCallback = null;
         }
         if (workers != null) workers.shutdownNow();
+        // Let already accepted goAsync broadcasts finish their PendingResult.
+        if (events != null) events.shutdown();
         if (forwarder != null) forwarder.close();
         if (tun != null) {
             try {

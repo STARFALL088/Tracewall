@@ -96,3 +96,15 @@ production/device requirements are stated separately.
 - Verification: 114 JVM tests, both APK builds, and 83 emulator REST checks
   passed. Tests include rebased intents and a real stale-ETag rejection/retry;
   Android SDK transaction callbacks still need device integration testing.
+
+### 5a — Bounded work and socket protection
+
+- DNS work is capped at four workers and 128 pending packets; overload is
+  rejected without running on the TUN reader. A separate bounded event worker
+  prevents slow DNS forwarding from starving package broadcasts.
+- Rejected packets are counted with rate-limited logging. Accepted asynchronous
+  broadcasts finish on shutdown. A failed `protect()` now fails the upstream
+  operation instead of silently sending an unprotected socket.
+- Verification: 116 JVM tests and both APK builds passed, including bounded
+  queue rejection/shutdown tests. Parser/locale fixes remain the other half of
+  update 5 and are being reviewed independently.
