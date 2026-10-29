@@ -13,7 +13,7 @@
     <string name="meta">%1$s  ·  %2$s  ·  %3$d ms</string>
     <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d ms  ·  %4$s</string>
     <string name="allow_yes">Allow</string>
-    <string name="action_copy_csv">CSV</string>
+    <string name="action_copy_csv">Share CSV</string>
     <string name="action_clear_history">Clear</string>
     <string name="action_apps">Apps</string>
     <string name="apps_title">Blocked apps</string>
@@ -54,4 +54,6 @@
     <string name="revoke_parent">Revoke a parent</string>
     <string name="pairing_details">Child UID: %1$s\nOne-time code: %2$s\nExpires in 5 minutes. Generate a new code for each parent.</string>
     <string name="pairing_create_failed">Could not create a pairing code. Check connectivity and try again.</string>
+    <string name="share_file">Share Tracewall file</string>
+    <string name="no_handler">No app can open this action.</string>
 </resources>

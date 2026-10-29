@@ -132,11 +132,11 @@ public class MainActivity extends AppCompatActivity {
             .setTitle(R.string.make_permanent)
             .setMessage(R.string.permanent_body)
             .setPositiveButton(android.R.string.ok, (d, w) ->
-                startActivity(new Intent(Settings.ACTION_VPN_SETTINGS)))
+                openVpnSettings())
             .setNegativeButton(android.R.string.cancel, null).show());
         ui.manageAllows.setOnClickListener(v -> showAllows());
         PinGate.ensureSet(this);
-        ui.copyCsv.setOnClickListener(v -> copyCsv());
+        ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
         ui.deviceCode.setOnClickListener(v -> PinGate.require(this, this::showQrDialog));
         ui.manageParents.setOnClickListener(v -> PinGate.require(this, () ->
@@ -344,77 +344,36 @@ public class MainActivity extends AppCompatActivity {
      */
     private void copyCsv() {
         new Thread(() -> {
-            StringBuilder sb = new StringBuilder(
-                "time_ms,host,type,blocked,uid,policy,latency_ms,resolver\n"
-            );
-            int rows = 0;
-            try (
-                Cursor c = getContentResolver().query(
-                    QueryLogProvider.CONTENT_URI,
-                    null,
-                    null,
-                    null,
-                    null
-                )
-            ) {
-                if (c != null) {
+            try {
+                java.io.File file = tracewall.child.io.ShareFiles.target(this, "history.csv");
+                try (java.io.Writer writer = new java.io.OutputStreamWriter(
+                        new java.io.FileOutputStream(file), java.nio.charset.StandardCharsets.UTF_8);
+                     Cursor c = getContentResolver().query(QueryLogProvider.CONTENT_URI,
+                         null, null, null, null)) {
+                    writer.write("time_ms,host,type,blocked,uid,policy,latency_ms,resolver\r\n");
+                    if (c == null) throw new java.io.IOException("History unavailable");
+                    String[] columns = {"time_ms", "host", "type", "blocked", "uid", "policy", "latency_ms", "resolver"};
                     while (c.moveToNext()) {
-                        sb.append(c.getLong(c.getColumnIndexOrThrow("time_ms")))
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("host"))
-                            )
-                            .append(',')
-                            .append(c.getInt(c.getColumnIndexOrThrow("type")))
-                            .append(',')
-                            .append(
-                                c.getInt(c.getColumnIndexOrThrow("blocked"))
-                            )
-                            .append(',')
-                            .append(c.getInt(c.getColumnIndexOrThrow("uid")))
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("policy"))
-                            )
-                            .append(',')
-                            .append(
-                                c.getLong(c.getColumnIndexOrThrow("latency_ms"))
-                            )
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("resolver"))
-                            )
-                            .append('\n');
-                        rows++;
+                        Object[] row = new Object[columns.length];
+                        for (int i = 0; i < columns.length; i++) row[i] = c.getString(c.getColumnIndexOrThrow(columns[i]));
+                        writer.write(tracewall.data.CsvRow.of(row));
                     }
                 }
-            } catch (RuntimeException e) {
-                runOnUiThread(() ->
-                    Toast.makeText(
-                        this,
-                        R.string.csv_failed,
-                        Toast.LENGTH_LONG
-                    ).show()
-                );
-                return;
+                runOnUiThread(() -> tracewall.child.io.ShareFiles.send(this, file, "text/csv"));
+            } catch (java.io.IOException | RuntimeException e) {
+                runOnUiThread(() -> Toast.makeText(this, R.string.csv_failed, Toast.LENGTH_LONG).show());
             }
-
-            final int count = rows;
-            final String csv = sb.toString();
-            runOnUiThread(() -> {
-                ClipboardManager cm = (ClipboardManager) getSystemService(
-                    Context.CLIPBOARD_SERVICE
-                );
-                if (cm != null) cm.setPrimaryClip(
-                    ClipData.newPlainText("Tracewall history", csv)
-                );
-                Toast.makeText(
-                    this,
-                    getString(R.string.csv_copied, count),
-                    Toast.LENGTH_LONG
-                ).show();
-            });
         }, "tracewall-export").start();
+    }
+
+    private void openVpnSettings() {
+        for (String action : new String[] {Settings.ACTION_VPN_SETTINGS, Settings.ACTION_SETTINGS}) {
+            Intent intent = new Intent(action);
+            if (intent.resolveActivity(getPackageManager()) == null) continue;
+            try { startActivity(intent); return; }
+            catch (android.content.ActivityNotFoundException ignored) { /* Try general settings. */ }
+        }
+        Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show();
     }
 
     private void confirmClearHistory() {

@@ -492,7 +492,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
 | Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
 | Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
-| Always-on VPN guidance                        | 🔄 Compiles              | Make it permanent opens VPN settings |
+| Always-on VPN guidance                        | DONE — APK builds       | VPN settings with general-settings fallback; device check pending |
 | Upstream handover                             | 🔄 Compiles + JVM tested | Volatile snapshot, one retry on closed pool |
 | Blocked non-A responses                       | ✅ JVM tested             | NOERROR, zero answers; question preserved |
 | DNS interception (VpnService)                  | ✅ Verified on device    | Emulator API 37                          |
@@ -503,7 +503,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Live query log                                 | ✅ Verified              | 500-entry ring, 700 ms refresh           |
 | Custom trend bar chart                         | ✅ Verified              | 1-min buckets, `TrendView` custom view   |
 | Room history + ContentProvider                 | ✅ Verified              | 1.5 s batch, 1-week retention            |
-| CSV export                                     | ✅ Verified              | Copies to clipboard                      |
+| CSV export                                     | DONE — JVM + APK builds | PIN-gated FileProvider CSV; ACTION_SEND chooser |
 | Bilingual (English + Bengali)                  | ✅ Verified              | `values-bn/`                             |
 | Boot notification                              | ✅ Verified              | `BootReceiver`                           |
 | SVCB / HTTPS type blocking                     | ✅ Compiled, 77/77 tests | Closes DoH discovery path                |

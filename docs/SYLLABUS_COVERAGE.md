@@ -7,7 +7,7 @@ This file was absent at the start of the continuation; week labels below follow 
 | --- | --- | --- |
 | A — Firebase pairing and security | Scoped RTDB + Firestore permissions, expiring one-use QR/manual pairing, PIN-gated revocation | DONE — JVM, emulator rules, both APK builds |
 | B — Rule data and parsing | Larger licensed hosts lists, parser robustness, load timing | DONE — JVM tests and both APK builds |
-| C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | Pending |
+| C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | DONE — JVM tests and both APK builds |
 | D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | Pending |
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | Pending |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | Pending |
@@ -34,7 +34,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | XML layouts, view binding | `app/src/main/res/layout/` | DONE |
 | Click listeners / event handling | `J/MainActivity.java`, `J/ui/AppBlockActivity.java` | DONE |
 | Explicit intents | `MainActivity` to `AppBlockActivity` | DONE |
-| Implicit intents | VPN settings (`ACTION_VPN_SETTINGS`), CSV share (`ACTION_SEND`) | PLANNED |
+| Implicit intents | VPN settings with fallback; PIN-gated CSV `ACTION_SEND` + FileProvider | DONE — built; chooser device check pending |
 | Localization (English and Bangla) | `res/values/`, `res/values-bn/` | DONE |
 
 ## Week 9: UI, RecyclerView, Custom Views, UX

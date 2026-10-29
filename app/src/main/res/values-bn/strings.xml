@@ -13,7 +13,7 @@
     <string name="meta">%1$s  ·  %2$s  ·  %3$d মি.সে.</string>
     <string name="meta_blocked">%1$s  ·  %2$s  ·  %3$d মি.সে.  ·  %4$s</string>
     <string name="allow_yes">অনুমোদন</string>
-    <string name="action_copy_csv">সিএসভি</string>
+    <string name="action_copy_csv">CSV শেয়ার</string>
     <string name="action_clear_history">মুছুন</string>
     <string name="action_apps">অ্যাপ</string>
     <string name="apps_title">ব্লকড অ্যাপ</string>
@@ -54,4 +54,6 @@
     <string name="revoke_parent">অভিভাবকের সংযোগ বাতিল করুন</string>
     <string name="pairing_details">শিশুর ইউআইডি: %1$s\nএকবার ব্যবহারযোগ্য কোড: %2$s\n৫ মিনিটে মেয়াদ শেষ হবে। প্রতিটি অভিভাবকের জন্য নতুন কোড তৈরি করুন।</string>
     <string name="pairing_create_failed">পেয়ারিং কোড তৈরি করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</string>
+    <string name="share_file">Tracewall ফাইল শেয়ার করুন</string>
+    <string name="no_handler">এই কাজের জন্য কোনো অ্যাপ পাওয়া যায়নি।</string>
 </resources>
