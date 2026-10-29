@@ -13,9 +13,9 @@ and read history from any device, in real time.
 [![Language](https://img.shields.io/badge/language-Java-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![API](<https://img.shields.io/badge/minSdk-24%20(Android%207)-brightgreen?logo=android>)](https://developer.android.com/about/versions/nougat)
 [![AGP](https://img.shields.io/badge/AGP-8.5.2-blue?logo=gradle)](https://developer.android.com/build/releases/gradle-plugin)
-[![Tests](https://img.shields.io/badge/tests-98%20passing-success?logo=junit5)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/tests-170%20passing-success?logo=junit5)](https://junit.org/junit5/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20RTDB%20%7C%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Latest](https://img.shields.io/badge/latest-v2-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v2)
+[![Latest](https://img.shields.io/badge/latest-v1.2.0-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v1.2.0)
 
 </div>
 
@@ -41,21 +41,21 @@ and read history from any device, in real time.
 
 ## What it does
 
-| Feature                   | Detail                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------- |
-| **DNS-only VPN tunnel**   | Routes only `10.66.0.1/32` — one address — so a bug here can affect nothing but name resolution   |
+| Feature                   | Detail                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| **DNS-only VPN tunnel**   | Routes only `10.66.0.1/32` — one address — so a bug here can affect nothing but name resolution  |
 | **Per-app attribution**   | Best-effort Android UID attribution via `ConnectivityManager`; unknown owners are recorded as -1 |
-| **Category blocking**     | Four built-in lists: `malware`, `gambling`, `adult`, `ads`                                        |
-| **Per-app blocking**      | Block an app's intercepted DNS traffic from a long-press or the Apps screen                            |
-| **Allowlist override**    | Explicit allows win over every category — long-press any blocked row                              |
-| **Live query log**        | 500-entry in-memory ring, refreshed every 700 ms, with a custom trend bar chart                   |
-| **Room history**          | Batched writes (1.5 s flush), one-week retention, exported via `ContentProvider`                  |
-| **Remote rules (v2)**     | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB            |
-| **Remote history (v2)**   | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live                     |
-| **QR pairing (v2)**       | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing                            |
-| **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                               |
-| **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, limiting encrypted-DNS discovery                    |
-| **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                          |
+| **Category blocking**     | Four built-in lists: `malware`, `gambling`, `adult`, `ads`                                       |
+| **Per-app blocking**      | Block an app's intercepted DNS traffic from a long-press or the Apps screen                      |
+| **Allowlist override**    | Explicit allows win over every category — long-press any blocked row                             |
+| **Live query log**        | 500-entry in-memory ring, refreshed every 700 ms, with a custom trend bar chart                  |
+| **Room history**          | Batched writes (1.5 s flush), one-week retention, exported via `ContentProvider`                 |
+| **Remote rules (v2)**     | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB           |
+| **Remote history (v2)**   | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live  |
+| **QR pairing (v2)**       | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing         |
+| **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                              |
+| **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, limiting encrypted-DNS discovery                      |
+| **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                         |
 
 ---
 
@@ -173,22 +173,22 @@ git checkout v2   # full feature set — current HEAD
 <details>
 <summary><strong>Click to expand full changelog</strong></summary>
 
-| Area                               | Change                                                                                                                                                                       |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Firebase Auth**                  | `TracewallApp` signs in anonymously on startup; the UID identifies the device; pairing requires a separate one-time code                                                                          |
-| **Realtime Database**              | `FirebaseSync.listenForRules()` subscribes to `/devices/{uid}/rules`; reloads `BlocklistStore` atomically on any parent write                                                |
-| **Firestore**                      | `HistoryWriter` mirrors each batch to `/devices/{uid}/history` after the Room insert; Firestore SDK queues writes offline                                                    |
-| **Offline persistence**            | Both databases enable on-disk caching before any reference is obtained                                                                                                       |
-| **`:parent` module**               | Second Android app: `PairingActivity` (QR scan or manual entry), `DashboardActivity` (live history, allow/block/category controls)                                           |
-| **Remote rules**                   | Parent-pushed allow list, blocked UIDs and category set stored under separate SharedPreferences keys and merged with local rules; parent never erases what child set locally |
-| **Remote category toggle**         | Four switches in the parent dashboard; each change writes to `rules/categories` via `updateChildren` so it does not overwrite allow/block rules                              |
-| **QR pairing**                     | Child: tap device-code label → 512×512 QR dialog (ZXing core); long-press → copy UID to clipboard. Parent: "Scan QR" button using `zxing-android-embedded` + `ScanContract`  |
-| **Private DNS warning**            | Yellow banner in `MainActivity` when `Settings.Global.private_dns_mode ≠ off`; re-checked on every `onResume`                                                                |
-| **SVCB / HTTPS blocking**          | `TYPE_SVCB=64`, `TYPE_HTTPS=65` added to `DnsMessage`; `DnsVpnService` returns NXDOMAIN before any policy check, limiting the `_dns.resolver.arpa` encrypted-DNS discovery path         |
-| **`AtomicBoolean`**                | `DnsVpnService.running` was `volatile boolean`; replaced with `AtomicBoolean` to remove the data-race between tunnel thread, `teardown()` and binder-thread `onDestroy()`    |
-| **BootReceiver pre-warm**          | `FirebaseSync.signInAnonymously()` called at boot when protection was previously enabled                                                                                     |
-| **Security rules**                 | `firebase/database.rules.json` + `firebase/firestore.rules` committed alongside the code; locked to `auth.uid` with parent-pairing carve-out                                 |
-| **`google-services.json.example`** | Template committed in `app/` so contributors know what to fill in                                                                                                            |
+| Area                               | Change                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Firebase Auth**                  | `TracewallApp` signs in anonymously on startup; the UID identifies the device; pairing requires a separate one-time code                                                        |
+| **Realtime Database**              | `FirebaseSync.listenForRules()` subscribes to `/devices/{uid}/rules`; reloads `BlocklistStore` atomically on any parent write                                                   |
+| **Firestore**                      | `HistoryWriter` mirrors each batch to `/devices/{uid}/history` after the Room insert; Firestore SDK queues writes offline                                                       |
+| **Offline persistence**            | Both databases enable on-disk caching before any reference is obtained                                                                                                          |
+| **`:parent` module**               | Second Android app: `PairingActivity` (QR scan or manual entry), `DashboardActivity` (live history, allow/block/category controls)                                              |
+| **Remote rules**                   | Parent-pushed allow list, blocked UIDs and category set stored under separate SharedPreferences keys and merged with local rules; parent never erases what child set locally    |
+| **Remote category toggle**         | Four switches in the parent dashboard; each change writes to `rules/categories` via `updateChildren` so it does not overwrite allow/block rules                                 |
+| **QR pairing**                     | Child: tap device-code label → 512×512 QR dialog (ZXing core); long-press → copy UID to clipboard. Parent: "Scan QR" button using `zxing-android-embedded` + `ScanContract`     |
+| **Private DNS warning**            | Yellow banner in `MainActivity` when `Settings.Global.private_dns_mode ≠ off`; re-checked on every `onResume`                                                                   |
+| **SVCB / HTTPS blocking**          | `TYPE_SVCB=64`, `TYPE_HTTPS=65` added to `DnsMessage`; `DnsVpnService` returns NXDOMAIN before any policy check, limiting the `_dns.resolver.arpa` encrypted-DNS discovery path |
+| **`AtomicBoolean`**                | `DnsVpnService.running` was `volatile boolean`; replaced with `AtomicBoolean` to remove the data-race between tunnel thread, `teardown()` and binder-thread `onDestroy()`       |
+| **BootReceiver pre-warm**          | `FirebaseSync.signInAnonymously()` called at boot when protection was previously enabled                                                                                        |
+| **Security rules**                 | `firebase/database.rules.json` + `firebase/firestore.rules` committed alongside the code; locked to `auth.uid` with parent-pairing carve-out                                    |
+| **`google-services.json.example`** | Template committed in `app/` so contributors know what to fill in                                                                                                               |
 
 </details>
 
@@ -366,7 +366,7 @@ sequenceDiagram
     participant Parent as Parent App
 
     Child  ->> FB    : signInAnonymously() → childUid
-    Child  ->> Child : generate code + expiry; show QR(uid, code)
+    Child  ->> Child : generate code and expiry, show QR(uid, code)
     Parent ->> FB    : signInAnonymously() → parentUid
     Parent ->> Child : scan QR → get childUid + code
     Parent ->> FB    : RTDB atomic registration(code) + pairing claim
@@ -415,7 +415,6 @@ firebase emulators:exec --config firebase/firebase.json --project demo-tracewall
   --only auth,database,firestore 'node firebase/test_rules.mjs'
 firebase deploy --config firebase/firebase.json --project YOUR_PROJECT --only database,firestore:rules
 ```
-
 
 ---
 
@@ -486,43 +485,43 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Status
 
-| Feature                                        | Status                   | Notes                                    |
-| ---------------------------------------------- | ------------------------ | ---------------------------------------- |
-| Week 13 project report                       | DONE — docs + build checks | [Report](docs/REPORT.md), 98 JVM tests; device checklist remains pending |
-| Lifecycle logs + restored filters and scroll  | DONE — JVM + APK builds | Rotation code reviewed; device check blocked by emulator disk space |
-| New install notifications + parent feed        | DONE — JVM + APK builds | Dynamic package receiver, ignores updates; Firestore event rules tested |
-| Daily WorkManager refresh                    | DONE — APK builds       | Unique connected 24-hour work; exponential retry; last result shown |
-| HTTPS refresh + JSON backups                  | DONE — JVM + APK builds | Bounded HTTPS, atomic files, validated PIN-gated local backups |
-| Larger licensed category lists                | DONE — JVM + APK builds | ~95k merged entries; 2.43 MB total assets; load time logged |
-| One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation |
-| Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
-| Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
-| Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
-| Always-on VPN guidance                        | DONE — APK builds       | VPN settings with general-settings fallback; device check pending |
-| Upstream handover                             | 🔄 Compiles + JVM tested | Volatile snapshot, one retry on closed pool |
-| Blocked non-A responses                       | ✅ JVM tested             | NOERROR, zero answers; question preserved |
-| DNS interception (VpnService)                  | ✅ Verified on device    | Emulator API 37                          |
-| Category blocking (malware/gambling/adult/ads) | ✅ Verified              | 4 built-in lists, hot-reload             |
-| Per-app attribution                            | ✅ Verified              | `ConnectivityManager` UID lookup         |
-| Per-app blocking (list screen)                 | ✅ Verified              | `AppBlockActivity`, toggle per app       |
-| Allowlist override                             | ✅ Verified              | Long-press any blocked row               |
-| Live query log                                 | ✅ Verified              | 500-entry ring, 700 ms refresh           |
-| Custom trend bar chart                         | ✅ Verified              | 1-min buckets, `TrendView` custom view   |
-| Room history + ContentProvider                 | ✅ Verified              | 1.5 s batch, 1-week retention            |
-| CSV export                                     | DONE — JVM + APK builds | PIN-gated FileProvider CSV; ACTION_SEND chooser |
-| Bilingual (English + Bengali)                  | ✅ Verified              | `values-bn/`                             |
-| Boot notification                              | ✅ Verified              | `BootReceiver`                           |
-| SVCB / HTTPS type blocking                     | ✅ Compiled, 98/98 tests | Limits encrypted-DNS discovery                |
-| Private DNS warning banner                     | ✅ Compiled              | Reads `Settings.Global` on resume        |
-| Firebase Auth (anonymous)                      | 🔄 Compiles              | Needs real `google-services.json`        |
-| Realtime Database rules listener               | 🔄 Compiles              | Needs real `google-services.json`        |
-| Firestore history mirror                       | 🔄 Compiles              | Needs real `google-services.json`        |
-| Remote category toggles                        | 🔄 Compiles              | RTDB `rules/categories`                  |
-| QR pairing — child (generate)                  | 🔄 Compiles              | ZXing core, tap device-code label        |
-| QR pairing — parent (scan)                     | 🔄 Compiles              | `zxing-android-embedded`, `ScanContract` |
-| Parent app — pairing screen                    | 🔄 Compiles              | `PairingActivity`                        |
-| Parent app — dashboard / rules                 | 🔄 Compiles              | `DashboardActivity`                      |
-| Parent app — live history                      | 🔄 Compiles              | Firestore snapshot listener              |
+| Feature                                        | Status                          | Notes                                                                    |
+| ---------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------ |
+| Week 13 project report                         | DONE — docs + build checks      | [Report](docs/REPORT.md), 98 JVM tests; device checklist remains pending |
+| Lifecycle logs + restored filters and scroll   | DONE — JVM + APK builds         | Rotation code reviewed; device check blocked by emulator disk space      |
+| New install notifications + parent feed        | DONE — JVM + APK builds         | Dynamic package receiver, ignores updates; Firestore event rules tested  |
+| Daily WorkManager refresh                      | DONE — APK builds               | Unique connected 24-hour work; exponential retry; last result shown      |
+| HTTPS refresh + JSON backups                   | DONE — JVM + APK builds         | Bounded HTTPS, atomic files, validated PIN-gated local backups           |
+| Larger licensed category lists                 | DONE — JVM + APK builds         | ~95k merged entries; 2.43 MB total assets; load time logged              |
+| One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation                 |
+| Parent rule list editing                       | 🔄 Compiles + JVM tested        | Full snapshot before edits, preserves lists, removal UI                  |
+| Parent tamper banner + last seen               | 🔄 Compiles                     | Latest off event, persistent dismissal; newest DNS history time          |
+| Parent PIN + tamper events                     | 🔄 Compiles + JVM tested        | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events           |
+| Always-on VPN guidance                         | DONE — APK builds               | VPN settings with general-settings fallback; device check pending        |
+| Upstream handover                              | 🔄 Compiles + JVM tested        | Volatile snapshot, one retry on closed pool                              |
+| Blocked non-A responses                        | ✅ JVM tested                   | NOERROR, zero answers; question preserved                                |
+| DNS interception (VpnService)                  | ✅ Verified on device           | Emulator API 37                                                          |
+| Category blocking (malware/gambling/adult/ads) | ✅ Verified                     | 4 built-in lists, hot-reload                                             |
+| Per-app attribution                            | ✅ Verified                     | `ConnectivityManager` UID lookup                                         |
+| Per-app blocking (list screen)                 | ✅ Verified                     | `AppBlockActivity`, toggle per app                                       |
+| Allowlist override                             | ✅ Verified                     | Long-press any blocked row                                               |
+| Live query log                                 | ✅ Verified                     | 500-entry ring, 700 ms refresh                                           |
+| Custom trend bar chart                         | ✅ Verified                     | 1-min buckets, `TrendView` custom view                                   |
+| Room history + ContentProvider                 | ✅ Verified                     | 1.5 s batch, 1-week retention                                            |
+| CSV export                                     | DONE — JVM + APK builds         | PIN-gated FileProvider CSV; ACTION_SEND chooser                          |
+| Bilingual (English + Bengali)                  | ✅ Verified                     | `values-bn/`                                                             |
+| Boot notification                              | ✅ Verified                     | `BootReceiver`                                                           |
+| SVCB / HTTPS type blocking                     | ✅ Compiled, 98/98 tests        | Limits encrypted-DNS discovery                                           |
+| Private DNS warning banner                     | ✅ Compiled                     | Reads `Settings.Global` on resume                                        |
+| Firebase Auth (anonymous)                      | 🔄 Compiles                     | Needs real `google-services.json`                                        |
+| Realtime Database rules listener               | 🔄 Compiles                     | Needs real `google-services.json`                                        |
+| Firestore history mirror                       | 🔄 Compiles                     | Needs real `google-services.json`                                        |
+| Remote category toggles                        | 🔄 Compiles                     | RTDB `rules/categories`                                                  |
+| QR pairing — child (generate)                  | 🔄 Compiles                     | ZXing core, tap device-code label                                        |
+| QR pairing — parent (scan)                     | 🔄 Compiles                     | `zxing-android-embedded`, `ScanContract`                                 |
+| Parent app — pairing screen                    | 🔄 Compiles                     | `PairingActivity`                                                        |
+| Parent app — dashboard / rules                 | 🔄 Compiles                     | `DashboardActivity`                                                      |
+| Parent app — live history                      | 🔄 Compiles                     | Firestore snapshot listener                                              |
 
 **Key:** DONE = implemented and built; notes distinguish JVM/emulator checks from
 device verification. ✅ marks earlier verification evidence (some rows are JVM-only,
@@ -541,7 +540,6 @@ is unregistered in `onDestroy`. The parent merges the latest 50 DNS records and
 within that event window. Notification permission denial does not prevent the
 Firebase event. Installs while the VPN service is absent are not observed.
 
-
 ### Lifecycle
 
 `MainActivity` and `AppBlockActivity` log `onCreate`, `onStart`, `onResume`,
@@ -557,7 +555,6 @@ process death, but the live ring does not. Rotation still needs a device check:
 no ADB device was connected, and the API 37 AVD could not start with only 1.4 GB
 free host disk space. Verify both filters/scroll offsets and confirm a single
 `tunnel up` log while DNS continues through rotation.
-
 
 ## Known gaps
 
@@ -601,12 +598,12 @@ Device and production limitations are also detailed in the report.
 
 `app/src/main/assets/categories/` — one hosts-format file per category:
 
-| File | Entries | Source URL | License |
-| --- | ---: | --- | --- |
-| `malware.txt` | ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot) | CC0; existing data, not refreshed by this script |
-| `adult.txt` | 60,020 | [Block List Project porn hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
-| `gambling.txt` | 15,020 | [Block List Project gambling hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
-| `ads.txt` | 20,049 | [Block List Project ads hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+| File           | Entries | Source URL                                                                                                        | License                                                                    |
+| -------------- | ------: | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `malware.txt`  |    ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot)                              | CC0; existing data, not refreshed by this script                           |
+| `adult.txt`    |  60,020 | [Block List Project porn hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt)         | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+| `gambling.txt` |  15,020 | [Block List Project gambling hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+| `ads.txt`      |  20,049 | [Block List Project ads hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt)           | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
 
 Run `scripts/fetch-lists.sh` (curl + Python 3) to download, normalize, sort,
 deduplicate and merge these sources with the bundled entries. The script takes
@@ -619,12 +616,12 @@ Regeneration aborts before replacing assets if downloads or the size budget fail
 In-app **Update lists** uses smaller refresh feeds, merged with the bundled
 baseline rather than the oversized full Block List Project downloads:
 
-| Category | Refresh URL | License / attribution |
-| --- | --- | --- |
-| adult | [Tiuxo porn](https://raw.githubusercontent.com/tiuxo/hosts/master/porn) | Tiuxo, [CC BY 4.0](https://github.com/tiuxo/hosts/blob/master/LICENSE); normalized and merged |
-| ads | [Tiuxo ads](https://raw.githubusercontent.com/tiuxo/hosts/master/ads) | Tiuxo, CC BY 4.0; normalized and merged |
+| Category | Refresh URL                                                                                                    | License / attribution                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| adult    | [Tiuxo porn](https://raw.githubusercontent.com/tiuxo/hosts/master/porn)                                        | Tiuxo, [CC BY 4.0](https://github.com/tiuxo/hosts/blob/master/LICENSE); normalized and merged     |
+| ads      | [Tiuxo ads](https://raw.githubusercontent.com/tiuxo/hosts/master/ads)                                          | Tiuxo, CC BY 4.0; normalized and merged                                                           |
 | gambling | [hostsVN Gambling VN](https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts-VN) | BigDargon, [MIT](https://github.com/bigdargon/hostsVN/blob/master/LICENSE); normalized and merged |
-| malware | [URLhaus hostfile](https://urlhaus.abuse.ch/downloads/hostfile/) | abuse.ch URLhaus, CC0; availability subject to upstream access policy |
+| malware  | [URLhaus hostfile](https://urlhaus.abuse.ch/downloads/hostfile/)                                               | abuse.ch URLhaus, CC0; availability subject to upstream access policy                             |
 
 Refresh uses `HttpURLConnection` off the main thread, HTTPS-only redirects (up
 to three), 15-second connection / 20-second read timeouts, strict UTF-8, a 5 MB
