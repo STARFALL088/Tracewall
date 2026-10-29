@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/historyFilterScroll"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:labelFor="@id/historyDomain"
+            android:text="@string/history_domain" />
+        <EditText
+            android:id="@+id/historyDomain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/history_domain_hint"
+            android:importantForAutofill="no"
+            android:inputType="textUri"
+            android:maxLength="253"
+            android:singleLine="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:labelFor="@id/historyApp"
+            android:text="@string/history_app" />
+        <EditText
+            android:id="@+id/historyApp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/history_app_hint"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLength="200"
+            android:singleLine="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/history_app_help"
+            android:textSize="12sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:labelFor="@id/historyVerdictFilter"
+            android:text="@string/history_verdict" />
+        <Spinner
+            android:id="@+id/historyVerdictFilter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:labelFor="@id/historyRange"
+            android:text="@string/history_range" />
+        <Spinner
+            android:id="@+id/historyRange"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp" />
+        <LinearLayout
+            android:id="@+id/historyCustomDates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/historyStartDate"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/historyEndDate"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/history_dates_help"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/historyFilterError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

@@ -12,7 +12,7 @@ Each completed implementation is tested and committed separately, then pushed.
 4. [x] Remote edits: validate domains, show write results, avoid concurrent lost edits.
 5. [x] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
 6. [x] Verification: deliberate lint fixes and reproducible GitHub CI.
-7. [ ] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
+7. [x] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
 8. [ ] Parent controls: app-name selection and named child profiles.
 9. [ ] Rules: custom deny patterns, expiring allows and scheduled profiles.
 10. [ ] Privacy: explicit cloud mode, retention/deletion and PIN-gated local clear.
@@ -136,5 +136,27 @@ production/device requirements are stated separately.
 - Local verification: 137 JVM tests, 3 Python generator tests, both APK builds,
   both lint tasks and 83 emulator checks passed. Lint has zero errors, with 25
   child and 15 parent warnings retained for subsequent targeted cleanup.
-- The first GitHub-hosted CI execution is checked separately after publishing;
-  local success is not presented as a remote green run.
+- GitHub-hosted run `40834087017` at `08a08f3` completed successfully: both the
+  Android build/test/lint job and the demo Firebase emulator job passed.
+
+### 7 — Retained history, selection statistics and ranged export
+
+- Added a bilingual, private history Activity with an explicit Back button,
+  scrollable controls, app/name/package/UID and literal-domain search, verdict
+  filters, local-time date presets and inclusive custom calendar dates.
+- Reads Room rather than the live ring. Stable timestamp/ID keyset pages hold
+  at most 100 rows; a frozen insert-ID boundary excludes new/backdated inserts.
+  Statistics cover the full selection. Filters, page boundary and scroll restore
+  across recreation; changing filters or refreshing captures a fresh selection.
+- PIN-gated ranged CSV streams all matching retained rows in bounded batches,
+  detects pruning/clearing during export, cancels incomplete files, and shares
+  only while the Activity is visible. Text cells in both export paths are
+  spreadsheet-safe; the legacy quick export now states its 200-row maximum.
+- Recovered the interrupted agent's partial files, then completed navigation,
+  Activity/resources and regression coverage. The unfinished feature-8 files
+  remain safely stashed until this independent checkpoint is committed.
+- Verification: 149 JVM tests and 9 Python tests passed, including six tests
+  executing the production Java query builder against SQLite. Both debug APKs
+  and both lint tasks passed with zero errors (29 child / 15 parent warnings).
+  Device UI, Room callback/lifecycle and actual sharing checks remain pending;
+  hosted CI for this new commit is checked after pushing.

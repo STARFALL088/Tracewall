@@ -166,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
             catch (android.content.ActivityNotFoundException e) { Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show(); }
         }));
         ui.updateLists.setOnClickListener(v -> updateLists());
+        ui.openHistory.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.HistoryActivity.class)));
         ui.manageAllows.setOnClickListener(v -> showAllows());
         PinGate.ensureSet(this);
         ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
@@ -432,7 +433,10 @@ public class MainActivity extends AppCompatActivity {
                     String[] columns = {"time_ms", "host", "type", "blocked", "uid", "policy", "latency_ms", "resolver"};
                     while (c.moveToNext()) {
                         Object[] row = new Object[columns.length];
-                        for (int i = 0; i < columns.length; i++) row[i] = c.getString(c.getColumnIndexOrThrow(columns[i]));
+                        for (int i = 0; i < columns.length; i++) {
+                            String value = c.getString(c.getColumnIndexOrThrow(columns[i]));
+                            row[i] = i == 1 || i == 5 || i == 7 ? tracewall.data.CsvRow.spreadsheetText(value) : value;
+                        }
                         writer.write(tracewall.data.CsvRow.of(row));
                     }
                 }
