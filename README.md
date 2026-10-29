@@ -4,7 +4,7 @@
 
 **On-device DNS filtering for Android — no root, no server, no account required.**
 
-A local `VpnService` intercepts every DNS query on the child's phone, runs it
+A local `VpnService` intercepts ordinary UDP DNS sent to its advertised resolver, runs it
 through a layered policy engine in microseconds, and shows the result live —
 down to exactly which app asked for which name.  
 Since **v2**, a companion parent app and Firebase backend let a parent push rules
@@ -13,7 +13,7 @@ and read history from any device, in real time.
 [![Language](https://img.shields.io/badge/language-Java-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![API](<https://img.shields.io/badge/minSdk-24%20(Android%207)-brightgreen?logo=android>)](https://developer.android.com/about/versions/nougat)
 [![AGP](https://img.shields.io/badge/AGP-8.5.2-blue?logo=gradle)](https://developer.android.com/build/releases/gradle-plugin)
-[![Tests](https://img.shields.io/badge/tests-77%20passing-success?logo=junit5)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/tests-98%20passing-success?logo=junit5)](https://junit.org/junit5/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20RTDB%20%7C%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Latest](https://img.shields.io/badge/latest-v2-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v2)
 
@@ -44,17 +44,17 @@ and read history from any device, in real time.
 | Feature                   | Detail                                                                                            |
 | ------------------------- | ------------------------------------------------------------------------------------------------- |
 | **DNS-only VPN tunnel**   | Routes only `10.66.0.1/32` — one address — so a bug here can affect nothing but name resolution   |
-| **Per-app attribution**   | Every query is tagged with the Android UID that sent it using `ConnectivityManager` socket tables |
+| **Per-app attribution**   | Best-effort Android UID attribution via `ConnectivityManager`; unknown owners are recorded as -1 |
 | **Category blocking**     | Four built-in lists: `malware`, `gambling`, `adult`, `ads`                                        |
-| **Per-app blocking**      | Block an entire app's DNS traffic from a long-press or the Apps screen                            |
+| **Per-app blocking**      | Block an app's intercepted DNS traffic from a long-press or the Apps screen                            |
 | **Allowlist override**    | Explicit allows win over every category — long-press any blocked row                              |
 | **Live query log**        | 500-entry in-memory ring, refreshed every 700 ms, with a custom trend bar chart                   |
 | **Room history**          | Batched writes (1.5 s flush), one-week retention, exported via `ContentProvider`                  |
 | **Remote rules (v2)**     | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB            |
-| **Remote history (v2)**   | Every query is mirrored to Firestore; parent reads it live from the dashboard                     |
+| **Remote history (v2)**   | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live                     |
 | **QR pairing (v2)**       | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing                            |
 | **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                               |
-| **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, closing the DoH auto-discovery path                    |
+| **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, limiting encrypted-DNS discovery                    |
 | **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                          |
 
 ---
@@ -184,7 +184,7 @@ git checkout v2   # full feature set — current HEAD
 | **Remote category toggle**         | Four switches in the parent dashboard; each change writes to `rules/categories` via `updateChildren` so it does not overwrite allow/block rules                              |
 | **QR pairing**                     | Child: tap device-code label → 512×512 QR dialog (ZXing core); long-press → copy UID to clipboard. Parent: "Scan QR" button using `zxing-android-embedded` + `ScanContract`  |
 | **Private DNS warning**            | Yellow banner in `MainActivity` when `Settings.Global.private_dns_mode ≠ off`; re-checked on every `onResume`                                                                |
-| **SVCB / HTTPS blocking**          | `TYPE_SVCB=64`, `TYPE_HTTPS=65` added to `DnsMessage`; `DnsVpnService` returns NXDOMAIN before any policy check, closing the `_dns.resolver.arpa` DoH-discovery path         |
+| **SVCB / HTTPS blocking**          | `TYPE_SVCB=64`, `TYPE_HTTPS=65` added to `DnsMessage`; `DnsVpnService` returns NXDOMAIN before any policy check, limiting the `_dns.resolver.arpa` encrypted-DNS discovery path         |
 | **`AtomicBoolean`**                | `DnsVpnService.running` was `volatile boolean`; replaced with `AtomicBoolean` to remove the data-race between tunnel thread, `teardown()` and binder-thread `onDestroy()`    |
 | **BootReceiver pre-warm**          | `FirebaseSync.signInAnonymously()` called at boot when protection was previously enabled                                                                                     |
 | **Security rules**                 | `firebase/database.rules.json` + `firebase/firestore.rules` committed alongside the code; locked to `auth.uid` with parent-pairing carve-out                                 |
@@ -252,7 +252,7 @@ Tracewall/
 
 **Why the split?** The hardest code — wire formats, real checksums — lives in
 `blocklist/` with zero Android dependencies. `./gradlew :blocklist:test` runs all
-77 tests on any laptop with just a JDK, including checksum re-verification
+98 tests on any laptop with just a JDK, including checksum re-verification
 against an independent RFC 1071 reference and 11 policy-precedence tests.
 No emulator needed.
 
@@ -274,8 +274,8 @@ here can sink DNS; it cannot route arbitrary traffic or MITM HTTPS.
 1. `IpPacket.parse()` decodes the outer IPv4 or IPv6/UDP header.
 2. `DnsMessage.parse()` decodes the DNS question. Non-DNS or malformed → dropped.
 3. `TYPE_SVCB` / `TYPE_HTTPS` (64/65) → **NXDOMAIN** immediately.
-   This kills the `_dns.resolver.arpa` auto-discovery that would let the OS find
-   a DoH/DoT server to route around the filter.
+   This limits discovery through intercepted DNS; app-owned DoH and other
+   encrypted DNS paths can still bypass the filter. This early branch is not logged.
 4. `PolicyEngine.decide(host, uid)` evaluates the query (see precedence below).
 5. **Block** → A queries receive `0.0.0.0` with TTL 0; other policy-blocked
    types receive NOERROR with zero answers, preserving the question type.
@@ -347,6 +347,7 @@ Realtime Database
 Firestore
 └── devices/
     └── {childUid}/
+        ├── rules/{id}     {allow, blocked_uids, categories} (ACL mirror; app uses RTDB)
         ├── history/
         │   └── {auto-id}        {time_ms, host, blocked, app_uid, policy}
         ├── events/{auto-id}  {type: "protection_off", reason, time_ms}
@@ -403,7 +404,7 @@ coordinate them. Out-of-band RTDB deletion while the child is not listening must
 also delete the Firestore membership. There is no server-side pairing attempt
 rate limit or durable parent account recovery. Anonymous identities are lost if
 app data is cleared. Firebase rules do not prevent uninstall, system VPN changes,
-Private DNS/DoH bypass, or tampering on a rooted device. Local PIN storage uses
+Private DNS/DoH bypass, or tampering on a rooted device. Revocation cannot remove history already read or cached by a parent. Local PIN storage uses
 salted PBKDF2; its attempt lockout relies on the device clock and app storage.
 
 Rules in `firebase/` protect deployed projects **only after deployment**. Run the
@@ -448,12 +449,11 @@ Both files are gitignored. The committed copies are placeholders;
 ```bash
 npm install -g firebase-tools
 firebase login
-firebase init   # select your project; choose Realtime Database + Firestore
-firebase deploy --only database,firestore:rules
+firebase deploy --config firebase/firebase.json --project YOUR_PROJECT --only database,firestore:rules
 ```
 
-The rules are already written in `firebase/`; the `firebase init` step just
-creates the local config pointing at your project.
+The committed config points at the rules in `firebase/`. Run
+`scripts/test-firebase-rules.sh` (Node, Firebase CLI and a compatible Java runtime) before deployment.
 
 ---
 
@@ -488,6 +488,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Week 13 project report                       | DONE — docs + build checks | [Report](docs/REPORT.md), 98 JVM tests; device checklist remains pending |
 | Lifecycle logs + restored filters and scroll  | DONE — JVM + APK builds | Rotation code reviewed; device check blocked by emulator disk space |
 | New install notifications + parent feed        | DONE — JVM + APK builds | Dynamic package receiver, ignores updates; Firestore event rules tested |
 | Daily WorkManager refresh                    | DONE — APK builds       | Unique connected 24-hour work; exponential retry; last result shown |
@@ -511,7 +512,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | CSV export                                     | DONE — JVM + APK builds | PIN-gated FileProvider CSV; ACTION_SEND chooser |
 | Bilingual (English + Bengali)                  | ✅ Verified              | `values-bn/`                             |
 | Boot notification                              | ✅ Verified              | `BootReceiver`                           |
-| SVCB / HTTPS type blocking                     | ✅ Compiled, 77/77 tests | Closes DoH discovery path                |
+| SVCB / HTTPS type blocking                     | ✅ Compiled, 98/98 tests | Limits encrypted-DNS discovery                |
 | Private DNS warning banner                     | ✅ Compiled              | Reads `Settings.Global` on resume        |
 | Firebase Auth (anonymous)                      | 🔄 Compiles              | Needs real `google-services.json`        |
 | Realtime Database rules listener               | 🔄 Compiles              | Needs real `google-services.json`        |
@@ -523,7 +524,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Parent app — dashboard / rules                 | 🔄 Compiles              | `DashboardActivity`                      |
 | Parent app — live history                      | 🔄 Compiles              | Firestore snapshot listener              |
 
-**Key:** ✅ Device-verified &nbsp;|&nbsp; 🔄 Compiles, not yet on device &nbsp;|&nbsp; ⚠️ Known gap
+**Key:** DONE = implemented and built; notes distinguish JVM/emulator checks from
+device verification. ✅ marks earlier verification evidence (some rows are JVM-only,
+as labeled); it does not verify every new change. 🔄 = builds, device checks pending.
+Current continuation: **98 JVM tests**, both APK builds, **70 Firebase emulator checks**.
+See [syllabus coverage](docs/SYLLABUS_COVERAGE.md) and [Week 13 report](docs/REPORT.md).
 
 ---
 
@@ -556,7 +561,7 @@ free host disk space. Verify both filters/scroll offsets and confirm a single
 
 ## Known gaps
 
-These are honest, not excuses — the filter works correctly for everything in ✅ above.
+Device and production limitations are also detailed in the report.
 
 - **Parent-side UID entry has no app picker.** The dashboard takes a raw
   Android UID to block. The parent app cannot see the child's installed app list
@@ -575,8 +580,8 @@ These are honest, not excuses — the filter works correctly for everything in �
   fall back to plain A/AAAA and still work, but the first-hop latency hint is
   lost.
 
-- **UDP DNS only; IPv4 tunnel only.** No DNS-over-TLS upstream (the filter itself
-  sees all queries in plaintext regardless — it intercepts before encryption).
+- **UDP DNS only; IPv4 tunnel only.** No DNS-over-TLS upstream. App-owned DoH,
+  direct IP connections, alternate resolvers and cached addresses can bypass this DNS route.
 
 - **Private DNS is warned, not disabled.** A determined user can keep Private DNS
   on. The new **Make it permanent** button explains always-on VPN and
@@ -598,7 +603,7 @@ These are honest, not excuses — the filter works correctly for everything in �
 
 | File | Entries | Source URL | License |
 | --- | ---: | --- | --- |
-| `malware.txt` | ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot) | URLhaus terms; existing data, not refreshed by this script |
+| `malware.txt` | ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot) | CC0; existing data, not refreshed by this script |
 | `adult.txt` | 60,020 | [Block List Project porn hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
 | `gambling.txt` | 15,020 | [Block List Project gambling hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
 | `ads.txt` | 20,049 | [Block List Project ads hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |

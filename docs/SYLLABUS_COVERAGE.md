@@ -1,7 +1,7 @@
 # Syllabus coverage
 
 DONE means implemented and built; device and production checks are listed separately.
-This file was absent at the start of the continuation; week labels below follow the requested scope.
+The detailed week mapping below is preserved from the supplied root-level syllabus checklist.
 
 | Task / syllabus area | Implementation | Status |
 | --- | --- | --- |
@@ -12,12 +12,12 @@ This file was absent at the start of the continuation; week labels below follow 
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | DONE — JVM, emulator rules, both APK builds; install device check pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | DONE — JVM + both APK builds; rotation device check blocked (AVD disk space) |
-| H — Week 13: project report | Architecture, decisions, testing, limits and future work | Pending |
+| H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 98 JVM tests and both APK builds pass |
 
 Existing components: VPN Service and sockets; Room with a private ContentProvider;
 Activities and RecyclerViews; boot receiver; bilingual resources; local parent PIN.
 
-# Tracewall: CSE 2200 Syllabus Coverage
+## CSE 2200 syllabus mapping
 
 Mapped to the Advanced Programming Laboratory 2026 lecture plan (Weeks 8 to 13) and the Week 13 demo checklist.
 Status: DONE = implemented and built. Device validation is separate and is not implied by DONE. PARTIAL = incomplete; PLANNED = not yet implemented.
@@ -69,7 +69,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | Room database (entity, DAO, batched writer) | `J/log/TracewallDb.java`, `QueryDao.java`, `HistoryWriter.java` | DONE |
 | Background work (`WorkManager` periodic list refresh) | `ListRefreshWorker`, CONNECTED, unique KEEP, exponential retry | DONE — built; OS scheduling checks pending |
 | Advanced APIs: `VpnService`, `protect()`, `getConnectionOwnerUid`, `ConnectivityManager` callbacks | `DnsVpnService`, `UidAttributor.java` | DONE |
-| Firebase Auth, Realtime DB, Firestore | `J/sync/FirebaseSync.java`, `parent/.../FirebaseParent.java` | PARTIAL: compiles, not verified end to end |
+| Firebase Auth, Realtime DB, Firestore | `FirebaseSync`, `FirebaseParent`, scoped pairing rules | DONE — built + 70 emulator checks; production end-to-end verification pending |
 
 ## Java concepts (Weeks 1 to 4, reused in the Android project)
 
@@ -77,7 +77,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 |---|---|---|
 | OOP, packages, interfaces, exceptions | `blocklist/` module | DONE |
 | Multithreading, synchronization | `HistoryWriter` thread, `QueryLog` (synchronized), DNS worker pool | DONE |
-| Unit testing (pure JVM) | `blocklist/src/test` | DONE |
+| Unit testing (pure JVM) | `blocklist/src/test` | DONE — 98 passing tests |
 | Git history | `git log` | DONE: keep committing small changes |
 
 ## Week 13 demo checklist
@@ -89,13 +89,14 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | Data flow | App DNS query goes through the TUN, then policy engine, then block or forward, then Room, then Firebase to the parent. |
 | APIs and components | VpnService, Service, Receiver, ContentProvider, Room, Firebase, UDP sockets. |
 | Design decisions | Route only `10.66.0.1/32` so a bug cannot break the whole network; precedence: allow beats app block beats category. |
-| Report | `docs/REPORT.md` (to write). |
+| Report | [REPORT.md](REPORT.md): architecture, component/API table, decisions, tests, pending device checklist, limitations, future work. |
 
-## Gaps to close, in order of value
+## Remaining verification
 
-1. Implicit intents: CSV export via `ACTION_SEND` and a settings shortcut via `ACTION_VPN_SETTINGS`.
-2. HTTP + JSON: refresh blocklists with `HttpURLConnection` on a background thread, plus JSON import and export of rules.
-3. `WorkManager`: periodic blocklist refresh with a network constraint.
-4. Dynamic receiver: warn when a new app is installed.
-5. Lifecycle: `onSaveInstanceState`, and a rotation test.
-6. Project report in `docs/REPORT.md`.
+Implementation for tasks A–H builds. Runtime checks remain in [REPORT.md](REPORT.md):
+rotation and scroll restoration, sharing/document-picker permissions, settings fallback,
+live HTTP updates/atomic interruption, WorkManager scheduling/retry, actual install vs
+update broadcasts, and real Firebase pairing/rules/history/revocation across two devices.
+ADB found no attached device; the read-only API 37 AVD could not start because the host
+had only 1.4 GB free disk space. No production rules were deployed or credentials changed.
+XML parsing remains optional and is not claimed as implemented.
