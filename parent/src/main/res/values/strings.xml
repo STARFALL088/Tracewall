@@ -51,4 +51,12 @@
     <string name="event_device">Device event</string>
     <string name="pairing_partial_reset">A previous pairing partly succeeded with another code. Revoke this parent on the child, then generate a new code.</string>
     <string name="pairing_retry">Pairing could not finish. Check connectivity and retry the same unexpired code. If it expires, revoke the partial parent on the child before trying a new code.</string>
+    <string name="rule_domain_invalid">Enter a domain such as example.com or *.example.com, without a URL, path or spaces.</string>
+    <string name="rules_waiting">Waiting for the rules snapshot…</string>
+    <string name="rules_ready">Rules loaded. Changes require server confirmation.</string>
+    <string name="rules_pending">Change pending — waiting for the server. The child may be offline.</string>
+    <string name="rules_saved">Saved on the server. This does not confirm the child has applied it yet.</string>
+    <string name="rules_failed">Could not confirm rules. Check connectivity and parent access, then retry.</string>
+    <string name="verdict_block">BLOCK</string>
+    <string name="verdict_allow">allow</string>
 </resources>

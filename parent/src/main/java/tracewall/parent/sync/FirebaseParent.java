@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import tracewall.security.PairingPlan;
+import tracewall.data.RuleEdits;
 
 /**
  * Parent-side Firebase facade.
@@ -163,63 +164,43 @@ public class FirebaseParent {
         db.getReference("devices").child(childUid).child("rules").removeEventListener(listener);
     }
 
-    /**
-     * Push allow-list and blocked-UID rules to the child device.
-     * Uses {@code updateChildren} so that a concurrent {@link #pushCategories}
-     * call on the same node is not overwritten.
-     */
-    public void pushRules(
-        @NonNull String childUid,
-        @NonNull List<String> allow,
-        @NonNull List<Integer> blockedUids
-    ) {
-        Map<String, Object> allowMap = new HashMap<>();
-        for (int i = 0; i < allow.size(); i++) allowMap.put(
-            String.valueOf(i),
-            allow.get(i)
-        );
+    public interface WriteListener { void complete(boolean serverAccepted); }
 
-        Map<String, Object> uidsMap = new HashMap<>();
-        for (int i = 0; i < blockedUids.size(); i++) uidsMap.put(
-            String.valueOf(i),
-            blockedUids.get(i).longValue()
-        );
-
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("allow", allowMap);
-        updates.put("blocked_uids", uidsMap);
-
-        db.getReference("devices")
-            .child(childUid)
-            .child("rules")
-            .updateChildren(updates)
-            .addOnSuccessListener(v ->
-                Log.i(TAG, "rules pushed to " + childUid)
-            )
-            .addOnFailureListener(e -> Log.e(TAG, "rule push failed", e));
+    public void editAllow(String childUid, String domain, boolean add, WriteListener listener) {
+        String normalized = RuleEdits.domain(domain);
+        edit(childUid, "allow", current -> RuleEdits.allow(current, normalized, add), listener);
     }
 
-    /**
-     * Push category toggles to the child device.
-     * The child's {@code BlocklistStore} reloads with only the enabled
-     * categories when the snapshot arrives.
-     *
-     * @param childUid   the paired child's UID
-     * @param categories map of category name → enabled; e.g. {"ads": false}
-     */
-    public void pushCategories(
-        @NonNull String childUid,
-        @NonNull Map<String, Boolean> categories
-    ) {
-        db.getReference("devices")
-            .child(childUid)
-            .child("rules")
-            .child("categories")
-            .setValue(categories)
-            .addOnSuccessListener(v ->
-                Log.i(TAG, "categories pushed to " + childUid)
-            )
-            .addOnFailureListener(e -> Log.e(TAG, "category push failed", e));
+    public void editBlockedUid(String childUid, int uid, boolean block, WriteListener listener) {
+        edit(childUid, "blocked_uids", current -> RuleEdits.blocked(current, uid, block), listener);
+    }
+
+    public void editCategory(String childUid, String category, boolean enabled, WriteListener listener) {
+        edit(childUid, "categories", current -> RuleEdits.category(current, category, enabled), listener);
+    }
+
+    /** The SDK retries this single intent against current server data on conflicts. */
+    private void edit(String childUid, String field,
+            java.util.function.Function<Object, Map<String, Object>> change, WriteListener listener) {
+        db.getReference("devices").child(childUid).child("rules").child(field)
+            .runTransaction(new com.google.firebase.database.Transaction.Handler() {
+                @NonNull @Override public com.google.firebase.database.Transaction.Result doTransaction(
+                        @NonNull com.google.firebase.database.MutableData data) {
+                    try {
+                        Map<String, Object> next = change.apply(data.getValue());
+                        data.setValue(next.isEmpty() ? null : next);
+                        return com.google.firebase.database.Transaction.success(data);
+                    } catch (IllegalArgumentException e) {
+                        Log.w(TAG, "Rejected invalid rule edit", e);
+                        return com.google.firebase.database.Transaction.abort();
+                    }
+                }
+                @Override public void onComplete(com.google.firebase.database.DatabaseError error,
+                        boolean committed, com.google.firebase.database.DataSnapshot snapshot) {
+                    if (error != null) Log.w(TAG, "Rule edit was not accepted", error.toException());
+                    listener.complete(error == null && committed);
+                }
+            }, false);
     }
 
     /** Recent device events, including stable IDs for the tamper banner and activity feed. */

@@ -19,7 +19,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -50,6 +49,7 @@ public class DashboardActivity extends AppCompatActivity {
     private final tracewall.blocklist.RuleLists rules = new tracewall.blocklist.RuleLists();
     private com.google.firebase.database.ValueEventListener rulesReg;
     private boolean renderingRules;
+    private boolean writingRules;
     private String childUid;
 
     @Override
@@ -73,14 +73,10 @@ public class DashboardActivity extends AppCompatActivity {
         ui.editRules.setOnClickListener(v -> removeRule());
         setRuleControls(false);
 
-        // Category toggles: each change immediately pushes the full category
-        // map so the child reloads with the new active set.
-        CompoundButton.OnCheckedChangeListener catListener = (btn, checked) ->
-            pushCurrentCategories();
-        ui.catMalware.setOnCheckedChangeListener(catListener);
-        ui.catGambling.setOnCheckedChangeListener(catListener);
-        ui.catAdult.setOnCheckedChangeListener(catListener);
-        ui.catAds.setOnCheckedChangeListener(catListener);
+        wireCategory(ui.catMalware, "malware");
+        wireCategory(ui.catGambling, "gambling");
+        wireCategory(ui.catAdult, "adult");
+        wireCategory(ui.catAds, "ads");
     }
 
     @Override
@@ -89,27 +85,27 @@ public class DashboardActivity extends AppCompatActivity {
         if (childUid.isEmpty()) return;
         rules.pause();
         setRuleControls(false);
+        if (!writingRules) ui.ruleStatus.setText(R.string.rules_waiting);
         rulesReg = FirebaseParent.get().listenRules(childUid, snapshot -> {
-            List<String> allows = new ArrayList<>();
-            List<Integer> uids = new ArrayList<>();
-            for (com.google.firebase.database.DataSnapshot row : snapshot.child("allow").getChildren()) {
-                String host = row.getValue(String.class);
-                if (host != null) allows.add(host);
+            try {
+                tracewall.data.RemoteRules current = tracewall.data.RemoteRules.parse(snapshot.getValue());
+                List<Integer> uids = new ArrayList<>();
+                for (String uid : current.blockedUids) uids.add(Integer.parseInt(uid));
+                rules.load(current.allow, uids);
+                renderingRules = true;
+                ui.catMalware.setChecked(current.categories == null || current.categories.contains("malware"));
+                ui.catGambling.setChecked(current.categories == null || current.categories.contains("gambling"));
+                ui.catAdult.setChecked(current.categories == null || current.categories.contains("adult"));
+                ui.catAds.setChecked(current.categories == null || current.categories.contains("ads"));
+                renderingRules = false;
+                setRuleControls(true);
+                if (!writingRules) ui.ruleStatus.setText(R.string.rules_ready);
+            } catch (IllegalArgumentException e) {
+                rules.pause();
+                setRuleControls(false);
+                ui.ruleStatus.setText(R.string.rules_failed);
             }
-            for (com.google.firebase.database.DataSnapshot row : snapshot.child("blocked_uids").getChildren()) {
-                Long uid = row.getValue(Long.class);
-                if (uid != null) uids.add(uid.intValue());
-            }
-            rules.load(allows, uids);
-            renderingRules = true;
-            com.google.firebase.database.DataSnapshot cats = snapshot.child("categories");
-            ui.catMalware.setChecked(!Boolean.FALSE.equals(cats.child("malware").getValue(Boolean.class)));
-            ui.catGambling.setChecked(!Boolean.FALSE.equals(cats.child("gambling").getValue(Boolean.class)));
-            ui.catAdult.setChecked(!Boolean.FALSE.equals(cats.child("adult").getValue(Boolean.class)));
-            ui.catAds.setChecked(!Boolean.FALSE.equals(cats.child("ads").getValue(Boolean.class)));
-            renderingRules = false;
-            setRuleControls(true);
-        }, () -> { rules.pause(); setRuleControls(false); });
+        }, () -> { rules.pause(); setRuleControls(false); ui.ruleStatus.setText(R.string.rules_failed); });
         historyReg = FirebaseParent.get().listenHistory(
             childUid,
             HISTORY_LIMIT,
@@ -183,6 +179,7 @@ public class DashboardActivity extends AppCompatActivity {
     // ----------------------------------------------------------------- rules
 
     private void setRuleControls(boolean enabled) {
+        enabled = enabled && !writingRules;
         ui.allowButton.setEnabled(enabled);
         ui.blockUidButton.setEnabled(enabled);
         ui.editRules.setEnabled(enabled);
@@ -192,8 +189,23 @@ public class DashboardActivity extends AppCompatActivity {
         ui.catAds.setEnabled(enabled);
     }
 
-    private void pushLists() {
-        if (rules.isReady()) FirebaseParent.get().pushRules(childUid, rules.allows(), rules.blockedUids());
+    private FirebaseParent.WriteListener beginWrite() {
+        writingRules = true;
+        setRuleControls(false);
+        ui.ruleStatus.setText(R.string.rules_pending);
+        return accepted -> {
+            writingRules = false;
+            if (isFinishing() || isDestroyed()) return;
+            setRuleControls(rules.isReady());
+            ui.ruleStatus.setText(accepted ? R.string.rules_saved : R.string.rules_failed);
+        };
+    }
+
+    private void wireCategory(CompoundButton toggle, String category) {
+        toggle.setOnCheckedChangeListener((button, checked) -> {
+            if (renderingRules || !rules.isReady() || writingRules) return;
+            FirebaseParent.get().editCategory(childUid, category, checked, beginWrite());
+        });
     }
 
     private void removeRule() {
@@ -205,47 +217,22 @@ public class DashboardActivity extends AppCompatActivity {
         for (int uid : uids) rows.add(getString(R.string.uid_entry, uid));
         new AlertDialog.Builder(this).setTitle(R.string.remove_rule)
             .setItems(rows.toArray(new String[0]), (d, which) -> {
-                if (!rules.isReady()) return;
-                if (which < allows.size()) rules.removeAllow(allows.get(which));
-                else rules.unblock(uids.get(which - allows.size()));
-                pushLists();
+                if (!rules.isReady() || writingRules) return;
+                if (which < allows.size()) FirebaseParent.get().editAllow(childUid, allows.get(which), false, beginWrite());
+                else FirebaseParent.get().editBlockedUid(childUid, uids.get(which - allows.size()), false, beginWrite());
             }).setNegativeButton(android.R.string.cancel, null).show();
     }
 
     private void pushAllowRule() {
         if (!rules.isReady()) return;
-        String domain = ui.allowInput
-            .getText()
-            .toString()
-            .trim()
-            .toLowerCase(Locale.ROOT);
-        if (TextUtils.isEmpty(domain)) {
-            ui.allowInput.setError(getString(R.string.rule_domain_empty));
+        String domain;
+        try { domain = tracewall.data.RuleEdits.domain(ui.allowInput.getText().toString()); }
+        catch (IllegalArgumentException e) {
+            ui.allowInput.setError(getString(R.string.rule_domain_invalid));
             return;
         }
-        rules.addAllow(domain);
-        pushLists();
+        FirebaseParent.get().editAllow(childUid, domain, true, beginWrite());
         ui.allowInput.setText("");
-        Toast.makeText(
-            this,
-            getString(R.string.rule_pushed, domain),
-            Toast.LENGTH_SHORT
-        ).show();
-    }
-
-    private void pushCurrentCategories() {
-        if (childUid.isEmpty() || !rules.isReady() || renderingRules) return;
-        Map<String, Boolean> cats = new LinkedHashMap<>();
-        cats.put("malware", ui.catMalware.isChecked());
-        cats.put("gambling", ui.catGambling.isChecked());
-        cats.put("adult", ui.catAdult.isChecked());
-        cats.put("ads", ui.catAds.isChecked());
-        FirebaseParent.get().pushCategories(childUid, cats);
-        Toast.makeText(
-            this,
-            R.string.categories_pushed,
-            Toast.LENGTH_SHORT
-        ).show();
     }
 
     private void pushBlockUidRule() {
@@ -266,14 +253,8 @@ public class DashboardActivity extends AppCompatActivity {
             ui.blockUidInput.setError(getString(R.string.rule_uid_invalid));
             return;
         }
-        rules.block(uid);
-        pushLists();
+        FirebaseParent.get().editBlockedUid(childUid, uid, true, beginWrite());
         ui.blockUidInput.setText("");
-        Toast.makeText(
-            this,
-            getString(R.string.rule_uid_pushed, uid),
-            Toast.LENGTH_SHORT
-        ).show();
     }
 
     // --------------------------------------------------------------- unpair
@@ -353,7 +334,7 @@ public class DashboardActivity extends AppCompatActivity {
 
             h.b.time.setText(time);
             h.b.host.setText(host);
-            h.b.verdict.setText(blocked ? "BLOCK" : "allow");
+            h.b.verdict.setText(blocked ? R.string.verdict_block : R.string.verdict_allow);
             h.b.policy.setText(policy);
         }
 

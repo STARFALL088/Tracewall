@@ -83,6 +83,25 @@ for (const token of [ct, pt]) {
 await db('PATCH', `${root}/rules`, pt, {allow: null, blocked_uids: null});
 assert.equal(await db('GET', `${root}/rules`, ct), null);
 await db('PATCH', `${root}/rules`, pt, {allow: ['a.test', 'b.test'], blocked_uids: [12345]});
+// Optimistic conflicts reject stale writes; retrying against the latest state preserves both intents.
+const allowUrl = `http://${dbHost}/${root}/rules/allow.json?ns=${project}-default-rtdb&auth=${pt}`;
+async function readAllowVersion() {
+  const response = await fetch(allowUrl, {headers: {'X-Firebase-ETag': 'true'}});
+  assert.equal(response.ok, true); checks++;
+  return {etag: response.headers.get('etag'), value: await response.json()};
+}
+async function writeAllowVersion(etag, value, status) {
+  const response = await fetch(allowUrl, {method: 'PUT',
+    headers: {'Content-Type': 'application/json', 'If-Match': etag}, body: JSON.stringify(value)});
+  assert.equal(response.status, status); checks++;
+}
+const sharedVersion = await readAllowVersion();
+await writeAllowVersion(sharedVersion.etag, [...sharedVersion.value, 'c.test'], 200);
+await writeAllowVersion(sharedVersion.etag, [...sharedVersion.value, 'd.test'], 412);
+const rebasedVersion = await readAllowVersion();
+await writeAllowVersion(rebasedVersion.etag, [...rebasedVersion.value, 'd.test'], 200);
+assert.deepEqual(await db('GET', `${root}/rules/allow`, ct), ['a.test', 'b.test', 'c.test', 'd.test']);
+assert.deepEqual(await db('GET', `${root}/rules/blocked_uids`, ct), [12345]);
 await db('PUT', `${root}/history/h`, ct, {host: 'a.test'});
 await db('PUT', `${root}/events/e`, ct, {type: 'protection_off'});
 for (const path of ['history', 'events']) {

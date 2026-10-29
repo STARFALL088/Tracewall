@@ -9,7 +9,7 @@ Each completed implementation is tested and committed separately, then pushed.
 1. [x] VPN foreground lifecycle: API-compatible foreground notification and cleanup.
 2. [x] Empty remote snapshots clear persisted remote rules, preserving local rules.
 3. [x] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
-4. [ ] Remote edits: validate domains, show write results, avoid concurrent lost edits.
+4. [x] Remote edits: validate domains, show write results, avoid concurrent lost edits.
 5. [ ] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
 6. [ ] Verification: deliberate lint fixes and reproducible GitHub CI.
 7. [ ] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
@@ -83,3 +83,16 @@ production/device requirements are stated separately.
 - Verification: 108 JVM tests, both debug APK builds, and 76 emulator REST
   checks passed. Android callback/restart behavior and real-project access still
   need devices. A trusted server coordinator remains an optional deployment task.
+
+### 4 — Validated transactional remote edits
+
+- Allow/UID actions now transact one intent against the latest server list;
+  category actions transact only their category family. They no longer replace
+  unrelated rules from a stale screen snapshot. Empty lists still delete cleanly.
+- Domains are validated before writing. Category defaults and sparse historical
+  category maps render consistently with the actual child policy.
+- The dashboard shows waiting, pending, server-accepted and failed states; a
+  server acknowledgement is explicitly not presented as child-applied evidence.
+- Verification: 114 JVM tests, both APK builds, and 83 emulator REST checks
+  passed. Tests include rebased intents and a real stale-ETag rejection/retry;
+  Android SDK transaction callbacks still need device integration testing.

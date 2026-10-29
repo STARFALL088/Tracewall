@@ -28,6 +28,9 @@
     <TextView android:id="@+id/lastSeen"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="@string/last_seen_unknown" />
+    <TextView android:id="@+id/ruleStatus"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/rules_waiting" android:accessibilityLiveRegion="polite" />
 
     <!-- Allow-domain rule -->
     <com.google.android.material.textfield.TextInputLayout
