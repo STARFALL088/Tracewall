@@ -167,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
         }));
         ui.updateLists.setOnClickListener(v -> updateLists());
         ui.openHistory.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.HistoryActivity.class)));
+        ui.openRules.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.RulesActivity.class)));
         ui.manageAllows.setOnClickListener(v -> showAllows());
         PinGate.ensureSet(this);
         ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
@@ -409,7 +410,8 @@ public class MainActivity extends AppCompatActivity {
             .setMessage(getString(R.string.row_body, labels.label(e.uid)))
             .setPositiveButton(R.string.allow_yes, (dialog, which) -> {
                 PinGate.require(this, () -> {
-                    BlocklistStore.get().allow(this, e.host);
+                    if (!BlocklistStore.get().allow(this, e.host))
+                        Toast.makeText(this, R.string.rules9_edit_failed, Toast.LENGTH_LONG).show();
                     render();
                 });
             });

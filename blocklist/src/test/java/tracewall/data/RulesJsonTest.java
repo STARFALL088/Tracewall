@@ -17,8 +17,8 @@ class RulesJsonTest {
         assertEquals(parsed.serialize(), RulesJson.parse(parsed.serialize()).serialize());
     }
     @Test void rejectsUnknownFieldsMissingFieldsAndWrongTypes() {
-        for (String invalid : new String[] {valid().replace("\"version\":1", "\"version\":2"),
-                valid().replace("\"version\":1", "\"version\":\"1\""),
+        for (String invalid : new String[] {valid().replace("\"version\":2", "\"version\":3"),
+                valid().replace("\"version\":2", "\"version\":\"2\""),
                 valid().replace("\"allow\"", "\"unknown\""),
                 valid().replace("10001", "-1"), valid().replace("10001", "2147483648"),
                 valid().replace("10001", "1.5"), valid().replace("10001", "\"10001\""),

@@ -47,6 +47,8 @@
             android:label="@string/apps_title" />
         <activity android:name=".ui.HistoryActivity" android:exported="false"
             android:label="@string/history_title" />
+        <activity android:name=".ui.RulesActivity" android:exported="false"
+            android:label="@string/rules9_title" />
 
         <!-- Boot receiver: reports that protection did not come back. It
              cannot restart the tunnel itself on Android 8+, so it does not try. -->

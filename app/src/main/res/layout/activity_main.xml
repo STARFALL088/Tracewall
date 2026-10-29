@@ -85,6 +85,8 @@
     <TextView android:id="@+id/updateResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:text="@string/update_never" />
     <Button android:id="@+id/openHistory" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="@string/history_open" />
+    <Button android:id="@+id/openRules" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/rules9_title" />
 
     <TextView
         android:id="@+id/status"

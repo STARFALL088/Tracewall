@@ -14,7 +14,7 @@ Each completed implementation is tested and committed separately, then pushed.
 6. [x] Verification: deliberate lint fixes and reproducible GitHub CI.
 7. [x] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
 8. [x] Parent controls: app-name selection and named child profiles.
-9. [ ] Rules: custom deny patterns, expiring allows and scheduled profiles.
+9. [x] Rules: custom deny patterns, expiring allows and scheduled profiles.
 10. [ ] Privacy: explicit cloud mode, retention/deletion and PIN-gated local clear.
 11. [ ] Diagnostics: attribution/failure/drop metrics and configurable logged HTTPS-record handling.
 12. [ ] Packaging: feed health/removal policy, release metadata/icon/settings and consistent docs.
@@ -189,3 +189,29 @@ production/device requirements are stated separately.
   and revoked reads. Single-flight state regressions cover queued opt-out and
   stale completion. Android callback timing, package broadcasts, UI/recreation,
   sharing opt-out and real-project integration still require connected devices.
+
+### 9 — Local deny rules, expiring allows and weekly profiles
+
+- Integrated the recovered rules work, registered its private Activity and added
+  main-screen navigation. English/Bengali controls have explicit Back, scrolling,
+  draft restoration and per-action PIN gates, including returned file selections.
+- Local permanent/unexpired allows precede local custom denies, app blocks and
+  category blocks. Managed parent decisions are authoritative first; local
+  exceptions/imports cannot weaken a parent block. Weekly profiles add blocks,
+  combine deterministically and use device-local start-inclusive/end-exclusive
+  intervals with overnight/week wrap. Expiries are absolute, never renewed by
+  import/restart. No new alarms, permissions or VPN restart are required.
+- Bounded v2 local backups import valid v1 documents; strict grammar/type/key,
+  count/depth/UTF-8/byte validation precedes one replacement preference edit.
+  PIN, pairing, history and managed rules are excluded. Fresh export URIs keep
+  earlier shared backups intact. Files are not shared from destroyed/hidden UI.
+- Review additions bound editor/backup queues, coalesce refreshes, suppress
+  stale read results and disable conflicting controls during imports/mutations.
+  A bad v2 detail document retains a loaded policy; a cold start still loads
+  legacy/base rules instead of leaving an empty engine. Invalid details still
+  require authorized repair/import; they are not claimed to be recovered.
+- Verification: 184 JVM tests and 9 Python tests passed, both APKs and both
+  lint tasks passed with zero errors (30 child / 20 parent warnings). APK
+  manifest inspection confirms the editor exists and is non-exported; all 71
+  feature-resource keys match across languages. Actual Android PIN/picker,
+  preference recovery, schedule/time-zone behavior and UI flows remain pending.
