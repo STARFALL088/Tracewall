@@ -129,10 +129,13 @@ public final class DnsForwarder {
             DatagramPacket in = new DatagramPacket(buf, buf.length);
             sock.receive(in);
 
+            if (in.getLength() > IpPacket.MAX_DNS_BYTES) {
+                throw new ForwardException(resolver + ": reply too large");
+            }
             byte[] reply = DnsMessage.copy(buf, 0, in.getLength());
             DnsMessage msg = DnsMessage.parse(reply);
             if (msg == null) throw new ForwardException(resolver + ": unparseable reply");
-            if (msg.id() != queryId) {
+            if (msg.id() != (queryId & 0xFFFF)) {
                 throw new ForwardException(resolver + ": id mismatch " + msg.id() + " != " + queryId);
             }
             if (!msg.isResponse()) {
@@ -172,17 +175,7 @@ public final class DnsForwarder {
             os.write(query);
             os.flush();
 
-            InputStream is = s.getInputStream();
-            int hi = is.read();
-            if (hi < 0) return null;
-            int lo = is.read();
-            if (lo < 0) return null;
-            int len = (hi << 8) | lo;
-            if (len < DnsMessage.HEADER_LEN || len > IpPacket.MAX_DNS_BYTES) return null;
-
-            byte[] body = new byte[len];
-            readFully(is, body);
-            byte[] out = DnsMessage.normalizeResponse(body, queryId, true);
+            byte[] out = readTcpReply(s.getInputStream(), queryId);
             return out == null ? null : new Reply(out, true, addr.getHostAddress());
         } catch (IOException e) {
             return null;
@@ -191,12 +184,36 @@ public final class DnsForwarder {
         }
     }
 
+    /** Read and validate one TCP frame before normalization can hide a bad ID or flags. */
+    static byte[] readTcpReply(InputStream in, int queryId) throws IOException {
+        int hi = in.read();
+        if (hi < 0) return null;
+        int lo = in.read();
+        if (lo < 0) return null;
+        int len = (hi << 8) | lo;
+        if (len < DnsMessage.HEADER_LEN || len > IpPacket.MAX_DNS_BYTES) return null;
+
+        byte[] body = new byte[len];
+        readFully(in, body);
+        DnsMessage msg = DnsMessage.parse(body);
+        if (msg == null || msg.id() != (queryId & 0xFFFF)
+                || !msg.isResponse() || msg.isTruncated()) return null;
+        return DnsMessage.normalizeResponse(body, queryId, true);
+    }
+
     private static void readFully(InputStream in, byte[] buf) throws IOException {
         int read = 0;
         while (read < buf.length) {
             int n = in.read(buf, read, buf.length - read);
             if (n < 0) throw new IOException("short read: " + read + "/" + buf.length);
-            read += n;
+            if (n == 0) {
+                // Ensure progress even for streams that return zero on a bulk read.
+                int next = in.read();
+                if (next < 0) throw new IOException("short read: " + read + "/" + buf.length);
+                buf[read++] = (byte) next;
+            } else {
+                read += n;
+            }
         }
     }
 

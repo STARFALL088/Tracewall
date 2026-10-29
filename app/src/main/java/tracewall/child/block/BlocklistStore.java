@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import tracewall.blocklist.DomainSet;
@@ -151,7 +152,7 @@ public final class BlocklistStore {
         Set<String> next = new HashSet<>(
             sp.getStringSet(KEY_ALLOW, Collections.<String>emptySet())
         );
-        next.add(host.toLowerCase());
+        next.add(host.toLowerCase(Locale.ROOT));
         sp.edit().putStringSet(KEY_ALLOW, next).apply();
         reload();
     }

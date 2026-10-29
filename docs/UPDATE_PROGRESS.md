@@ -10,7 +10,7 @@ Each completed implementation is tested and committed separately, then pushed.
 2. [x] Empty remote snapshots clear persisted remote rules, preserving local rules.
 3. [x] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
 4. [x] Remote edits: validate domains, show write results, avoid concurrent lost edits.
-5. [ ] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
+5. [x] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
 6. [ ] Verification: deliberate lint fixes and reproducible GitHub CI.
 7. [ ] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
 8. [ ] Parent controls: app-name selection and named child profiles.
@@ -108,3 +108,15 @@ production/device requirements are stated separately.
 - Verification: 116 JVM tests and both APK builds passed, including bounded
   queue rejection/shutdown tests. Parser/locale fixes remain the other half of
   update 5 and are being reviewed independently.
+
+### 5b — Codec boundaries and locale-independent rules
+
+- DNS/IP parsers reject overflowing/truncated slices without reading backing
+  padding or throwing. Compression decoding uses message-relative bounded hops.
+- Pattern matching and local allow normalization use `Locale.ROOT`. Synthetic
+  A replies now honor their address argument; escaped names round-trip without
+  changing the question. TCP frames validate IDs/flags before normalization.
+- Verification: 137 JVM tests passed and both APKs built. The original scratch
+  reproductions now reject malformed inputs safely and match under both ROOT
+  and Turkish locales. New coverage includes deterministic slice/name fixtures,
+  strict UDP/IP lengths, short TCP reads and bounded worker rejection.

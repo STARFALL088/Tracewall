@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -41,7 +42,7 @@ public final class DomainSet {
     public int wildcardCount() { return wildcards.size(); }
 
     public boolean matches(String host) {
-        String h = host.toLowerCase();
+        String h = host.toLowerCase(Locale.ROOT);
         int end = h.length();
         while (end > 0 && h.charAt(end - 1) == '.') end--;
         h = h.substring(0, end);
