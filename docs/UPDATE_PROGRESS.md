@@ -7,7 +7,7 @@ Each completed implementation is tested and committed separately, then pushed.
 ## Acceptance checklist
 
 1. [x] VPN foreground lifecycle: API-compatible foreground notification and cleanup.
-2. [ ] Empty remote snapshots clear persisted remote rules, preserving local rules.
+2. [x] Empty remote snapshots clear persisted remote rules, preserving local rules.
 3. [ ] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
 4. [ ] Remote edits: validate domains, show write results, avoid concurrent lost edits.
 5. [ ] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
@@ -57,3 +57,14 @@ production/device requirements are stated separately.
   and `git diff --check` passed. Device survival/reboot/notification checks pending.
 - Compatibility correction: this project's AndroidX core predates
   `ServiceCompat.startForeground`, so the implementation uses guarded platform APIs.
+
+### 2 — Remote deletion and snapshot validation
+
+- Missing rule nodes now replace remote state with empty allow/UID sets and
+  restore local categories; local rule keys remain untouched.
+- A pure-Java immutable adapter validates Firebase list/object shapes, domains,
+  UID bounds, category types and entry limits. Invalid snapshots retain the
+  previous valid state rather than crashing the application listener.
+- Verification: 103 JVM tests passed, both APKs built, 73 Firebase emulator REST
+  checks passed, including removal of the final list entries. Actual Android
+  listener/preferences behavior still needs a connected-device check.

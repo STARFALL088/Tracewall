@@ -74,6 +74,10 @@ for (const token of [ct, pt]) {
   await db('GET', `${root}/rules`, token);
   await doc('GET', `${root}/rules/current`, token);
 }
+// Removing the final list entries removes the rules node; the child must apply null as empty.
+await db('PATCH', `${root}/rules`, pt, {allow: null, blocked_uids: null});
+assert.equal(await db('GET', `${root}/rules`, ct), null);
+await db('PATCH', `${root}/rules`, pt, {allow: ['a.test', 'b.test'], blocked_uids: [12345]});
 await db('PUT', `${root}/history/h`, ct, {host: 'a.test'});
 await db('PUT', `${root}/events/e`, ct, {type: 'protection_off'});
 for (const path of ['history', 'events']) {
