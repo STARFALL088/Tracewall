@@ -463,6 +463,7 @@ public class MainActivity extends AppCompatActivity {
         if (ui.toggle.isChecked() != on) ui.toggle.setChecked(on);
         updatingToggle = false;
 
+        ui.updateSchedule.setText(BlocklistStore.isEnabled(this) ? R.string.update_scheduled : R.string.update_not_scheduled);
         renderUpdateResult();
         ui.status.setText(on ? R.string.status_on : R.string.status_off);
 

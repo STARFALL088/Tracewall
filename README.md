@@ -487,6 +487,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Daily WorkManager refresh                    | DONE — APK builds       | Unique connected 24-hour work; exponential retry; last result shown |
 | HTTPS refresh + JSON backups                  | DONE — JVM + APK builds | Bounded HTTPS, atomic files, validated PIN-gated local backups |
 | Larger licensed category lists                | DONE — JVM + APK builds | ~95k merged entries; 2.43 MB total assets; load time logged |
 | One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation |
@@ -599,6 +600,15 @@ previous file, or bundled asset. The policy reloads without restarting the VPN.
 The UI reports successful/failed categories, newly added rules, last attempt,
 and last fully successful update. Retaining the bundled baseline means domains
 removed upstream may remain blocked until a new APK baseline is shipped.
+
+`ListRefreshWorker` (WorkManager 2.9.1) schedules unique periodic work named
+`tracewall.category-refresh.v1` with `KEEP`, a 24-hour interval and initial delay,
+`NetworkType.CONNECTED`, and exponential backoff starting at 30 minutes. It is
+scheduled when protection is enabled, restored at application startup if still
+enabled, and cancelled when protection is disabled. Android may defer execution.
+It calls the same updater; any failed category returns `retry()`. The previous
+lists and VPN continue operating. Manual and worker updates serialize through a
+shared lock, and the UI shows the persisted result from either path.
 
 PIN-gated **Export rules** / **Import rules** share JSON via FileProvider and
 select JSON with `ACTION_OPEN_DOCUMENT`. Version 1 contains only `version`,

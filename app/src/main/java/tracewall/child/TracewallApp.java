@@ -35,6 +35,7 @@ public class TracewallApp extends Application {
         super.onCreate();
 
         final android.content.Context ctx = getApplicationContext();
+        if (BlocklistStore.isEnabled(ctx)) tracewall.child.net.ListRefreshWorker.schedule(ctx);
 
         FirebaseSync.get().signInAnonymously(() -> {
             Log.i(TAG, "Firebase ready, child uid=" + FirebaseSync.get().uid());

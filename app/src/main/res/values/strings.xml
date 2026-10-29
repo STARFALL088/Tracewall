@@ -65,4 +65,6 @@
     <string name="update_never">Lists have not been updated yet.</string>
     <string name="update_never_success">Never</string>
     <string name="update_result">Updated: %1$d · Failed: %2$d · Rules added: %3$d\nLast attempt: %4$s · Last successful update: %5$s</string>
+    <string name="update_scheduled">Automatic refresh: every 24 hours when connected (Android may delay it).</string>
+    <string name="update_not_scheduled">Enable protection to schedule daily refresh.</string>
 </resources>

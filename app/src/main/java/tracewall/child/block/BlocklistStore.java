@@ -257,6 +257,8 @@ public final class BlocklistStore {
 
     public static void setEnabled(Context ctx, boolean enabled) {
         prefs(ctx).edit().putBoolean(KEY_ENABLED, enabled).apply();
+        if (enabled) tracewall.child.net.ListRefreshWorker.schedule(ctx);
+        else tracewall.child.net.ListRefreshWorker.cancel(ctx);
     }
 
     private static SharedPreferences prefs(Context ctx) {

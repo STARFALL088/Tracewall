@@ -9,7 +9,7 @@ This file was absent at the start of the continuation; week labels below follow 
 | B — Rule data and parsing | Larger licensed hosts lists, parser robustness, load timing | DONE — JVM tests and both APK builds |
 | C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | DONE — JVM tests and both APK builds |
 | D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | DONE — JVM tests and both APK builds |
-| E — Background data operations | Unique connected 24-hour WorkManager refresh | Pending |
+| E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | Pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | Pending |
 | H — Week 13: project report | Architecture, decisions, testing, limits and future work | Pending |
@@ -67,7 +67,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | HTTP request + JSON parsing | `ListUpdater` HTTPS; `RulesJson` validated backups and document picker | DONE — built and JVM tested; device network checks pending |
 | XML parsing | none yet | PLANNED (optional) |
 | Room database (entity, DAO, batched writer) | `J/log/TracewallDb.java`, `QueryDao.java`, `HistoryWriter.java` | DONE |
-| Background work (`WorkManager` periodic list refresh) | none yet | PLANNED |
+| Background work (`WorkManager` periodic list refresh) | `ListRefreshWorker`, CONNECTED, unique KEEP, exponential retry | DONE — built; OS scheduling checks pending |
 | Advanced APIs: `VpnService`, `protect()`, `getConnectionOwnerUid`, `ConnectivityManager` callbacks | `DnsVpnService`, `UidAttributor.java` | DONE |
 | Firebase Auth, Realtime DB, Firestore | `J/sync/FirebaseSync.java`, `parent/.../FirebaseParent.java` | PARTIAL: compiles, not verified end to end |
 

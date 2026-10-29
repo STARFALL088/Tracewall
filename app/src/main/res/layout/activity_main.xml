@@ -78,6 +78,7 @@
         <Button android:id="@+id/importRules" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/import_rules" />
         <Button android:id="@+id/updateLists" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/update_lists" />
     </LinearLayout>
+    <TextView android:id="@+id/updateSchedule" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" />
     <TextView android:id="@+id/updateResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:text="@string/update_never" />
 
     <TextView
