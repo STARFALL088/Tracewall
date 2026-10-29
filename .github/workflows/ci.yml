@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CI: 'true'
+
+jobs:
+  android:
+    name: Java 17 tests, debug APKs and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out source without persisting credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 17 for Gradle 8.9 and AGP 8.5.2
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17.0.21+9'
+          java-package: jdk
+          overwrite-settings: false
+
+      - name: Install Android SDK 34 and Build Tools 34.0.0
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          cmdline-tools-version: '12266719' # 16.0, compatible with Java 17
+          packages: 'platforms;android-34 build-tools;34.0.0'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+
+      - name: Test the credential-free config generator
+        run: python3 -B -m unittest discover -s scripts/ci -p 'test_*.py' -v
+
+      - name: Generate synthetic Firebase build resources for both APKs
+        run: python3 -B scripts/ci/prepare-google-services.py --output-root "$GITHUB_WORKSPACE"
+
+      - name: Run all JVM tests, both debug builds and both lint tasks
+        # --continue keeps independent tasks running when another task fails.
+        # Override the host-specific org.gradle.java.home in gradle.properties.
+        run: |
+          mkdir -p build/ci
+          ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" \
+            --no-daemon --no-parallel --max-workers=2 \
+            --console=plain --stacktrace --continue \
+            :blocklist:test :app:assembleDebug :parent:assembleDebug \
+            :app:lintDebug :parent:lintDebug \
+            2>&1 | tee build/ci/gradle.log
+
+      - name: Upload tests, lint reports, logs and demo-config debug APKs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-debug-and-reports
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: false
+          path: |
+            build/ci/*.log
+            blocklist/build/reports/tests/
+            blocklist/build/test-results/
+            app/build/reports/lint-results*
+            parent/build/reports/lint-results*
+            app/build/outputs/apk/debug/*.apk
+            parent/build/outputs/apk/debug/*.apk
+
+  firebase-rules:
+    name: Firebase demo-project emulator tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      FIREBASE_CLI_DISABLE_USAGE: 'true'
+      GCLOUD_PROJECT: demo-tracewall
+      GOOGLE_CLOUD_PROJECT: demo-tracewall
+      FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099'
+      FIREBASE_DATABASE_EMULATOR_HOST: '127.0.0.1:9000'
+      FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080'
+    steps:
+      - name: Check out source without persisting credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 21 required by the pinned Firebase CLI
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21.0.13+9'
+          java-package: jdk
+          overwrite-settings: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.2'
+          package-manager-cache: false
+
+      - name: Install the locked Firebase CLI without lifecycle scripts
+        run: |
+          mkdir -p build/ci
+          npm ci --prefix scripts/ci --ignore-scripts --engine-strict \
+            --no-audit --no-fund 2>&1 | tee build/ci/npm-ci.log
+
+      - name: Run auth, database and Firestore rules tests on demo-tracewall only
+        run: |
+          mkdir -p build/ci
+          export PATH="$PWD/scripts/ci/node_modules/.bin:$PATH"
+          {
+            java -version
+            node --version
+            firebase --version
+            bash scripts/test-firebase-rules.sh
+          } 2>&1 | tee build/ci/firebase-emulators.log
+
+      - name: Upload emulator logs even when a test fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: firebase-emulator-reports
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: false
+          path: |
+            build/ci/*.log
+            *-debug.log
+            firebase/*-debug.log

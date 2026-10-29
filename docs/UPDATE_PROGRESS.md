@@ -11,7 +11,7 @@ Each completed implementation is tested and committed separately, then pushed.
 3. [x] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
 4. [x] Remote edits: validate domains, show write results, avoid concurrent lost edits.
 5. [x] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
-6. [ ] Verification: deliberate lint fixes and reproducible GitHub CI.
+6. [x] Verification: deliberate lint fixes and reproducible GitHub CI.
 7. [ ] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
 8. [ ] Parent controls: app-name selection and named child profiles.
 9. [ ] Rules: custom deny patterns, expiring allows and scheduled profiles.
@@ -120,3 +120,21 @@ production/device requirements are stated separately.
   reproductions now reject malformed inputs safely and match under both ROOT
   and Turkish locales. New coverage includes deterministic slice/name fixtures,
   strict UDP/IP lengths, short TCP reads and bounded worker rejection.
+
+### 6 — Lint and credential-free CI
+
+- Completed the parent Bengali resources, preserving the newer pairing/write
+  messages during integration (disjoint-intent merge; duplicate key removed).
+- Kept full app enumeration with a narrowly documented package-visibility lint
+  exception. Also documented AGP 8.5's false alarm-only prerequisite for the
+  configured-VPN `systemExempted` path; no exact-alarm permission was added.
+- Added pinned GitHub Actions jobs for Java 17 tests/build/lint and Java 21 /
+  Node emulator checks, a locked Firebase CLI, and always-uploaded reports.
+  The generator uses inert demo-only build resources and refuses to read or
+  overwrite existing Firebase config files. All five action SHA/tag pairs were
+  verified against their upstream GitHub repositories.
+- Local verification: 137 JVM tests, 3 Python generator tests, both APK builds,
+  both lint tasks and 83 emulator checks passed. Lint has zero errors, with 25
+  child and 15 parent warnings retained for subsequent targeted cleanup.
+- The first GitHub-hosted CI execution is checked separately after publishing;
+  local success is not presented as a remote green run.

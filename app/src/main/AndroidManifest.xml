@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -7,10 +8,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
-    <!-- Android 11+ package visibility: without this, getInstalledPackages()
-         sees a handful of packages and the per-app block screen would be near
-         empty. Sideloaded parental app, so the Play restriction does not bite. -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- Core feature: review all installed user apps, not just known intent handlers.
+         This sideloaded parental tool deliberately needs full enumeration. Any Play
+         distribution still requires a separate package-visibility policy review. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <queries>
         <intent><action android:name="android.intent.action.SEND" /><data android:mimeType="text/csv" /></intent>
@@ -73,10 +75,14 @@
         <!-- The VPN service. BIND_VPN_SERVICE is what makes the system trust
              it: without that permission the consent dialog never appears and
              prepare() returns a null intent that goes nowhere. -->
+        <!-- Configured VPNs qualify for systemExempted without exact-alarm access:
+             developer.android.com/about/versions/14/changes/fgs-types-required#system-exempted
+             AGP 8.5 lint models only the alarm-permission alternative. -->
         <service
             android:name=".vpn.DnsVpnService"
             android:exported="false"
             android:foregroundServiceType="systemExempted"
+            tools:ignore="ForegroundServicePermission"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />

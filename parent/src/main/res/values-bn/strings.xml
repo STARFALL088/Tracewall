@@ -1,19 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Tracewall Parent</string>
+
+    <!-- Pairing screen -->
+    <string name="pairing_title">শিশুর ডিভাইসের সঙ্গে সংযোগ করুন</string>
+    <string name="pairing_body">একবার ব্যবহারযোগ্য কোড তৈরি করতে শিশুর ডিভাইসে ডিভাইসের ইউআইডিতে ট্যাপ করে অভিভাবকের পিন দিন। পাঁচ মিনিটের মধ্যে কিউআর কোড স্ক্যান করুন অথবা নিচে ইউআইডি ও কোড লিখুন।</string>
+    <string name="pairing_hint">ডিভাইস কোড (শিশুর Firebase ইউআইডি)</string>
+    <string name="pairing_connect">সংযোগ করুন</string>
+    <string name="pairing_scan">কিউআর কোড স্ক্যান করুন</string>
+    <string name="pairing_scan_prompt">শিশুর কিউআর কোডের দিকে ক্যামেরা ধরুন</string>
+    <string name="pairing_uid_empty">ডিভাইস কোড লিখুন</string>
+    <string name="pairing_failed">সংযোগ করা যায়নি। কোডটি পরীক্ষা করে আবার চেষ্টা করুন।</string>
+
+    <!-- Dashboard screen -->
+    <string name="dashboard_connected">সংযুক্ত ডিভাইস: %1$s</string>
+    <string name="dashboard_allow_hint">অনুমতি দিতে ডোমেইন লিখুন (যেমন example.com)</string>
+    <string name="dashboard_allow_button">অনুমতির নিয়ম পাঠান</string>
+    <string name="dashboard_block_hint">ব্লক করতে অ্যাপের ইউআইডি লিখুন</string>
+    <string name="dashboard_block_button">ব্লক করার নিয়ম পাঠান</string>
+    <string name="dashboard_categories">ব্লক করা বিভাগগুলো</string>
+    <string name="cat_malware">ম্যালওয়্যার</string>
+    <string name="cat_gambling">জুয়া</string>
+    <string name="cat_adult">প্রাপ্তবয়স্কদের বিষয়বস্তু</string>
+    <string name="cat_ads">বিজ্ঞাপন</string>
+    <string name="categories_pushed">শিশুর ডিভাইসে বিভাগগুলো হালনাগাদ হয়েছে</string>
+    <string name="dashboard_history">সাম্প্রতিক কার্যক্রম (ডিএনএস ও ডিভাইসের ঘটনা)</string>
+    <string name="rule_domain_empty">ডোমেইন লিখুন</string>
+    <string name="rule_pushed">নিয়ম পাঠানো হয়েছে: %1$s-এর অনুমতি দিন</string>
+    <string name="rule_uid_empty">অ্যাপের ইউআইডি লিখুন</string>
+    <string name="rule_uid_invalid">ইউআইডি অবশ্যই একটি সংখ্যা হতে হবে</string>
+    <string name="rule_uid_pushed">নিয়ম পাঠানো হয়েছে: ইউআইডি %1$d ব্লক করুন</string>
+
+    <!-- Unpair -->
+    <string name="menu_unpair">সংযোগ বিচ্ছিন্ন করুন</string>
+    <string name="unpair_title">শিশুর ডিভাইসের সঙ্গে সংযোগ বিচ্ছিন্ন করবেন?</string>
+    <string name="unpair_body">আবার সংযোগ করতে ডিভাইস কোডটি পুনরায় লিখতে হবে।</string>
+    <string name="unpair_yes">সংযোগ বিচ্ছিন্ন করুন</string>
     <string name="protection_off_event">সুরক্ষা বন্ধ: %1$s\n%2$s</string>
     <string name="dismiss_event">সরান</string>
     <string name="last_seen">শেষ ডিএনএস কার্যকলাপ: %1$s</string>
     <string name="last_seen_unknown">শেষ ডিএনএস কার্যকলাপ: অজানা</string>
-    <string name="remove_rule">অনুমতি বা ব্লক করা ইউআইডি সরান</string>
+    <string name="remove_rule">অনুমতির নিয়ম বা ব্লক করা ইউআইডি সরান</string>
     <string name="allow_entry">অনুমতি: %1$s</string>
     <string name="uid_entry">ব্লক করা ইউআইডি: %1$d</string>
     <string name="pairing_code_hint">৮ অক্ষরের একবার ব্যবহারযোগ্য কোড</string>
-    <string name="pairing_code_invalid">শিশুর কিউআর ডায়ালগ থেকে ইউআইডি এবং সঠিক ৮ অক্ষরের কোড দিন।</string>
-    <string name="pairing_body">শিশুর ডিভাইসে ইউআইডিতে ট্যাপ করে অভিভাবকের পিন দিন। কিউআর স্ক্যান করুন বা পাঁচ মিনিটের মধ্যে ইউআইডি এবং একবার ব্যবহারযোগ্য কোড লিখুন।</string>
+    <string name="pairing_code_invalid">শিশুর কিউআর ডায়ালগ থেকে শিশুর ইউআইডি ও সঠিক ৮ অক্ষরের কোড লিখুন।</string>
     <string name="new_app_row">নতুন অ্যাপ: %1$s</string>
     <string name="event_installed">ইনস্টল হয়েছে</string>
     <string name="event_protection_off">সুরক্ষা বন্ধ আছে</string>
     <string name="event_device">ডিভাইসের ঘটনা</string>
-    <string name="dashboard_history">সাম্প্রতিক কার্যক্রম (ডিএনএস ও ডিভাইসের ঘটনা)</string>
     <string name="pairing_partial_reset">অন্য কোড দিয়ে আগের পেয়ারিং আংশিক হয়েছে। শিশুর ডিভাইসে এই অভিভাবককে বাতিল করে নতুন কোড তৈরি করুন।</string>
     <string name="pairing_retry">পেয়ারিং শেষ হয়নি। সংযোগ পরীক্ষা করে একই মেয়াদবহাল কোড দিয়ে আবার চেষ্টা করুন। মেয়াদ শেষ হলে শিশুর ডিভাইসে আংশিক সংযোগ বাতিল করে নতুন কোড নিন।</string>
     <string name="rule_domain_invalid">example.com বা *.example.com-এর মতো ডোমেইন দিন; ইউআরএল, পাথ বা ফাঁকা স্থান নয়।</string>
