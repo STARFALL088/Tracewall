@@ -70,4 +70,6 @@
     <string name="new_app_title">New app installed</string>
     <string name="new_app_body">%1$s (%2$s) was installed. Review its DNS access.</string>
     <string name="query_filter">Filter recent queries by domain or app</string>
+    <string name="notif_active_channel">Active DNS protection</string>
+    <string name="notif_active_text">Filtering ordinary DNS on this device. Tap to review protection.</string>
 </resources>

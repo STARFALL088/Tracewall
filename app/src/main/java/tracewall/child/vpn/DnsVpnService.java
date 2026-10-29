@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.Network;
@@ -29,6 +30,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import tracewall.blocklist.PolicyEngine;
 import tracewall.child.R;
+import tracewall.child.ui.Notifications;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.HistoryWriter;
@@ -55,9 +57,8 @@ import tracewall.net.IpPacket;
  *      not fix them up for a TUN write, and a bad checksum means the client
  *      silently drops our answer - the app looks broken for no visible reason.
  *
- * No startForeground(): a VpnService already gets a system-owned notification
- * and is exempt from the API 34 foreground-service-type rules. Adding one
- * would mean declaring a specialUse subtype to buy nothing.
+ * The system VPN indicator does not replace the service's foreground lifetime.
+ * A consented VPN qualifies for Android 14's systemExempted foreground type.
  */
 public class DnsVpnService extends VpnService implements Runnable {
 
@@ -190,6 +191,19 @@ public class DnsVpnService extends VpnService implements Runnable {
             stopSelf();
             return START_NOT_STICKY;
         }
+        try {
+            android.app.Notification notification = Notifications.protectionActive(this);
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(Notifications.ID_PROTECTION_ACTIVE, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED);
+            } else {
+                startForeground(Notifications.ID_PROTECTION_ACTIVE, notification);
+            }
+        } catch (RuntimeException e) {
+            Log.e(TAG, "cannot enter foreground; VPN was not started", e);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         startTunnel();
         return START_STICKY;
     }
@@ -232,6 +246,8 @@ public class DnsVpnService extends VpnService implements Runnable {
             Log.e(TAG, "tunnel failed", e);
         } finally {
             teardown();
+            // A failed/closed TUN must not leave an idle foreground service behind.
+            stopSelf();
         }
     }
 
@@ -434,6 +450,7 @@ public class DnsVpnService extends VpnService implements Runnable {
             } catch (IOException ignored) {}
             tun = null;
         }
+        stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();
     }
 

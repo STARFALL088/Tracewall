@@ -6,7 +6,7 @@ Each completed implementation is tested and committed separately, then pushed.
 
 ## Acceptance checklist
 
-1. [ ] VPN foreground lifecycle: API-compatible foreground notification and cleanup.
+1. [x] VPN foreground lifecycle: API-compatible foreground notification and cleanup.
 2. [ ] Empty remote snapshots clear persisted remote rules, preserving local rules.
 3. [ ] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
 4. [ ] Remote edits: validate domains, show write results, avoid concurrent lost edits.
@@ -43,6 +43,17 @@ No Android device was connected at the baseline; device verification is pending.
 
 ## Completed changes
 
-Implementation entries, commit references and verification are recorded here as
-work lands. A checkbox means the scoped implementation was verified locally;
-remaining production/device requirements are stated separately.
+A checkbox means the scoped implementation was verified locally; remaining
+production/device requirements are stated separately.
+
+### 1 — Foreground VPN lifetime
+
+- The Activity starts an FGS, the service immediately promotes itself, and API
+  34 uses the declared `systemExempted` type and normal permissions.
+- A separate low-importance ongoing channel opens the PIN-protected app controls;
+  there is no notification action that bypasses the protection-off PIN.
+- TUN failure stops the service; destruction removes its foreground notification.
+- Verification: 98 JVM regression tests unchanged/passing, both debug APKs built,
+  and `git diff --check` passed. Device survival/reboot/notification checks pending.
+- Compatibility correction: this project's AndroidX core predates
+  `ServiceCompat.startForeground`, so the implementation uses guarded platform APIs.

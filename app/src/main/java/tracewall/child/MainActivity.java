@@ -353,7 +353,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startFiltering() {
-        startService(
+        ContextCompat.startForegroundService(this,
             new Intent(this, DnsVpnService.class).setAction(
                 DnsVpnService.ACTION_START
             )
