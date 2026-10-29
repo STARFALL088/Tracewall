@@ -4,7 +4,7 @@
 
     <!-- Pairing screen -->
     <string name="pairing_title">Connect to a child device</string>
-    <string name="pairing_body">Enter the device code shown on the child\'s Tracewall screen, or tap Scan QR to read it automatically.</string>
+    <string name="pairing_body">On the child device, tap the device UID and enter the parent PIN to generate a one-time code. Scan the QR or enter the UID and code below within five minutes.</string>
     <string name="pairing_hint">Device code (child\'s Firebase UID)</string>
     <string name="pairing_connect">Connect</string>
     <string name="pairing_scan">Scan QR Code</string>
@@ -43,4 +43,6 @@
     <string name="remove_rule">Remove an allow or blocked UID</string>
     <string name="allow_entry">Allow: %1$s</string>
     <string name="uid_entry">Blocked UID: %1$d</string>
+    <string name="pairing_code_hint">8-character one-time code</string>
+    <string name="pairing_code_invalid">Enter the child UID and a valid 8-character code from the child QR dialog.</string>
 </resources>

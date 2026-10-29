@@ -6,4 +6,7 @@
     <string name="remove_rule">অনুমতি বা ব্লক করা ইউআইডি সরান</string>
     <string name="allow_entry">অনুমতি: %1$s</string>
     <string name="uid_entry">ব্লক করা ইউআইডি: %1$d</string>
+    <string name="pairing_code_hint">৮ অক্ষরের একবার ব্যবহারযোগ্য কোড</string>
+    <string name="pairing_code_invalid">শিশুর কিউআর ডায়ালগ থেকে ইউআইডি এবং সঠিক ৮ অক্ষরের কোড দিন।</string>
+    <string name="pairing_body">শিশুর ডিভাইসে ইউআইডিতে ট্যাপ করে অভিভাবকের পিন দিন। কিউআর স্ক্যান করুন বা পাঁচ মিনিটের মধ্যে ইউআইডি এবং একবার ব্যবহারযোগ্য কোড লিখুন।</string>
 </resources>

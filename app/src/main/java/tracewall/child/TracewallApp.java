@@ -39,6 +39,8 @@ public class TracewallApp extends Application {
         FirebaseSync.get().signInAnonymously(() -> {
             Log.i(TAG, "Firebase ready, child uid=" + FirebaseSync.get().uid());
 
+            FirebaseSync.get().watchPairing();
+
             // Process-lifetime subscription: the parent writes to
             // /devices/{uid}/rules and we apply it immediately.
             FirebaseSync.get().listenForRules(snapshot -> {

@@ -52,7 +52,7 @@ and read history from any device, in real time.
 | **Room history**          | Batched writes (1.5 s flush), one-week retention, exported via `ContentProvider`                  |
 | **Remote rules (v2)**     | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB            |
 | **Remote history (v2)**   | Every query is mirrored to Firestore; parent reads it live from the dashboard                     |
-| **QR pairing (v2)**       | Child shows its Firebase UID as a QR code; parent scans it — no typing                            |
+| **QR pairing (v2)**       | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing                            |
 | **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                               |
 | **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, closing the DoH auto-discovery path                    |
 | **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                          |
@@ -175,7 +175,7 @@ git checkout v2   # full feature set — current HEAD
 
 | Area                               | Change                                                                                                                                                                       |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Firebase Auth**                  | `TracewallApp` signs in anonymously on startup; the UID is the shared secret for all Firebase paths                                                                          |
+| **Firebase Auth**                  | `TracewallApp` signs in anonymously on startup; the UID identifies the device; pairing requires a separate one-time code                                                                          |
 | **Realtime Database**              | `FirebaseSync.listenForRules()` subscribes to `/devices/{uid}/rules`; reloads `BlocklistStore` atomically on any parent write                                                |
 | **Firestore**                      | `HistoryWriter` mirrors each batch to `/devices/{uid}/history` after the Room insert; Firestore SDK queues writes offline                                                    |
 | **Offline persistence**            | Both databases enable on-disk caching before any reference is obtained                                                                                                       |
@@ -340,16 +340,19 @@ Realtime Database
         │   ├── allow/           {0: "example.com", 1: "*.safe.org", ...}
         │   ├── blocked_uids/    {0: 10123, 1: 10456, ...}
         │   └── categories/      {malware: true, gambling: true, adult: true, ads: false}
+        ├── pairing/       {code, expires_ms, claimed_by?}
         └── parentUid/
-            └── {parentUid}: true               ← written by registerAsParent()
+            └── {parentUid}: "ABCDEFGH"         ← code used for registration
 
 Firestore
 └── devices/
     └── {childUid}/
         ├── history/
         │   └── {auto-id}        {time_ms, host, blocked, app_uid, policy}
+        ├── events/{auto-id}  {type: "protection_off", reason, time_ms}
+        ├── pairing/current  {code, expires_ms, claimed_by?}
         └── parents/
-            └── {parentUid}: {}                 ← mirrors RTDB for Firestore rules
+            └── {parentUid}: {code: "ABCDEFGH"} ← independently validated membership
 ```
 
 ### Pairing flow
@@ -361,11 +364,12 @@ sequenceDiagram
     participant Parent as Parent App
 
     Child  ->> FB    : signInAnonymously() → childUid
-    Child  ->> Child : show QR(childUid)
+    Child  ->> Child : generate code + expiry; show QR(uid, code)
     Parent ->> FB    : signInAnonymously() → parentUid
-    Parent ->> Child : scan QR → get childUid
-    Parent ->> FB    : RTDB  devices/{childUid}/parentUid/{parentUid} = true
-    Parent ->> FB    : Firestore devices/{childUid}/parents/{parentUid} = {}
+    Parent ->> Child : scan QR → get childUid + code
+    Parent ->> FB    : RTDB atomic registration(code) + pairing claim
+    Parent ->> FB    : Firestore batch registration(code) + pairing claim
+    Child  ->> FB    : clear pairing records after both claims match
     FB     -->> Child : rules snapshot fires → BlocklistStore.applyRemoteRules()
     Child  -->> FB    : HistoryWriter mirrors each batch → Firestore history
     Parent ->> FB    : listenHistory() → live Firestore snapshot
@@ -373,15 +377,43 @@ sequenceDiagram
 
 ### Security model — honestly
 
-The child's Firebase UID is the shared secret that grants parent access.
-The `parentUid` sub-tree is writable by any authenticated user — so anyone who
-learns the child UID can register as a parent. A 28-character random string shown
-only on the child's screen is good enough for a course project, but is not a
-substitute for a real pairing handshake (e.g. a one-time code the child must
-approve). **Treat the device code like a password.**
+Anonymous Firebase Auth identifies each child and parent. Knowing a child UID
+alone grants no access. A parent must claim a random eight-character code within
+five minutes. The code and expiry live at RTDB `devices/{uid}/pairing` and
+Firestore `devices/{uid}/pairing/current`; neither is readable by other users.
+Registration atomically writes membership plus `claimed_by` in each database,
+which prevents a second claim even before the child clears the pairing records.
+Codes are generated with `SecureRandom` (40 bits). QR payloads contain
+`tracewall:1:{childUid}:{code}`; manual entry requires both UID and code.
 
-Security rules are in `firebase/` and are in version control, but they are **not
-active until deployed** (see [Firebase setup](#firebase-setup)).
+Only registered parents can write RTDB rules; the child can read its rules.
+Only the child writes history and events. Registered parents can read those
+collections but cannot modify or delete them. There are no broad device-level
+read/write grants. The child can revoke membership; the app queues deletion in
+both databases and mirrors RTDB removals observed while running. New pairing and
+revocation actions on the child require the local parent PIN.
+
+**Limits:** Firestore cannot check RTDB membership. Registration and revocation
+across the two databases are not atomic. A partial failure can leave membership
+in only one database; revoke it on the child and generate a new code before
+retrying. A party who steals a live code can race its intended recipient,
+including claiming one database before the other; there is no trusted server to
+coordinate them. Out-of-band RTDB deletion while the child is not listening must
+also delete the Firestore membership. There is no server-side pairing attempt
+rate limit or durable parent account recovery. Anonymous identities are lost if
+app data is cleared. Firebase rules do not prevent uninstall, system VPN changes,
+Private DNS/DoH bypass, or tampering on a rooted device. Local PIN storage uses
+salted PBKDF2; its attempt lockout relies on the device clock and app storage.
+
+Rules in `firebase/` protect deployed projects **only after deployment**. Run the
+credential-free emulator regression suite before deploying:
+
+```bash
+firebase emulators:exec --config firebase/firebase.json --project demo-tracewall \
+  --only auth,database,firestore 'node firebase/test_rules.mjs'
+firebase deploy --config firebase/firebase.json --project YOUR_PROJECT --only database,firestore:rules
+```
+
 
 ---
 
@@ -455,6 +487,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation |
 | Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
 | Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
 | Parent PIN + tamper events                    | 🔄 Compiles + JVM tested | Salted PBKDF2, 5 attempts / 30 s lockout; Firestore off events |
@@ -500,10 +533,9 @@ These are honest, not excuses — the filter works correctly for everything in �
   The on-device Room database prunes rows older than one week; the Firestore
   mirror has no equivalent TTL or Cloud Function cleanup job.
 
-- **Pairing is first-write-wins.** The `parentUid` sub-tree is writable by any
-  authenticated user who knows the `childUid`. The 28-character UID is a
-  reasonable shared secret for a course project but is not production-grade
-  pairing security.
+- **Pairing spans two databases.** Claims and revocations cannot be atomic
+  across RTDB and Firestore. See the Security model for recovery and live-code
+  theft limits. Multiple parents editing rules simultaneously still use last-write-wins.
 
 - **NXDOMAIN for HTTPS (type 65) is a blunt instrument.** It also blocks the
   `HTTPS` record optimisation that CDNs use to advertise QUIC / HTTP/3. Clients

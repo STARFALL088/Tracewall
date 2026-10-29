@@ -1,32 +1,64 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Each device's data lives under /devices/{uid}/.
-    // Access is granted to:
-    //   - the child device itself (request.auth.uid == uid)
-    //   - any parent registered in the RTDB parentUid map for that child.
-    //
-    // Note: Firestore rules cannot directly query the Realtime Database, so
-    // parent access is mirrored here via a /devices/{uid}/parents/{parentUid}
-    // document that FirebaseParent.registerAsParent() writes alongside the
-    // RTDB entry.
-    match /devices/{uid}/{document=**} {
-      allow read, write:
-        if request.auth != null
-        && (
-          request.auth.uid == uid
-          || exists(/databases/$(database)/documents/devices/$(uid)/parents/$(request.auth.uid))
-        );
+    function child(uid) { return request.auth != null && request.auth.uid == uid; }
+    function parent(uid) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/devices/$(uid)/parents/$(request.auth.uid));
     }
-
-    // The parents sub-collection: the child (or the parent claiming the slot)
-    // can create a document here. Only the child can delete it.
+    // RTDB is the live rules channel; this document shape mirrors its permissions.
+    match /devices/{uid}/rules/{id} {
+      allow read: if child(uid) || parent(uid);
+      allow create, update: if parent(uid)
+        && request.resource.data.keys().hasOnly(['allow', 'blocked_uids', 'categories'])
+        && (!('allow' in request.resource.data) || request.resource.data.allow is list)
+        && (!('blocked_uids' in request.resource.data) || request.resource.data.blocked_uids is list)
+        && (!('categories' in request.resource.data) || request.resource.data.categories is map);
+      allow delete: if parent(uid);
+    }
+    match /devices/{uid}/history/{id} {
+      allow read: if child(uid) || parent(uid);
+      allow create, update, delete: if child(uid);
+    }
+    match /devices/{uid}/events/{id} {
+      allow read: if child(uid) || parent(uid);
+      allow create: if child(uid)
+        && request.resource.data.keys().hasOnly(['type', 'reason', 'time_ms'])
+        && request.resource.data.type == 'protection_off'
+        && request.resource.data.reason is string
+        && request.resource.data.time_ms is int;
+      allow update, delete: if child(uid);
+    }
+    match /devices/{uid}/pairing/current {
+      allow read, delete: if child(uid);
+      allow create: if child(uid) && validPairing();
+      allow update: if (child(uid) && validPairing()) || validClaim(uid);
+      function validPairing() {
+        return request.resource.data.keys().hasOnly(['code', 'expires_ms'])
+          && request.resource.data.code.matches('^[A-HJ-NP-Z2-9]{8}$')
+          && request.resource.data.expires_ms is int
+          && request.resource.data.expires_ms > request.time.toMillis()
+          && request.resource.data.expires_ms <= request.time.toMillis() + 330000;
+      }
+      function validClaim(uid) {
+        return request.auth != null && request.auth.uid != uid
+          && !('claimed_by' in resource.data)
+          && resource.data.expires_ms > request.time.toMillis()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claimed_by'])
+          && request.resource.data.claimed_by == request.auth.uid
+          && getAfter(/databases/$(database)/documents/devices/$(uid)/parents/$(request.auth.uid)).data.code == resource.data.code;
+      }
+    }
     match /devices/{uid}/parents/{parentUid} {
-      allow create: if request.auth != null;
-      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow read: if child(uid) || (request.auth != null && request.auth.uid == parentUid);
+      allow create: if request.auth != null && request.auth.uid == parentUid && parentUid != uid
+        && request.resource.data.keys().hasOnly(['code'])
+        && !('claimed_by' in get(/databases/$(database)/documents/devices/$(uid)/pairing/current).data)
+        && get(/databases/$(database)/documents/devices/$(uid)/pairing/current).data.expires_ms > request.time.toMillis()
+        && request.resource.data.code == get(/databases/$(database)/documents/devices/$(uid)/pairing/current).data.code
+        && getAfter(/databases/$(database)/documents/devices/$(uid)/pairing/current).data.claimed_by == parentUid;
+      allow delete: if child(uid);
     }
-
+    // No recursive grants: unlisted paths are denied, including parent history writes.
   }
 }

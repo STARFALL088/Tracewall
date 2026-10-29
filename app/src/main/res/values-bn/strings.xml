@@ -36,7 +36,7 @@
     <string name="notif_text_off">সুরক্ষা বন্ধ আছে। Tracewall খুলতে ট্যাপ করুন।</string>
     <string name="vpn_denied">ডিএনএস ফিল্টার করতে ভিপিএন অনুমতি দরকার।</string>
     <string name="private_dns_warning">⚠ প্রাইভেট ডিএনএস চালু আছে — ডিএনএস ট্র্যাফিক এই ফিল্টার এড়িয়ে যেতে পারে। সেটিংস › নেটওয়ার্ক › প্রাইভেট ডিএনএস থেকে বন্ধ করুন।</string>
-    <string name="device_code_label">ডিভাইস কোড: %1$s  (ট্যাপ করলে QR · দীর্ঘ ট্যাপে কপি)</string>
+    <string name="device_code_label">ডিভাইস ইউআইডি: %1$s (পেয়ার করতে ট্যাপ করুন · কপি করতে চেপে ধরুন)</string>
     <string name="device_code_copied">ডিভাইস কোড কপি হয়েছে</string>
     <string name="qr_title">প্যারেন্ট ডিভাইসে স্ক্যান করুন</string>
     <string name="pin_setup">অভিভাবকের পিন সেট করুন</string>
@@ -51,4 +51,7 @@
     <string name="permanent_body">ভিপিএন সেটিংসে Tracewall খুলে Always-on VPN চালু করুন। Android-এর Block connections without VPN চালু করলে সংযোগ পরীক্ষা করুন, কারণ Tracewall শুধু ডিএনএস রাউট করে। এই সেটিংস সুরক্ষা এড়ানো কঠিন করে।</string>
     <string name="manage_allows">অনুমতি সরান</string>
     <string name="no_allows">স্থানীয় অনুমতির তালিকা খালি।</string>
+    <string name="revoke_parent">অভিভাবকের সংযোগ বাতিল করুন</string>
+    <string name="pairing_details">শিশুর ইউআইডি: %1$s\nএকবার ব্যবহারযোগ্য কোড: %2$s\n৫ মিনিটে মেয়াদ শেষ হবে। প্রতিটি অভিভাবকের জন্য নতুন কোড তৈরি করুন।</string>
+    <string name="pairing_create_failed">পেয়ারিং কোড তৈরি করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</string>
 </resources>

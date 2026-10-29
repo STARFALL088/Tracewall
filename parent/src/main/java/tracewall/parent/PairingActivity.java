@@ -58,11 +58,19 @@ public class PairingActivity extends AppCompatActivity {
             return;
         }
 
+        String code = ui.pairingCodeInput.getText().toString().trim();
+        tracewall.security.PairingCode pairing;
+        try { pairing = new tracewall.security.PairingCode(childUid, code); }
+        catch (IllegalArgumentException e) {
+            ui.pairingCodeInput.setError(getString(R.string.pairing_code_invalid));
+            return;
+        }
         ui.connectButton.setEnabled(false);
         ui.progress.setVisibility(View.VISIBLE);
 
         FirebaseParent.get().registerAsParent(
             childUid,
+            pairing.code,
             /* onSuccess */ () -> {
                 prefs().edit().putString(KEY_CHILD_UID, childUid).apply();
                 openDashboard();
@@ -90,8 +98,14 @@ public class PairingActivity extends AppCompatActivity {
     private void onScanResult(ScanIntentResult result) {
         String content = result.getContents();
         if (content != null && !content.isEmpty()) {
-            ui.childUidInput.setText(content);
-            attemptPairing();
+            try {
+                tracewall.security.PairingCode pairing = tracewall.security.PairingCode.parse(content);
+                ui.childUidInput.setText(pairing.childUid);
+                ui.pairingCodeInput.setText(pairing.code);
+                attemptPairing();
+            } catch (IllegalArgumentException e) {
+                Toast.makeText(this, R.string.pairing_code_invalid, Toast.LENGTH_LONG).show();
+            }
         }
     }
 

@@ -18,11 +18,8 @@ import java.util.Map;
 /**
  * Parent-side Firebase facade.
  *
- * <p><b>Pairing model</b>: the child device displays its Firebase UID as a
- * "device code". The parent enters that code here. On pairing,
- * {@link #registerAsParent} writes {@code /devices/{childUid}/parentUid/{parentUid} = true}
- * to the Realtime Database. The security rules then allow the parent UID to
- * read and write the child's data for the lifetime of the pairing.
+ * <p>Pairing requires the child's UID and a short-lived one-time code.
+ * Each database independently validates an atomic claim and parent registration.
  *
  * <p>Call {@link #signInAnonymously} once from
  * {@code TracewallParentApp.onCreate()} before any Activity starts.
@@ -83,59 +80,25 @@ public class FirebaseParent {
 
     // -------------------------------------------------------------- pairing
 
-    /**
-     * Register this device as the parent of the child identified by
-     * {@code childUid}. Writes {@code /devices/{childUid}/parentUid/{parentUid} = true}
-     * so the RTDB security rules will grant this parent full access.
-     *
-     * @param childUid  the UID shown on the child's device
-     * @param onSuccess called on the main thread when the write succeeds
-     * @param onFail    called on the main thread when the write fails
-     */
-    public void registerAsParent(
-        @NonNull String childUid,
-        @NonNull Runnable onSuccess,
-        @NonNull Runnable onFail
-    ) {
+    /** Atomically claim the code in each database. Neither registration can be overwritten. */
+    public void registerAsParent(String childUid, String code, Runnable onSuccess, Runnable onFail) {
         String parentUid = uid();
-        if (parentUid == null) {
-            Log.w(TAG, "registerAsParent: not signed in");
-            onFail.run();
-            return;
-        }
-        // Write to RTDB (for real-time rules channel security)
-        db.getReference("devices")
-            .child(childUid)
-            .child("parentUid")
-            .child(parentUid)
-            .setValue(true)
+        if (parentUid == null) { onFail.run(); return; }
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("parentUid/" + parentUid, code);
+        updates.put("pairing/claimed_by", parentUid);
+        db.getReference("devices").child(childUid).updateChildren(updates)
             .addOnSuccessListener(v -> {
-                Log.i(TAG, "paired with child " + childUid + " (RTDB)");
-                // Mirror to Firestore so the Firestore security rules can
-                // also verify this pairing without cross-database lookups.
-                fs.collection("devices")
-                    .document(childUid)
-                    .collection("parents")
-                    .document(parentUid)
-                    .set(new HashMap<>())
-                    .addOnSuccessListener(fv -> {
-                        Log.i(
-                            TAG,
-                            "paired with child " + childUid + " (Firestore)"
-                        );
-                        onSuccess.run();
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Firestore pairing write failed", e);
-                        // RTDB succeeded so the child can still receive rules;
-                        // Firestore history reads will fail until this is fixed.
-                        onFail.run();
-                    });
+                com.google.firebase.firestore.DocumentReference device = fs.collection("devices").document(childUid);
+                com.google.firebase.firestore.WriteBatch batch = fs.batch();
+                Map<String, Object> membership = new HashMap<>();
+                membership.put("code", code);
+                batch.set(device.collection("parents").document(parentUid), membership);
+                batch.update(device.collection("pairing").document("current"), "claimed_by", parentUid);
+                batch.commit().addOnSuccessListener(done -> onSuccess.run())
+                    .addOnFailureListener(e -> { Log.e(TAG, "Firestore pairing failed", e); onFail.run(); });
             })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "pairing failed", e);
-                onFail.run();
-            });
+            .addOnFailureListener(e -> { Log.e(TAG, "RTDB pairing failed", e); onFail.run(); });
     }
 
     // ---------------------------------------------------------------- rules

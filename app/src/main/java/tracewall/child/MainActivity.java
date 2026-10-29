@@ -138,7 +138,13 @@ public class MainActivity extends AppCompatActivity {
         PinGate.ensureSet(this);
         ui.copyCsv.setOnClickListener(v -> copyCsv());
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
-        ui.deviceCode.setOnClickListener(v -> showQrDialog());
+        ui.deviceCode.setOnClickListener(v -> PinGate.require(this, this::showQrDialog));
+        ui.manageParents.setOnClickListener(v -> PinGate.require(this, () ->
+            FirebaseSync.get().listParents(parents -> new AlertDialog.Builder(this)
+                .setTitle(R.string.revoke_parent)
+                .setItems(parents.toArray(new String[0]), (d, which) ->
+                    FirebaseSync.get().revokeParent(parents.get(which)))
+                .setNegativeButton(android.R.string.cancel, null).show())));
         ui.deviceCode.setOnLongClickListener(v -> {
             copyDeviceCode();
             return true;
@@ -195,10 +201,16 @@ public class MainActivity extends AppCompatActivity {
     private void showQrDialog() {
         String uid = FirebaseSync.get().uid();
         if (uid == null) return;
+        FirebaseSync.get().createPairing(pairing -> showPairingQr(pairing), () ->
+            Toast.makeText(this, R.string.pairing_create_failed, Toast.LENGTH_LONG).show());
+    }
+
+    private void showPairingQr(tracewall.security.PairingCode pairing) {
+        if (isFinishing() || isDestroyed()) return;
         try {
             int size = 512;
             BitMatrix matrix = new MultiFormatWriter().encode(
-                uid,
+                pairing.payload(),
                 BarcodeFormat.QR_CODE,
                 size,
                 size
@@ -220,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
             iv.setPadding(32, 32, 32, 32);
             new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(R.string.qr_title)
+                .setMessage(getString(R.string.pairing_details, pairing.childUid, pairing.code))
                 .setView(iv)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();

@@ -22,7 +22,8 @@ import java.util.Map;
  *
  * <p><b>Authentication</b> ({@link FirebaseAuth}): anonymous sign-in pairs the
  * child device with the parent without requiring the child to create an account.
- * The UID produced by anonymous auth is the shared key that both apps use to
+ * The UID produced by anonymous auth identifies the device; pairing also requires
+ * a one-time code. Both apps use it to
  * address the same Realtime Database node and Firestore documents.
  *
  * <p><b>Realtime Database</b> ({@link FirebaseDatabase}): low-latency
@@ -113,6 +114,91 @@ public class FirebaseSync {
     public String uid() {
         FirebaseUser u = auth.getCurrentUser();
         return u == null ? null : u.getUid();
+    }
+
+    private String realtimeClaim;
+    private String firestoreClaim;
+    private java.util.Set<String> currentParents = java.util.Collections.emptySet();
+    private boolean pairingWatchStarted;
+
+    /** Start child-side cleanup after BOTH databases have accepted the same parent. */
+    public void watchPairing() {
+        String deviceUid = uid();
+        if (deviceUid == null || pairingWatchStarted) return;
+        pairingWatchStarted = true;
+        DatabaseReference device = realtimeDb.getReference("devices").child(deviceUid);
+        device.child("pairing").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                realtimeClaim = snapshot.child("claimed_by").getValue(String.class);
+                clearUsedPairing(deviceUid);
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "pairing watch failed", error.toException()); }
+        });
+        firestore.collection("devices").document(deviceUid).collection("pairing")
+            .document("current").addSnapshotListener((snapshot, error) -> {
+                if (error != null) { Log.e(TAG, "pairing watch failed", error); return; }
+                firestoreClaim = snapshot == null ? null : snapshot.getString("claimed_by");
+                clearUsedPairing(deviceUid);
+            });
+        device.child("parentUid").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                firestore.collection("devices").document(deviceUid).collection("parents")
+                    .document(snapshot.getKey()).delete();
+            }
+            public void onChildAdded(@NonNull DataSnapshot s, String previous) {}
+            public void onChildChanged(@NonNull DataSnapshot s, String previous) {}
+            public void onChildMoved(@NonNull DataSnapshot s, String previous) {}
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "revocation watch failed", error.toException()); }
+        });
+        device.child("parentUid").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                java.util.Set<String> parents = new java.util.HashSet<>();
+                for (DataSnapshot row : snapshot.getChildren()) parents.add(row.getKey());
+                currentParents = parents;
+
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "parents watch failed", error.toException()); }
+        });
+    }
+
+    private void clearUsedPairing(String deviceUid) {
+        if (realtimeClaim == null || !realtimeClaim.equals(firestoreClaim)) return;
+        realtimeDb.getReference("devices").child(deviceUid).child("pairing").removeValue();
+        firestore.collection("devices").document(deviceUid).collection("pairing").document("current").delete();
+    }
+
+    public void createPairing(java.util.function.Consumer<tracewall.security.PairingCode> ready, Runnable failed) {
+        String deviceUid = uid();
+        if (deviceUid == null) { failed.run(); return; }
+        tracewall.security.PairingCode pairing = new tracewall.security.PairingCode(
+            deviceUid, tracewall.security.PairingCode.generate());
+        Map<String, Object> value = new HashMap<>();
+        value.put("code", pairing.code);
+        value.put("expires_ms", System.currentTimeMillis() + tracewall.security.PairingCode.LIFETIME_MS);
+        realtimeDb.getReference("devices").child(deviceUid).child("pairing").setValue(value)
+            .addOnSuccessListener(v -> firestore.collection("devices").document(deviceUid)
+                .collection("pairing").document("current").set(value)
+                .addOnSuccessListener(done -> ready.accept(pairing))
+                .addOnFailureListener(e -> failed.run()))
+            .addOnFailureListener(e -> failed.run());
+    }
+
+    public void listParents(java.util.function.Consumer<java.util.List<String>> ready) {
+        java.util.Set<String> parents = new java.util.TreeSet<>(currentParents);
+        String deviceUid = uid();
+        if (deviceUid == null) { ready.accept(new java.util.ArrayList<>(parents)); return; }
+        firestore.collection("devices").document(deviceUid).collection("parents").get()
+            .addOnSuccessListener(rows -> {
+                for (com.google.firebase.firestore.DocumentSnapshot row : rows) parents.add(row.getId());
+                ready.accept(new java.util.ArrayList<>(parents));
+            }).addOnFailureListener(e -> ready.accept(new java.util.ArrayList<>(parents)));
+    }
+
+    public void revokeParent(String parentUid) {
+        String deviceUid = uid();
+        if (deviceUid == null) return;
+        realtimeDb.getReference("devices").child(deviceUid).child("parentUid").child(parentUid).removeValue();
+        firestore.collection("devices").document(deviceUid).collection("parents").document(parentUid).delete();
     }
 
     // ----------------------------------------------------------- realtime db
