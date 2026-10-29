@@ -488,6 +488,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Lifecycle logs + restored filters and scroll  | DONE — JVM + APK builds | Rotation code reviewed; device check blocked by emulator disk space |
 | New install notifications + parent feed        | DONE — JVM + APK builds | Dynamic package receiver, ignores updates; Firestore event rules tested |
 | Daily WorkManager refresh                    | DONE — APK builds       | Unique connected 24-hour work; exponential retry; last result shown |
 | HTTPS refresh + JSON backups                  | DONE — JVM + APK builds | Bounded HTTPS, atomic files, validated PIN-gated local backups |
@@ -534,6 +535,23 @@ is unregistered in `onDestroy`. The parent merges the latest 50 DNS records and
 50 device events in time order, retaining the most recent protection-off banner
 within that event window. Notification permission denial does not prevent the
 Firebase event. Installs while the VPN service is absent are not observed.
+
+
+### Lifecycle
+
+`MainActivity` and `AppBlockActivity` log `onCreate`, `onStart`, `onResume`,
+`onPause`, `onStop`, `onRestart`, and `onDestroy` with tag `TracewallLifecycle`.
+Both save their visible search text and RecyclerView layout state; the Apps
+screen waits until its asynchronous scan fills the adapter before restoring
+scroll. Main also restores its controls scroll position. Its ticker runs only
+while resumed. The VPN switch is excluded from framework view-state saving,
+and restoration suppresses its listener. Activity lifecycle callbacks never
+start or stop the VPN: only user actions or the VPN-consent result do so.
+The process query ring is retained when reopening the Activity; Room survives
+process death, but the live ring does not. Rotation still needs a device check:
+no ADB device was connected, and the API 37 AVD could not start with only 1.4 GB
+free host disk space. Verify both filters/scroll offsets and confirm a single
+`tunnel up` log while DNS continues through rotation.
 
 
 ## Known gaps

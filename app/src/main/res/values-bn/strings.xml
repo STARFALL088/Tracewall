@@ -69,4 +69,5 @@
     <string name="update_not_scheduled">দৈনিক হালনাগাদের জন্য সুরক্ষা চালু করুন।</string>
     <string name="new_app_title">নতুন অ্যাপ ইনস্টল হয়েছে</string>
     <string name="new_app_body">%1$s (%2$s) ইনস্টল হয়েছে। এর ডিএনএস অনুমতি পরীক্ষা করুন।</string>
+    <string name="query_filter">ডোমেইন বা অ্যাপ দিয়ে সাম্প্রতিক অনুরোধ খুঁজুন</string>
 </resources>

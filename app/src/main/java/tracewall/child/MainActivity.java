@@ -50,6 +50,8 @@ import tracewall.child.vpn.DnsVpnService;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "TracewallLifecycle";
+    private android.os.Parcelable pendingScroll;
     private static final long TICK_MS = 700;
     private static final long BUCKET_MS = 60_000L; // one trend bar = one minute
 
@@ -101,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Inflate a new view tree; the VPN service has its own lifetime.
+        android.util.Log.d(TAG, "MainActivity.onCreate");
         ui = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
 
@@ -108,6 +112,18 @@ public class MainActivity extends AppCompatActivity {
         adapter = new QueryAdapter(labels, this::askRow);
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
+        adapter.setStateRestorationPolicy(androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY);
+        if (savedInstanceState != null) {
+            pendingScroll = savedInstanceState.getParcelable("query_scroll");
+            ui.queryFilter.setText(savedInstanceState.getString("query_filter", ""));
+            int controlsY = savedInstanceState.getInt("controls_scroll", 0);
+            ui.controls.post(() -> ui.controls.scrollTo(0, controlsY));
+        }
+        ui.queryFilter.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence value, int start, int count, int after) {}
+            public void onTextChanged(CharSequence value, int start, int before, int count) { render(); }
+            public void afterTextChanged(android.text.Editable value) {}
+        });
 
         ui.toggle.setOnCheckedChangeListener((button, checked) -> {
             if (updatingToggle) return;
@@ -166,13 +182,15 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
-        if (savedInstanceState == null) QueryLog.get().clear();
+        // Keep the process log when this Activity is recreated or reopened.
         render();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        // Resume visible-only polling and recheck OS settings.
+        android.util.Log.d(TAG, "MainActivity.onResume");
         ticker.post(refresh);
         checkPrivateDns();
         updateDeviceCode();
@@ -181,7 +199,44 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        // Stop polling while another screen owns the foreground.
+        android.util.Log.d(TAG, "MainActivity.onPause");
         ticker.removeCallbacks(refresh);
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        // The view is visible; rendering never starts the VPN.
+        android.util.Log.d(TAG, "MainActivity.onStart");
+    }
+    @Override protected void onStop() {
+        super.onStop();
+        // Hiding this screen leaves the service running.
+        android.util.Log.d(TAG, "MainActivity.onStop");
+    }
+    @Override protected void onRestart() {
+        super.onRestart();
+        // Return from a stopped screen without requesting VPN consent again.
+        android.util.Log.d(TAG, "MainActivity.onRestart");
+    }
+    @Override protected void onDestroy() {
+        // Remove pending UI callbacks; the service owns its own cleanup.
+        android.util.Log.d(TAG, "MainActivity.onDestroy");
+        ticker.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("query_filter", ui.queryFilter.getText().toString());
+        state.putParcelable("query_scroll", pendingScroll != null ? pendingScroll : ui.list.getLayoutManager().onSaveInstanceState());
+        state.putInt("controls_scroll", ui.controls.getScrollY());
+        super.onSaveInstanceState(state);
+    }
+    @Override protected void onRestoreInstanceState(Bundle state) {
+        // Framework view restoration must never fire a protection toggle action.
+        updatingToggle = true;
+        super.onRestoreInstanceState(state);
+        updatingToggle = false;
+        render();
     }
 
     // ------------------------------------------------------- warnings / info
@@ -458,6 +513,8 @@ public class MainActivity extends AppCompatActivity {
     // ---------------------------------------------------------------- render
 
     private void render() {
+        // Anonymous sign-in can finish after onResume; show pairing as soon as it is ready.
+        updateDeviceCode();
         boolean on = DnsVpnService.isRunning();
         updatingToggle = true;
         if (ui.toggle.isChecked() != on) ui.toggle.setChecked(on);
@@ -479,8 +536,18 @@ public class MainActivity extends AppCompatActivity {
             )
         );
 
-        List<QueryLog.Entry> recent = QueryLog.get().snapshot(60);
-        adapter.submit(recent);
+        List<QueryLog.Entry> recent = QueryLog.get().snapshot(500);
+        List<QueryLog.Entry> visible = new java.util.ArrayList<>();
+        String filter = ui.queryFilter.getText().toString();
+        for (QueryLog.Entry entry : recent) {
+            if (tracewall.data.TextFilter.matches(filter, entry.host, labels.label(entry.uid))) visible.add(entry);
+            if (visible.size() == 60) break;
+        }
+        adapter.submit(visible);
+        if (pendingScroll != null && !visible.isEmpty()) {
+            ui.list.getLayoutManager().onRestoreInstanceState(pendingScroll);
+            pendingScroll = null;
+        }
         updateTrend(recent);
     }
 

@@ -11,7 +11,7 @@ This file was absent at the start of the continuation; week labels below follow 
 | D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | DONE — JVM tests and both APK builds |
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | DONE — JVM, emulator rules, both APK builds; install device check pending |
-| G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | Pending |
+| G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | DONE — JVM + both APK builds; rotation device check blocked (AVD disk space) |
 | H — Week 13: project report | Architecture, decisions, testing, limits and future work | Pending |
 
 Existing components: VPN Service and sockets; Room with a private ContentProvider;
@@ -30,7 +30,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 |---|---|---|
 | Project structure, Gradle (3 modules: `:blocklist`, `:app`, `:parent`) | `settings.gradle.kts`, `*/build.gradle.kts` | DONE |
 | AndroidManifest, permissions, `exported` flags | `app/src/main/AndroidManifest.xml` | DONE |
-| Activity lifecycle callbacks | `J/MainActivity.java` (`onCreate`, `onResume`, `onPause`) | PARTIAL: add `onSaveInstanceState` and log all callbacks |
+| Activity lifecycle callbacks | Both child Activities log all seven callbacks; save filter/scroll state | DONE — built; rotation verification pending (no device; AVD disk space) |
 | XML layouts, view binding | `app/src/main/res/layout/` | DONE |
 | Click listeners / event handling | `J/MainActivity.java`, `J/ui/AppBlockActivity.java` | DONE |
 | Explicit intents | `MainActivity` to `AppBlockActivity` | DONE |

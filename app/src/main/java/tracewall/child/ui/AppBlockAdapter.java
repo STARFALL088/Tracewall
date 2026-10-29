@@ -74,9 +74,7 @@ public final class AppBlockAdapter extends RecyclerView.Adapter<AppBlockAdapter.
     private void apply() {
         shown.clear();
         for (App a : all) {
-            if (filter.isEmpty()
-                    || a.label.toLowerCase(Locale.ROOT).contains(filter)
-                    || a.pkg.contains(filter)) {
+            if (tracewall.data.TextFilter.matches(filter, a.label, a.pkg)) {
                 shown.add(a);
             }
         }

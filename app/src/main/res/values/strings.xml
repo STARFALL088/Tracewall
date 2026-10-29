@@ -69,4 +69,5 @@
     <string name="update_not_scheduled">Enable protection to schedule daily refresh.</string>
     <string name="new_app_title">New app installed</string>
     <string name="new_app_body">%1$s (%2$s) was installed. Review its DNS access.</string>
+    <string name="query_filter">Filter recent queries by domain or app</string>
 </resources>
