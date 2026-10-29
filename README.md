@@ -350,6 +350,7 @@ Firestore
         ├── history/
         │   └── {auto-id}        {time_ms, host, blocked, app_uid, policy}
         ├── events/{auto-id}  {type: "protection_off", reason, time_ms}
+        │                    or {type: "new_app", label, package, time_ms}
         ├── pairing/current  {code, expires_ms, claimed_by?}
         └── parents/
             └── {parentUid}: {code: "ABCDEFGH"} ← independently validated membership
@@ -487,6 +488,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| New install notifications + parent feed        | DONE — JVM + APK builds | Dynamic package receiver, ignores updates; Firestore event rules tested |
 | Daily WorkManager refresh                    | DONE — APK builds       | Unique connected 24-hour work; exponential retry; last result shown |
 | HTTPS refresh + JSON backups                  | DONE — JVM + APK builds | Bounded HTTPS, atomic files, validated PIN-gated local backups |
 | Larger licensed category lists                | DONE — JVM + APK builds | ~95k merged entries; 2.43 MB total assets; load time logged |
@@ -523,6 +525,16 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 **Key:** ✅ Device-verified &nbsp;|&nbsp; 🔄 Compiles, not yet on device &nbsp;|&nbsp; ⚠️ Known gap
 
 ---
+
+While `DnsVpnService` exists, a dynamic `ACTION_PACKAGE_ADDED` receiver (package
+scheme) ignores `EXTRA_REPLACING` updates. It resolves the label off the main
+thread, posts a local notification linking to the Apps screen, and writes a
+`new_app` Firestore event with label, package and installation time. The receiver
+is unregistered in `onDestroy`. The parent merges the latest 50 DNS records and
+50 device events in time order, retaining the most recent protection-off banner
+within that event window. Notification permission denial does not prevent the
+Firebase event. Installs while the VPN service is absent are not observed.
+
 
 ## Known gaps
 

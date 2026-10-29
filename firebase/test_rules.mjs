@@ -84,7 +84,12 @@ for (const path of ['history', 'events']) {
 await db('DELETE', root, pt, undefined, false);
 await doc('PATCH', `${root}/history/h`, ct, {host: 'a.test', time_ms: 1});
 await doc('PATCH', `${root}/events/e`, ct, {type: 'protection_off', reason: 'vpn_revoked', time_ms: 1});
-for (const path of ['history/h', 'events/e']) {
+await doc('PATCH', `${root}/events/install`, ct,
+  {type: 'new_app', label: 'Example', package: 'example.app', time_ms: 2});
+await doc('PATCH', `${root}/events/bad-install`, ct,
+  {type: 'new_app', label: 'x'.repeat(201), package: 'example.app', time_ms: 2}, false);
+await doc('PATCH', `${root}/events/unknown`, ct, {type: 'unknown', time_ms: 2}, false);
+for (const path of ['history/h', 'events/e', 'events/install']) {
   await doc('GET', `${root}/${path}`, pt);
   await doc('GET', `${root}/${path}`, ot, undefined, false);
   await doc('DELETE', `${root}/${path}`, pt, undefined, false);

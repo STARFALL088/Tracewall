@@ -23,10 +23,14 @@ service cloud.firestore {
     match /devices/{uid}/events/{id} {
       allow read: if child(uid) || parent(uid);
       allow create: if child(uid)
-        && request.resource.data.keys().hasOnly(['type', 'reason', 'time_ms'])
-        && request.resource.data.type == 'protection_off'
-        && request.resource.data.reason is string
-        && request.resource.data.time_ms is int;
+        && request.resource.data.time_ms is int
+        && ((request.resource.data.type == 'protection_off'
+          && request.resource.data.keys().hasOnly(['type', 'reason', 'time_ms'])
+          && request.resource.data.reason is string)
+        || (request.resource.data.type == 'new_app'
+          && request.resource.data.keys().hasOnly(['type', 'label', 'package', 'time_ms'])
+          && request.resource.data.label is string && request.resource.data.label.size() <= 200
+          && request.resource.data.package is string && request.resource.data.package.size() <= 255));
       allow update, delete: if child(uid);
     }
     match /devices/{uid}/pairing/current {

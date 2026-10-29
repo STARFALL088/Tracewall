@@ -24,7 +24,7 @@
     <string name="cat_adult">Adult</string>
     <string name="cat_ads">Ads</string>
     <string name="categories_pushed">Categories updated on child device</string>
-    <string name="dashboard_history">Recent queries</string>
+    <string name="dashboard_history">Recent activity (DNS and device events)</string>
     <string name="rule_domain_empty">Enter a domain</string>
     <string name="rule_pushed">Rule pushed: allow %1$s</string>
     <string name="rule_uid_empty">Enter an app UID</string>
@@ -45,4 +45,8 @@
     <string name="uid_entry">Blocked UID: %1$d</string>
     <string name="pairing_code_hint">8-character one-time code</string>
     <string name="pairing_code_invalid">Enter the child UID and a valid 8-character code from the child QR dialog.</string>
+    <string name="new_app_row">New app: %1$s</string>
+    <string name="event_installed">Installed</string>
+    <string name="event_protection_off">Protection is off</string>
+    <string name="event_device">Device event</string>
 </resources>

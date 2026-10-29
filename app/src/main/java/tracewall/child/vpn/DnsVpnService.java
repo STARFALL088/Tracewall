@@ -1,6 +1,8 @@
 package tracewall.child.vpn;
 
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
@@ -91,6 +93,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     private volatile DnsForwarder forwarder;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean stop;
+    private BroadcastReceiver packageReceiver;
     private final AtomicBoolean offReported = new AtomicBoolean();
 
     /** Android side of the pure-JVM forwarder's binder contract. */
@@ -113,6 +116,34 @@ public class DnsVpnService extends VpnService implements Runnable {
         workers = Executors.newFixedThreadPool(4);
         uidAttributor = new UidAttributor(this);
         HistoryWriter.get().start(this);
+        packageReceiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context context, Intent intent) {
+                if (!Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())
+                        || intent.getBooleanExtra(Intent.EXTRA_REPLACING, false) || intent.getData() == null) return;
+                String packageName = intent.getData().getSchemeSpecificPart();
+                if (packageName == null || packageName.isEmpty()) return;
+                long installedAt = System.currentTimeMillis();
+                PendingResult pending = goAsync();
+                try {
+                    workers.execute(() -> {
+                        try {
+                            String label = packageName;
+                            try { label = String.valueOf(getPackageManager().getApplicationLabel(
+                                getPackageManager().getApplicationInfo(packageName, 0))); }
+                            catch (android.content.pm.PackageManager.NameNotFoundException ignored) { /* Removed immediately after install. */ }
+                            if (label.length() > 200) label = label.substring(0, 200);
+                            tracewall.child.ui.Notifications.showNewApp(DnsVpnService.this, label, packageName);
+                            FirebaseSync.get().reportNewApp(label, packageName, installedAt);
+                        } finally { pending.finish(); }
+                    });
+                } catch (RejectedExecutionException e) { pending.finish(); }
+            }
+        };
+        IntentFilter installs = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        installs.addDataScheme("package");
+        // PACKAGE_ADDED is a protected system broadcast; exported permits privileged installers.
+        androidx.core.content.ContextCompat.registerReceiver(this, packageReceiver, installs,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED);
 
         forwarder = new DnsForwarder(
             systemResolvers(),
@@ -380,6 +411,10 @@ public class DnsVpnService extends VpnService implements Runnable {
         reportOff("service_destroyed");
         stop = true;
         running.set(false);
+        if (packageReceiver != null) {
+            unregisterReceiver(packageReceiver);
+            packageReceiver = null;
+        }
         if (networkCallback != null) {
             try {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(

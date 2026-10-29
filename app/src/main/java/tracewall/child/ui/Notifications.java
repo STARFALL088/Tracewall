@@ -32,6 +32,21 @@ public final class Notifications {
 
     private Notifications() { }
 
+    public static void showNewApp(Context ctx, String label, String packageName) {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(ctx,
+                "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
+        ensureChannel(ctx);
+        PendingIntent tap = PendingIntent.getActivity(ctx, 2, new Intent(ctx, AppBlockActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(ctx, CHANNEL_ID)
+            : new Notification.Builder(ctx);
+        NotificationManagerCompat.from(ctx).notify(2, builder.setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(ctx.getString(R.string.new_app_title))
+            .setContentText(ctx.getString(R.string.new_app_body, label, packageName))
+            .setContentIntent(tap).setAutoCancel(true).build());
+    }
+
     public static void ensureChannel(Context ctx) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);

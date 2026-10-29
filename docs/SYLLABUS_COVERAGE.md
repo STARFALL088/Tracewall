@@ -10,7 +10,7 @@ This file was absent at the start of the continuation; week labels below follow 
 | C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | DONE — JVM tests and both APK builds |
 | D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | DONE — JVM tests and both APK builds |
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
-| F — Dynamic broadcast receiver | New install notification and parent event feed | Pending |
+| F — Dynamic broadcast receiver | New install notification and parent event feed | DONE — JVM, emulator rules, both APK builds; install device check pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | Pending |
 | H — Week 13: project report | Architecture, decisions, testing, limits and future work | Pending |
 
@@ -52,7 +52,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 |---|---|---|
 | VPN Service (`VpnService`) | `J/vpn/DnsVpnService.java` | DONE |
 | Broadcast Receiver (boot) | `J/boot/BootReceiver.java` | DONE |
-| Dynamic Broadcast Receiver (new app installed) | planned in `DnsVpnService` | PLANNED |
+| Dynamic Broadcast Receiver (new app installed) | `DnsVpnService` package receiver; `new_app` parent feed | DONE — built; real install/update checks pending |
 | Content Provider (read-only query log) | `J/log/QueryLogProvider.java` | DONE |
 | Notifications and channels | `J/ui/Notifications.java` | DONE |
 | Runtime permission flow (VPN consent, notifications) | `MainActivity` | DONE |

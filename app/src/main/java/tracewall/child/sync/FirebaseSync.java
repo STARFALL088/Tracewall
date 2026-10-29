@@ -288,6 +288,20 @@ public class FirebaseSync {
             .addOnFailureListener(e -> Log.e(TAG, "Firestore write failed", e));
     }
 
+    public void reportNewApp(String label, String packageName, long installedAt) {
+        signInAnonymously(() -> {
+            String deviceUid = uid();
+            if (deviceUid == null) return;
+            Map<String, Object> event = new HashMap<>();
+            event.put("type", "new_app");
+            event.put("label", label);
+            event.put("package", packageName);
+            event.put("time_ms", installedAt);
+            firestore.collection("devices").document(deviceUid).collection("events").add(event)
+                .addOnFailureListener(e -> Log.e(TAG, "new app event write failed", e));
+        });
+    }
+
     /** Firestore's persistent queue retains this event while offline. */
     public void reportProtectionOff(String reason) {
         long time = System.currentTimeMillis();

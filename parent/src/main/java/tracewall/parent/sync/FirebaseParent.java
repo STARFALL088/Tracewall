@@ -184,18 +184,18 @@ public class FirebaseParent {
             .addOnFailureListener(e -> Log.e(TAG, "category push failed", e));
     }
 
-    /** Latest protection-off event, including its stable document ID for dismissal. */
+    /** Recent device events, including stable IDs for the tamper banner and activity feed. */
     public ListenerRegistration listenEvents(String childUid, HistoryListener listener) {
         return fs.collection("devices").document(childUid).collection("events")
             .orderBy("time_ms", Query.Direction.DESCENDING)
-            .limit(1)
+            .limit(50)
             .addSnapshotListener((snap, err) -> {
                 if (err != null) { Log.e(TAG, "events listen error", err); return; }
                 if (snap == null) return;
                 List<Map<String, Object>> events = new java.util.ArrayList<>();
                 for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
                     Map<String, Object> event = doc.getData();
-                    if (event != null && "protection_off".equals(event.get("type"))) {
+                    if (event != null) {
                         event.put("id", doc.getId());
                         events.add(event);
                     }

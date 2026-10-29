@@ -44,6 +44,9 @@ public class DashboardActivity extends AppCompatActivity {
     private ListenerRegistration historyReg;
     private ListenerRegistration eventsReg;
     private String latestEventId;
+    private List<Map<String, Object>> recentHistory = Collections.emptyList();
+    private List<Map<String, Object>> recentEvents = Collections.emptyList();
+    private void renderFeed() { adapter.submit(tracewall.data.ActivityFeed.merge(recentHistory, recentEvents, 100)); }
     private final tracewall.blocklist.RuleLists rules = new tracewall.blocklist.RuleLists();
     private com.google.firebase.database.ValueEventListener rulesReg;
     private boolean renderingRules;
@@ -111,7 +114,8 @@ public class DashboardActivity extends AppCompatActivity {
             childUid,
             HISTORY_LIMIT,
             records -> {
-                adapter.submit(records);
+                recentHistory = records;
+                renderFeed();
                 if (!records.isEmpty()) {
                     ui.lastSeen.setText(getString(R.string.last_seen,
                         formatTime(records.get(0).get("time_ms"))));
@@ -120,8 +124,13 @@ public class DashboardActivity extends AppCompatActivity {
         );
         eventsReg = FirebaseParent.get().listenEvents(childUid, events -> {
             ui.tamperBanner.setVisibility(android.view.View.GONE);
-            if (events.isEmpty()) return;
-            Map<String, Object> event = events.get(0);
+            recentEvents = events;
+            renderFeed();
+            Map<String, Object> event = null;
+            for (Map<String, Object> row : events) {
+                if ("protection_off".equals(row.get("type"))) { event = row; break; }
+            }
+            if (event == null) return;
             latestEventId = String.valueOf(event.get("id"));
             if (latestEventId.equals(prefs().getString("dismissed_event_" + childUid, ""))) return;
             ui.tamperText.setText(getString(R.string.protection_off_event,
@@ -324,6 +333,20 @@ public class DashboardActivity extends AppCompatActivity {
                 new Date(timeMs)
             );
 
+            if ("new_app".equals(r.get("type"))) {
+                h.b.time.setText(time);
+                h.b.host.setText(h.itemView.getContext().getString(R.string.new_app_row, String.valueOf(r.get("label"))));
+                h.b.verdict.setText(R.string.event_installed);
+                h.b.policy.setText(String.valueOf(r.get("package")));
+                return;
+            }
+            if ("protection_off".equals(r.get("type"))) {
+                h.b.time.setText(time);
+                h.b.host.setText(R.string.event_protection_off);
+                h.b.verdict.setText(R.string.event_device);
+                h.b.policy.setText(String.valueOf(r.get("reason")));
+                return;
+            }
             String host = String.valueOf(r.getOrDefault("host", "?"));
             boolean blocked = Boolean.TRUE.equals(r.get("blocked"));
             String policy = String.valueOf(r.getOrDefault("policy", ""));

@@ -67,4 +67,6 @@
     <string name="update_result">হালনাগাদ: %1$d · ব্যর্থ: %2$d · নতুন নিয়ম: %3$d\nশেষ চেষ্টা: %4$s · শেষ সফল হালনাগাদ: %5$s</string>
     <string name="update_scheduled">স্বয়ংক্রিয় হালনাগাদ: সংযুক্ত থাকলে প্রতি ২৪ ঘণ্টায় (Android দেরি করতে পারে)।</string>
     <string name="update_not_scheduled">দৈনিক হালনাগাদের জন্য সুরক্ষা চালু করুন।</string>
+    <string name="new_app_title">নতুন অ্যাপ ইনস্টল হয়েছে</string>
+    <string name="new_app_body">%1$s (%2$s) ইনস্টল হয়েছে। এর ডিএনএস অনুমতি পরীক্ষা করুন।</string>
 </resources>

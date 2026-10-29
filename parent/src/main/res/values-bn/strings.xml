@@ -9,4 +9,9 @@
     <string name="pairing_code_hint">৮ অক্ষরের একবার ব্যবহারযোগ্য কোড</string>
     <string name="pairing_code_invalid">শিশুর কিউআর ডায়ালগ থেকে ইউআইডি এবং সঠিক ৮ অক্ষরের কোড দিন।</string>
     <string name="pairing_body">শিশুর ডিভাইসে ইউআইডিতে ট্যাপ করে অভিভাবকের পিন দিন। কিউআর স্ক্যান করুন বা পাঁচ মিনিটের মধ্যে ইউআইডি এবং একবার ব্যবহারযোগ্য কোড লিখুন।</string>
+    <string name="new_app_row">নতুন অ্যাপ: %1$s</string>
+    <string name="event_installed">ইনস্টল হয়েছে</string>
+    <string name="event_protection_off">সুরক্ষা বন্ধ আছে</string>
+    <string name="event_device">ডিভাইসের ঘটনা</string>
+    <string name="dashboard_history">সাম্প্রতিক কার্যক্রম (ডিএনএস ও ডিভাইসের ঘটনা)</string>
 </resources>
