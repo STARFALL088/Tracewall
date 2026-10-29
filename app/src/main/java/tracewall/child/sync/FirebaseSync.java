@@ -84,10 +84,27 @@ public class FirebaseSync {
     }
 
     private android.content.SharedPreferences preferences;
+    private android.content.Context applicationContext;
     private final java.util.Set<String> revocationsInFlight = new java.util.HashSet<>();
 
     public void initialize(android.content.Context context) {
-        preferences = context.getApplicationContext().getSharedPreferences("tracewall.sync", android.content.Context.MODE_PRIVATE);
+        applicationContext = context.getApplicationContext();
+        preferences = applicationContext.getSharedPreferences("tracewall.sync", android.content.Context.MODE_PRIVATE);
+    }
+
+    public boolean isInventorySharingEnabled() {
+        return preferences != null && preferences.getBoolean("share_app_names", false);
+    }
+    public void setInventorySharingEnabled(boolean enabled) {
+        if (preferences == null) throw new IllegalStateException("Sync is not initialized");
+        preferences.edit().putBoolean("share_app_names", enabled).apply();
+        refreshInstalledApps();
+    }
+    /** Opt-out requests deletion too; failed/offline work retries at startup/reconnection. */
+    public void refreshInstalledApps() {
+        String deviceUid = uid();
+        if (deviceUid == null || applicationContext == null) return;
+        AppInventoryPublisher.publish(applicationContext, firestore, deviceUid, this::isInventorySharingEnabled);
     }
 
     // ---------------------------------------------------------------- auth
@@ -136,6 +153,7 @@ public class FirebaseSync {
         realtimeDb.getReference(".info/connected").addValueEventListener(new ValueEventListener() {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (Boolean.TRUE.equals(snapshot.getValue(Boolean.class)) && preferences != null) {
+                    refreshInstalledApps();
                     for (String parent : new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
                             java.util.Collections.emptySet()))) revokeParent(parent, () -> {}, () -> {});
                 }
@@ -170,7 +188,7 @@ public class FirebaseSync {
                 java.util.Set<String> parents = new java.util.HashSet<>();
                 for (DataSnapshot row : snapshot.getChildren()) parents.add(row.getKey());
                 currentParents = parents;
-
+                refreshInstalledApps();
             }
             public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "parents watch failed", error.toException()); }
         });
@@ -335,9 +353,10 @@ public class FirebaseSync {
     }
 
     public void reportNewApp(String label, String packageName, long installedAt) {
+        if (!isInventorySharingEnabled()) return;
         signInAnonymously(() -> {
             String deviceUid = uid();
-            if (deviceUid == null) return;
+            if (deviceUid == null || !isInventorySharingEnabled()) return;
             Map<String, Object> event = new HashMap<>();
             event.put("type", "new_app");
             event.put("label", label);

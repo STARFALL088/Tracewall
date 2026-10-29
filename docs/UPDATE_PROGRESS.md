@@ -13,7 +13,7 @@ Each completed implementation is tested and committed separately, then pushed.
 5. [x] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
 6. [x] Verification: deliberate lint fixes and reproducible GitHub CI.
 7. [x] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
-8. [ ] Parent controls: app-name selection and named child profiles.
+8. [x] Parent controls: app-name selection and named child profiles.
 9. [ ] Rules: custom deny patterns, expiring allows and scheduled profiles.
 10. [ ] Privacy: explicit cloud mode, retention/deletion and PIN-gated local clear.
 11. [ ] Diagnostics: attribution/failure/drop metrics and configurable logged HTTPS-record handling.
@@ -153,10 +153,39 @@ production/device requirements are stated separately.
   only while the Activity is visible. Text cells in both export paths are
   spreadsheet-safe; the legacy quick export now states its 200-row maximum.
 - Recovered the interrupted agent's partial files, then completed navigation,
-  Activity/resources and regression coverage. The unfinished feature-8 files
-  remain safely stashed until this independent checkpoint is committed.
+  Activity/resources and regression coverage. Feature-8 groundwork was safely
+  stashed during this independent checkpoint and restored afterward.
 - Verification: 149 JVM tests and 9 Python tests passed, including six tests
   executing the production Java query builder against SQLite. Both debug APKs
   and both lint tasks passed with zero errors (29 child / 15 parent warnings).
   Device UI, Room callback/lifecycle and actual sharing checks remain pending;
-  hosted CI for this new commit is checked after pushing.
+  hosted run `40907969216` at `67951d1` subsequently passed both jobs.
+
+### 8 — Consented app-name picker and named saved devices
+
+- App-name snapshots are off by default and independently PIN-gated on the
+  child. Pairing can proceed without this consent. Icons/app contents are never
+  included; new-install cloud alerts respect the same app-name preference.
+- Installed user-app metadata is validated and capped at 1000 packages. A
+  bounded single-flight publisher coalesces refreshes, removes uninstalled
+  packages and serializes opt-out deletion after an in-flight upload finishes.
+  Startup, connectivity, pairing membership and package changes refresh it.
+- Added a searchable bilingual parent app picker, package/UID/update details,
+  shared-UID warnings and intent-based block/unblock transactions. Cached app
+  snapshots are labelled and cannot enable editing. Success still means server
+  acceptance, not proof of a child-applied rule.
+- Up to 20 parent-local named profiles support rename, verified selection,
+  additional pairing and local forgetting. Selecting a saved UID checks both
+  memberships (Firestore explicitly from the server); Firebase remains the
+  authorization boundary. An empty code reconnects only existing membership.
+  Forgetting explicitly does not revoke cloud access or recall downloaded data.
+- Added child-owned strict-schema Firestore app rules. No production rules
+  were deployed. Opt-out requests snapshot removal when online, not deletion of
+  prior history/events or copies already held by another device.
+- Verification: 160 JVM tests, 9 Python tests and 110 emulator REST checks
+  passed; both APKs and both lint tasks passed with zero errors (30 child / 20
+  parent warnings). Emulator coverage includes a real 400-write metadata batch,
+  paginated collection read-back, invalid records, parent/stranger write denial
+  and revoked reads. Single-flight state regressions cover queued opt-out and
+  stale completion. Android callback timing, package broadcasts, UI/recreation,
+  sharing opt-out and real-project integration still require connected devices.

@@ -126,6 +126,7 @@ public class DnsVpnService extends VpnService implements Runnable {
         HistoryWriter.get().start(this);
         packageReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context context, Intent intent) {
+                if (intent.getData() != null) FirebaseSync.get().refreshInstalledApps();
                 if (!Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())
                         || intent.getBooleanExtra(Intent.EXTRA_REPLACING, false) || intent.getData() == null) return;
                 String packageName = intent.getData().getSchemeSpecificPart();
@@ -148,6 +149,8 @@ public class DnsVpnService extends VpnService implements Runnable {
             }
         };
         IntentFilter installs = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        installs.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        installs.addAction(Intent.ACTION_PACKAGE_REPLACED);
         installs.addDataScheme("package");
         // PACKAGE_ADDED is a protected system broadcast; exported permits privileged installers.
         androidx.core.content.ContextCompat.registerReceiver(this, packageReceiver, installs,

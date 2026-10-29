@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 import tracewall.security.PairingPlan;
 import tracewall.data.RuleEdits;
+import tracewall.data.AppInventory;
+import tracewall.security.PairingCode;
 
 /**
  * Parent-side Firebase facade.
@@ -141,6 +143,50 @@ public class FirebaseParent {
     }
 
     // ---------------------------------------------------------------- rules
+
+    /** Saved names are not credentials. Require both memberships; Firestore must answer from the server. */
+    public void verifyAccess(String childUid, Runnable accepted, Runnable failed) {
+        if (!PairingCode.validChildUid(childUid)) { failed.run(); return; }
+        signInAnonymously(() -> {
+            String parentUid = uid();
+            if (parentUid == null) { failed.run(); return; }
+            db.getReference("devices").child(childUid).child("parentUid").child(parentUid).get()
+                .addOnSuccessListener(realtime -> {
+                    if (!realtime.exists() || !(realtime.getValue() instanceof String)) { failed.run(); return; }
+                    fs.collection("devices").document(childUid).collection("parents").document(parentUid)
+                        .get(Source.SERVER).addOnSuccessListener(member -> {
+                            if (member.exists() && realtime.getValue().equals(member.get("code"))) accepted.run();
+                            else failed.run();
+                        }).addOnFailureListener(error -> failed.run());
+                }).addOnFailureListener(error -> failed.run());
+        }, failed);
+    }
+
+    public static final class AppSnapshot {
+        public final List<AppInventory.Entry> entries;
+        public final boolean cached;
+        private AppSnapshot(List<AppInventory.Entry> entries, boolean cached) { this.entries = entries; this.cached = cached; }
+    }
+
+    /** A cached inventory is viewable, but must not be presented as a fresh confirmed snapshot. */
+    public ListenerRegistration listenApps(String childUid, java.util.function.Consumer<AppSnapshot> ready, Runnable failed) {
+        return fs.collection("devices").document(childUid).collection("apps")
+            .limit(AppInventory.MAX_ENTRIES + 1L)
+            .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE, (snapshot, error) -> {
+                if (error != null || snapshot == null) { failed.run(); return; }
+                try {
+                    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
+                        Map<String, Object> row = doc.getData();
+                        if (row == null || !doc.getId().equals(row.get("package")))
+                            throw new IllegalArgumentException("App package/document mismatch");
+                        rows.add(row);
+                    }
+                    ready.accept(new AppSnapshot(AppInventory.parse(rows), snapshot.getMetadata().isFromCache()
+                        || snapshot.getMetadata().hasPendingWrites()));
+                } catch (IllegalArgumentException invalid) { failed.run(); }
+            });
+    }
 
     public com.google.firebase.database.ValueEventListener listenRules(
         String childUid, java.util.function.Consumer<com.google.firebase.database.DataSnapshot> listener,

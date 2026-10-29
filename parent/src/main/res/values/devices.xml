@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_default_name">Child device</string>
+    <string name="device_verifying">Verifying saved access…</string>
+    <string name="menu_forget_current">Forget this device locally</string>
+    <string name="pairing_existing_hint">Already registered on this phone? Leave the code empty to verify existing access. New pairings still require the child’s code.</string>
+    <string name="apps_back">Back</string>
+    <string name="apps_ready">Choose an app to add or remove a remote UID block.</string>
+    <string name="apps_cached">Cached app names only. Editing waits for a fresh server snapshot and valid remote rules.</string>
+    <string name="apps_changed">This package changed or disappeared. Review the latest snapshot before editing.</string>
+    <string name="apps_scope_note">Only intercepted DNS is affected, not app launching or all network traffic. Explicit allows and local rules still apply. This bounded snapshot contains non-system user apps; shared UIDs affect every package with that UID.</string>
+    <string name="app_picker_details">%1$s · UID %2$d\nMetadata changed: %3$s</string>
+    <string name="device_name_hint">Optional child/device name</string>
+    <string name="menu_devices">Switch or add device</string>
+    <string name="menu_app_picker">Choose an app to block or unblock</string>
+    <string name="menu_rename_device">Rename this device</string>
+    <string name="menu_forget_device">Forget a saved device</string>
+    <string name="device_pick_title">Saved child devices</string>
+    <string name="device_add">Pair another device</string>
+    <string name="device_saved">Connect to a saved device</string>
+    <string name="device_switch_failed">Could not verify access in both databases. Check connectivity or pair again after child-side revocation.</string>
+    <string name="device_name_invalid">Use a name of 1–80 characters without line breaks. At most 20 devices can be saved.</string>
+    <string name="device_forget_note">This only forgets the device on this phone. Revoke this parent on the child to remove cloud access.</string>
+    <string name="named_child_label">%1$s\nDevice UID: %2$s</string>
+    <string name="apps_picker_title">Shared app-name snapshot</string>
+    <string name="apps_unavailable">No app-name snapshot is available. Enable app-name sharing on the child, check cloud connectivity/rules, or use the advanced UID field.</string>
+    <string name="apps_search">Search app name or package</string>
+    <string name="app_picker_row">%1$s\n%2$s · UID %3$d</string>
+    <string name="app_toggle_body">Package: %1$s\nUID: %2$d\nThis changes intercepted DNS only. Shared UIDs affect every package using that UID. An app reinstall can change its UID; review the latest child snapshot.</string>
+    <string name="app_block_dns">Block app DNS</string>
+    <string name="app_unblock_dns">Remove remote DNS block</string>
+</resources>

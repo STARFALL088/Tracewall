@@ -52,6 +52,8 @@
     <Button android:id="@+id/manageParents"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="@string/revoke_parent" />
+    <Button android:id="@+id/shareAppNames" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/inventory_off" />
 
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/toggle"

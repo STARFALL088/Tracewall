@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+<LinearLayout
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="32dp">
@@ -39,6 +41,13 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:hint="@string/pairing_code_hint" android:inputType="textCapCharacters"
         android:maxLength="8" android:maxLines="1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/pairing_existing_hint" />
+    <EditText android:id="@+id/deviceName" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="@string/device_name_hint" android:inputType="textCapWords" android:maxLength="80"
+        android:maxLines="1" android:importantForAutofill="no" />
+    <Button android:id="@+id/savedDevices" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/device_saved" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -73,3 +82,4 @@
         android:visibility="gone" />
 
 </LinearLayout>
+</ScrollView>

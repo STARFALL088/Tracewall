@@ -51,6 +51,8 @@ public class DashboardActivity extends AppCompatActivity {
     private boolean renderingRules;
     private boolean writingRules;
     private String childUid;
+    private boolean started;
+    private int connection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,9 +61,7 @@ public class DashboardActivity extends AppCompatActivity {
         setContentView(ui.getRoot());
 
         childUid = prefs().getString(PairingActivity.KEY_CHILD_UID, "");
-        ui.childUidLabel.setText(
-            getString(R.string.dashboard_connected, childUid)
-        );
+        ui.childUidLabel.setText(getString(R.string.named_child_label, ParentDevices.name(this, childUid), childUid));
 
         adapter = new HistoryAdapter();
         ui.historyList.setLayoutManager(new LinearLayoutManager(this));
@@ -82,11 +82,20 @@ public class DashboardActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (childUid.isEmpty()) return;
+        started = true;
+        int ticket = ++connection;
         rules.pause();
         setRuleControls(false);
         if (!writingRules) ui.ruleStatus.setText(R.string.rules_waiting);
+        FirebaseParent.get().verifyAccess(childUid, () -> attachCloud(ticket), () -> {
+            if (current(ticket)) ui.ruleStatus.setText(R.string.device_switch_failed);
+        });
+    }
+    private boolean current(int ticket) { return started && ticket == connection && !isFinishing() && !isDestroyed(); }
+    private void attachCloud(int ticket) {
+        if (!current(ticket)) return;
         rulesReg = FirebaseParent.get().listenRules(childUid, snapshot -> {
+            if (!current(ticket)) return;
             try {
                 tracewall.data.RemoteRules current = tracewall.data.RemoteRules.parse(snapshot.getValue());
                 List<Integer> uids = new ArrayList<>();
@@ -105,11 +114,12 @@ public class DashboardActivity extends AppCompatActivity {
                 setRuleControls(false);
                 ui.ruleStatus.setText(R.string.rules_failed);
             }
-        }, () -> { rules.pause(); setRuleControls(false); ui.ruleStatus.setText(R.string.rules_failed); });
+        }, () -> { if (current(ticket)) { rules.pause(); setRuleControls(false); ui.ruleStatus.setText(R.string.rules_failed); } });
         historyReg = FirebaseParent.get().listenHistory(
             childUid,
             HISTORY_LIMIT,
             records -> {
+                if (!current(ticket)) return;
                 recentHistory = records;
                 renderFeed();
                 if (!records.isEmpty()) {
@@ -119,6 +129,7 @@ public class DashboardActivity extends AppCompatActivity {
             }
         );
         eventsReg = FirebaseParent.get().listenEvents(childUid, events -> {
+            if (!current(ticket)) return;
             ui.tamperBanner.setVisibility(android.view.View.GONE);
             recentEvents = events;
             renderFeed();
@@ -147,6 +158,7 @@ public class DashboardActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        started = false; connection++;
         super.onStop();
         rules.pause();
         setRuleControls(false);
@@ -163,12 +175,20 @@ public class DashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(Menu.NONE, 1, Menu.NONE, R.string.menu_unpair);
+        menu.add(Menu.NONE, 1, Menu.NONE, R.string.menu_forget_current);
+        menu.add(Menu.NONE, 2, Menu.NONE, R.string.menu_devices);
+        menu.add(Menu.NONE, 3, Menu.NONE, R.string.menu_app_picker);
+        menu.add(Menu.NONE, 4, Menu.NONE, R.string.menu_rename_device);
+        menu.add(Menu.NONE, 5, Menu.NONE, R.string.menu_forget_device);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == 2) { DevicePicker.show(this, this::restartDashboard, this::addDevice); return true; }
+        if (item.getItemId() == 3) { startActivity(new android.content.Intent(this, AppPickerActivity.class)); return true; }
+        if (item.getItemId() == 4) { renameDevice(); return true; }
+        if (item.getItemId() == 5) { forgetSavedDevice(); return true; }
         if (item.getItemId() == 1) {
             confirmUnpair();
             return true;
@@ -179,7 +199,7 @@ public class DashboardActivity extends AppCompatActivity {
     // ----------------------------------------------------------------- rules
 
     private void setRuleControls(boolean enabled) {
-        enabled = enabled && !writingRules;
+        enabled = enabled && started && !writingRules;
         ui.allowButton.setEnabled(enabled);
         ui.blockUidButton.setEnabled(enabled);
         ui.editRules.setEnabled(enabled);
@@ -262,15 +282,48 @@ public class DashboardActivity extends AppCompatActivity {
     private void confirmUnpair() {
         new AlertDialog.Builder(this)
             .setTitle(R.string.unpair_title)
-            .setMessage(R.string.unpair_body)
+            .setMessage(R.string.device_forget_note)
             .setPositiveButton(R.string.unpair_yes, (d, w) -> unpair())
             .setNegativeButton(android.R.string.cancel, null)
             .show();
     }
 
     private void unpair() {
-        prefs().edit().remove(PairingActivity.KEY_CHILD_UID).apply();
+        ParentDevices.forget(this, childUid);
+        addDevice();
+    }
+    private void addDevice() {
+        startActivity(new android.content.Intent(this, PairingActivity.class).putExtra("add_device", true));
         finish();
+    }
+    private void restartDashboard() {
+        startActivity(new android.content.Intent(this, DashboardActivity.class)); finish();
+    }
+    private void renameDevice() {
+        android.widget.EditText name = new android.widget.EditText(this);
+        name.setSingleLine(true); name.setText(ParentDevices.name(this, childUid));
+        name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});
+        name.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        new AlertDialog.Builder(this).setTitle(R.string.menu_rename_device).setView(name)
+            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                try {
+                    ParentDevices.remember(this, childUid, name.getText().toString());
+                    ui.childUidLabel.setText(getString(R.string.named_child_label, ParentDevices.name(this, childUid), childUid));
+                } catch (IllegalArgumentException invalid) { Toast.makeText(this, R.string.device_name_invalid, Toast.LENGTH_LONG).show(); }
+            }).setNegativeButton(android.R.string.cancel, null).show();
+    }
+    private void forgetSavedDevice() {
+        java.util.Map<String, String> names = ParentDevices.all(this).names();
+        List<String> uids = new ArrayList<>(names.keySet());
+        List<String> labels = new ArrayList<>();
+        for (String uid : uids) labels.add(getString(R.string.named_child_label, names.get(uid), uid));
+        new AlertDialog.Builder(this).setTitle(R.string.menu_forget_device)
+            .setItems(labels.toArray(new String[0]), (list, index) -> new AlertDialog.Builder(this)
+                .setMessage(R.string.device_forget_note).setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    ParentDevices.forget(this, uids.get(index));
+                    if (childUid.equals(uids.get(index))) addDevice();
+                }).setNegativeButton(android.R.string.cancel, null).show())
+            .setNegativeButton(android.R.string.cancel, null).show();
     }
 
     private SharedPreferences prefs() {

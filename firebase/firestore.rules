@@ -20,6 +20,21 @@ service cloud.firestore {
       allow read: if child(uid) || parent(uid);
       allow create, update, delete: if child(uid);
     }
+    match /devices/{uid}/apps/{packageName} {
+      allow read: if child(uid) || parent(uid);
+      allow create, update: if child(uid)
+        && request.resource.data.keys().hasOnly(['package', 'label', 'uid', 'updated_ms'])
+        && request.resource.data.package is string
+        && request.resource.data.package == packageName
+        && request.resource.data.package.size() <= 255
+        && request.resource.data.package.matches('[A-Za-z][A-Za-z0-9_]*([.][A-Za-z0-9_]+)+')
+        && request.resource.data.label is string
+        && request.resource.data.label.size() > 0 && request.resource.data.label.size() <= 200
+        && request.resource.data.uid is int
+        && request.resource.data.uid >= 10000 && request.resource.data.uid <= 2147483647
+        && request.resource.data.updated_ms is int && request.resource.data.updated_ms >= 0;
+      allow delete: if child(uid);
+    }
     match /devices/{uid}/events/{id} {
       allow read: if child(uid) || parent(uid);
       allow create: if child(uid)

@@ -123,6 +123,49 @@ for (const path of ['history/h', 'events/e', 'events/install']) {
   await doc('DELETE', `${root}/${path}`, pt, undefined, false);
   await doc('PATCH', `${root}/${path}`, pt, {host: 'evil.test'}, false);
 }
+// App-name snapshots are child-owned and readable only by the child or a paired parent.
+const app = {package: 'example.app', label: 'Example', uid: 12345, updated_ms: 2};
+await doc('PATCH', `${root}/apps/example.app`, ct, app);
+for (const token of [ct, pt]) {
+  const storedApp = await doc('GET', `${root}/apps/example.app`, token);
+  assert.equal(storedApp.fields.uid.integerValue, '12345');
+}
+for (const token of [ot, undefined]) await doc('GET', `${root}/apps/example.app`, token, undefined, false);
+await doc('PATCH', `${root}/apps/example.app`, pt, {...app, label: 'forged'}, false);
+await doc('DELETE', `${root}/apps/example.app`, pt, undefined, false);
+for (const bad of [
+  {...app, uid: 9999}, {...app, uid: 2147483648}, {...app, updated_ms: -1},
+  {...app, label: ''}, {...app, label: 'x'.repeat(201)}, {...app, icon: 'not allowed'},
+  {...app, package: 'example.other'}, {package: app.package, uid: app.uid, updated_ms: 2},
+]) await doc('PATCH', `${root}/apps/example.app`, ct, bad, false);
+await doc('PATCH', `${root}/apps/example..bad`, ct, {...app, package: 'example..bad'}, false);
+await doc('PATCH', `${root}/apps/example.app`, ct, {...app, uid: 2147483647});
+await doc('PATCH', `${root}/apps/example.app`, ct, app);
+// Exercise the same 400-write chunk size as the real inventory publisher, not just single documents.
+const docPrefix = `projects/${project}/databases/(default)/documents/${root}/apps`;
+const bulkApps = Array.from({length: 400}, (_, index) => ({
+  package: `example.batch_${index}`, label: `App ${index}`, uid: 10000 + index, updated_ms: 3,
+}));
+await request('POST', base + ':commit', {writes: bulkApps.map(row => ({update: {
+  name: `${docPrefix}/${row.package}`, fields: fields(row),
+}}))}, ct);
+const inventoryNames = new Set(), pageTokens = new Set();
+let nextPage;
+do {
+  const inventory = await request('GET', `${base}/${root}/apps?pageSize=1000${nextPage ? `&pageToken=${encodeURIComponent(nextPage)}` : ''}`, undefined, pt);
+  for (const row of inventory.documents || []) {
+    assert.equal(inventoryNames.has(row.name), false, 'Repeated inventory document across pages');
+    inventoryNames.add(row.name);
+  }
+  nextPage = inventory.nextPageToken;
+  if (nextPage) {
+    assert.equal(pageTokens.has(nextPage), false, 'Repeated inventory pagination token');
+    pageTokens.add(nextPage);
+  }
+} while (nextPage);
+assert.equal(inventoryNames.size, bulkApps.length + 1);
+await request('GET', `${base}/${root}/apps`, undefined, ot, false);
+await request('POST', base + ':commit', {writes: bulkApps.map(row => ({delete: `${docPrefix}/${row.package}`}))}, ct);
 await db('DELETE', `${root}/pairing`, ct);
 await doc('DELETE', `${root}/pairing/current`, ct);
 await claimDb(other, ot, code, false);
@@ -133,6 +176,9 @@ for (const token of [ot, ct]) {
 }
 await db('GET', `${root}/rules`, pt, undefined, false);
 await doc('GET', `${root}/history/h`, pt, undefined, false);
+await doc('GET', `${root}/apps/example.app`, pt, undefined, false);
+await request('GET', `${base}/${root}/apps`, undefined, pt, false);
+await doc('DELETE', `${root}/apps/example.app`, ct);
 // Admin seeds only expired fixtures; claims use ordinary authenticated tokens.
 await db('PUT', `${root}/pairing`, 'owner', {code, expires_ms: 1});
 await doc('PATCH', `${root}/pairing/current`, 'owner', {code, expires_ms: 1});

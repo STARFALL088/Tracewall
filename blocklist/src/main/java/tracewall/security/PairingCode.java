@@ -11,7 +11,7 @@ public final class PairingCode {
     public final String code;
 
     public PairingCode(String childUid, String code) {
-        if (childUid == null || !childUid.matches("[A-Za-z0-9_-]{1,128}")) {
+        if (!validChildUid(childUid)) {
             throw new IllegalArgumentException("Invalid child UID");
         }
         String normalized = code == null ? "" : code.trim().toUpperCase(Locale.ROOT);
@@ -27,6 +27,10 @@ public final class PairingCode {
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < 8; i++) out.append(ALPHABET.charAt(random.nextInt(32)));
         return out.toString();
+    }
+
+    public static boolean validChildUid(String uid) {
+        return uid != null && uid.matches("[A-Za-z0-9_-]{1,128}");
     }
 
     public String payload() { return "tracewall:1:" + childUid + ":" + code; }

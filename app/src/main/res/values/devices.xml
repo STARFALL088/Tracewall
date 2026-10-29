@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pairing_share_title">Share app names with paired parents?</string>
+    <string name="pairing_share_body">App-name sharing is optional and off by default. You can pair without it. If enabled, user-app names, packages and Android UIDs are uploaded for paired parents, including new-install alerts. Icons and app contents are not uploaded. Turning it off requests removal of the app snapshot when online; existing history/events and copies already downloaded by a parent are not deleted by this setting.</string>
+    <string name="inventory_consent">Share app names, packages and UIDs</string>
+    <string name="inventory_on">App-name sharing: on</string>
+    <string name="inventory_off">App-name sharing: off</string>
+</resources>

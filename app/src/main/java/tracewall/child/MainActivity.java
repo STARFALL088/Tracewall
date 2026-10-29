@@ -172,6 +172,8 @@ public class MainActivity extends AppCompatActivity {
         ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
         ui.deviceCode.setOnClickListener(v -> PinGate.require(this, this::showQrDialog));
+        ui.shareAppNames.setText(FirebaseSync.get().isInventorySharingEnabled() ? R.string.inventory_on : R.string.inventory_off);
+        ui.shareAppNames.setOnClickListener(v -> PinGate.require(this, () -> configureInventorySharing(null)));
         ui.manageParents.setOnClickListener(v -> PinGate.require(this, () ->
             FirebaseSync.get().listParents(parents -> new AlertDialog.Builder(this)
                 .setTitle(R.string.revoke_parent)
@@ -279,8 +281,21 @@ public class MainActivity extends AppCompatActivity {
     private void showQrDialog() {
         String uid = FirebaseSync.get().uid();
         if (uid == null) return;
-        FirebaseSync.get().createPairing(pairing -> showPairingQr(pairing), () ->
-            Toast.makeText(this, R.string.pairing_create_failed, Toast.LENGTH_LONG).show());
+        configureInventorySharing(() -> FirebaseSync.get().createPairing(pairing -> showPairingQr(pairing), () ->
+            Toast.makeText(this, R.string.pairing_create_failed, Toast.LENGTH_LONG).show()));
+    }
+
+    private void configureInventorySharing(Runnable after) {
+        android.widget.CheckBox share = new android.widget.CheckBox(this);
+        share.setText(R.string.inventory_consent);
+        share.setChecked(FirebaseSync.get().isInventorySharingEnabled());
+        new AlertDialog.Builder(this).setTitle(R.string.pairing_share_title)
+            .setMessage(R.string.pairing_share_body).setView(share)
+            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                FirebaseSync.get().setInventorySharingEnabled(share.isChecked());
+                ui.shareAppNames.setText(share.isChecked() ? R.string.inventory_on : R.string.inventory_off);
+                if (after != null) after.run();
+            }).setNegativeButton(android.R.string.cancel, null).show();
     }
 
     private void showPairingQr(tracewall.security.PairingCode pairing) {

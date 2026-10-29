@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_default_name">শিশুর ডিভাইস</string>
+    <string name="device_verifying">সংরক্ষিত অনুমতি যাচাই হচ্ছে…</string>
+    <string name="menu_forget_current">এই ফোন থেকে ডিভাইসটি সরান</string>
+    <string name="pairing_existing_hint">এই ফোনে আগে নিবন্ধিত? কোড খালি রেখে আগের অনুমতি যাচাই করুন। নতুন পেয়ারিংয়ে শিশুর কোড লাগবেই।</string>
+    <string name="apps_back">ফিরুন</string>
+    <string name="apps_ready">দূরবর্তী ইউআইডি ব্লক যোগ বা সরাতে অ্যাপ বাছুন।</string>
+    <string name="apps_cached">শুধু ক্যাশে থাকা নাম দেখা যাচ্ছে। সম্পাদনার জন্য সার্ভারের নতুন তালিকা ও বৈধ দূরবর্তী নিয়ম লাগবে।</string>
+    <string name="apps_changed">প্যাকেজটি বদলেছে বা সরেছে। সম্পাদনার আগে নতুন তালিকা দেখুন।</string>
+    <string name="apps_scope_note">শুধু ফিল্টারে আসা ডিএনএস প্রভাবিত হয়, অ্যাপ চালানো বা সব নেটওয়ার্ক নয়। স্পষ্ট অনুমতি ও স্থানীয় নিয়মও কার্যকর থাকে। সীমিত তালিকায় সিস্টেম ছাড়া ব্যবহারকারীর অ্যাপ থাকে; একই ইউআইডির সব প্যাকেজ প্রভাবিত হয়।</string>
+    <string name="app_picker_details">%1$s · ইউআইডি %2$d\nতথ্য বদলেছে: %3$s</string>
+    <string name="device_name_hint">শিশু বা ডিভাইসের নাম (ঐচ্ছিক)</string>
+    <string name="menu_devices">ডিভাইস বদলান বা যোগ করুন</string>
+    <string name="menu_app_picker">ব্লক বা আনব্লক করতে অ্যাপ বাছুন</string>
+    <string name="menu_rename_device">এই ডিভাইসের নাম বদলান</string>
+    <string name="menu_forget_device">সংরক্ষিত ডিভাইস ভুলে যান</string>
+    <string name="device_pick_title">সংরক্ষিত শিশুর ডিভাইস</string>
+    <string name="device_add">আরেকটি ডিভাইস পেয়ার করুন</string>
+    <string name="device_saved">সংরক্ষিত ডিভাইসে সংযোগ করুন</string>
+    <string name="device_switch_failed">দুই ডাটাবেসে অনুমতি নিশ্চিত করা যায়নি। সংযোগ পরীক্ষা করুন অথবা শিশুর ডিভাইসে বাতিল করে আবার পেয়ার করুন।</string>
+    <string name="device_name_invalid">লাইন বিরতি ছাড়া ১–৮০ অক্ষরের নাম দিন। সর্বোচ্চ ২০টি ডিভাইস রাখা যায়।</string>
+    <string name="device_forget_note">এটি শুধু এই ফোন থেকে ডিভাইসটি সরায়। ক্লাউড অনুমতি সরাতে শিশুর ডিভাইসে এই অভিভাবককে বাতিল করুন।</string>
+    <string name="named_child_label">%1$s\nডিভাইসের ইউআইডি: %2$s</string>
+    <string name="apps_picker_title">শেয়ার করা অ্যাপের নামের তালিকা</string>
+    <string name="apps_unavailable">অ্যাপের নামের তালিকা পাওয়া যায়নি। শিশুর ডিভাইসে নাম শেয়ার চালু করুন, ক্লাউড সংযোগ ও নিয়ম পরীক্ষা করুন, অথবা ইউআইডির ঘর ব্যবহার করুন।</string>
+    <string name="apps_search">অ্যাপের নাম বা প্যাকেজ খুঁজুন</string>
+    <string name="app_picker_row">%1$s\n%2$s · ইউআইডি %3$d</string>
+    <string name="app_toggle_body">প্যাকেজ: %1$s\nইউআইডি: %2$d\nএটি শুধু ফিল্টারে আসা ডিএনএস বদলায়। একই ইউআইডির সব প্যাকেজ প্রভাবিত হয়। পুনরায় ইনস্টলে ইউআইডি বদলাতে পারে; শিশুর সর্বশেষ তালিকা দেখুন।</string>
+    <string name="app_block_dns">অ্যাপের ডিএনএস ব্লক করুন</string>
+    <string name="app_unblock_dns">দূরবর্তী ডিএনএস ব্লক সরান</string>
+</resources>
