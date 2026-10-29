@@ -14,4 +14,6 @@
     <string name="event_protection_off">সুরক্ষা বন্ধ আছে</string>
     <string name="event_device">ডিভাইসের ঘটনা</string>
     <string name="dashboard_history">সাম্প্রতিক কার্যক্রম (ডিএনএস ও ডিভাইসের ঘটনা)</string>
+    <string name="pairing_partial_reset">অন্য কোড দিয়ে আগের পেয়ারিং আংশিক হয়েছে। শিশুর ডিভাইসে এই অভিভাবককে বাতিল করে নতুন কোড তৈরি করুন।</string>
+    <string name="pairing_retry">পেয়ারিং শেষ হয়নি। সংযোগ পরীক্ষা করে একই মেয়াদবহাল কোড দিয়ে আবার চেষ্টা করুন। মেয়াদ শেষ হলে শিশুর ডিভাইসে আংশিক সংযোগ বাতিল করে নতুন কোড নিন।</string>
 </resources>

@@ -63,7 +63,12 @@ await doc('PATCH', `${root}/parents/${parent}`, pt, {code}, false);
 await claimDb(parent, pt, 'BCDEFGHJ', false);
 await claimFs(parent, pt, 'BCDEFGHJ', false);
 await claimDb(parent, pt);
+// A partial claim is readable by its owner and must not be blindly rewritten on retry.
+assert.equal(await db('GET', `${root}/parentUid/${parent}`, pt), code);
+await claimDb(parent, pt, code, false);
 await claimFs(parent, pt);
+const existingMembership = await doc('GET', `${root}/parents/${parent}`, pt);
+assert.equal(existingMembership.fields.code.stringValue, code);
 await claimDb(other, ot, code, false);
 await claimFs(other, ot, code, false);
 await db('PUT', `${root}/parentUid/${parent}`, pt, 'BCDEFGHJ', false);

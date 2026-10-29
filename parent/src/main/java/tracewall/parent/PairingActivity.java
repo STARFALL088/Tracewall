@@ -72,15 +72,18 @@ public class PairingActivity extends AppCompatActivity {
             childUid,
             pairing.code,
             /* onSuccess */ () -> {
+                if (isFinishing() || isDestroyed()) return;
                 prefs().edit().putString(KEY_CHILD_UID, childUid).apply();
                 openDashboard();
             },
-            /* onFail */ () -> {
+            /* onFail */ failure -> {
+                if (isFinishing() || isDestroyed()) return;
                 ui.connectButton.setEnabled(true);
                 ui.progress.setVisibility(View.GONE);
                 Toast.makeText(
                     this,
-                    R.string.pairing_failed,
+                    failure == FirebaseParent.PairingFailure.CHILD_RESET_REQUIRED
+                        ? R.string.pairing_partial_reset : R.string.pairing_retry,
                     Toast.LENGTH_LONG
                 ).show();
             }

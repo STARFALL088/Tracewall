@@ -72,4 +72,6 @@
     <string name="query_filter">ডোমেইন বা অ্যাপ দিয়ে সাম্প্রতিক অনুরোধ খুঁজুন</string>
     <string name="notif_active_channel">সক্রিয় ডিএনএস সুরক্ষা</string>
     <string name="notif_active_text">এই ডিভাইসে সাধারণ ডিএনএস ফিল্টার হচ্ছে। সুরক্ষা দেখতে ট্যাপ করুন।</string>
+    <string name="revoke_pending">বাতিলের সার্ভার নিশ্চিতকরণ বাকি। ক্লাউড সংযোগ রাখুন; পুনঃসংযোগে আবার চেষ্টা হবে।</string>
+    <string name="revoke_confirmed">দুই ডাটাবেসেই অভিভাবকের অনুমতি বাতিল হয়েছে।</string>
 </resources>

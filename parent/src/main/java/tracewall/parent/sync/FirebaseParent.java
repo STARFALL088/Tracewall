@@ -11,9 +11,11 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.PersistentCacheSettings;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.Source;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import tracewall.security.PairingPlan;
 
 /**
  * Parent-side Firebase facade.
@@ -59,6 +61,10 @@ public class FirebaseParent {
     // ---------------------------------------------------------------- auth
 
     public void signInAnonymously(@NonNull Runnable callback) {
+        signInAnonymously(callback, () -> {});
+    }
+
+    public void signInAnonymously(@NonNull Runnable callback, @NonNull Runnable failed) {
         FirebaseUser current = auth.getCurrentUser();
         if (current != null) {
             callback.run();
@@ -69,7 +75,7 @@ public class FirebaseParent {
                 Log.d(TAG, "signed in as " + r.getUser().getUid());
                 callback.run();
             })
-            .addOnFailureListener(e -> Log.e(TAG, "sign-in failed", e));
+            .addOnFailureListener(e -> { Log.e(TAG, "sign-in failed", e); failed.run(); });
     }
 
     /** @return current parent UID, or {@code null} if not yet signed in. */
@@ -80,25 +86,57 @@ public class FirebaseParent {
 
     // -------------------------------------------------------------- pairing
 
-    /** Atomically claim the code in each database. Neither registration can be overwritten. */
-    public void registerAsParent(String childUid, String code, Runnable onSuccess, Runnable onFail) {
+    public enum PairingFailure { CONNECTION, CHILD_RESET_REQUIRED }
+
+    /** Resume only the missing claim; existing membership is never overwritten. */
+    public void registerAsParent(String childUid, String code, Runnable onSuccess,
+            java.util.function.Consumer<PairingFailure> onFail) {
+        signInAnonymously(() -> resumePairing(childUid, code, onSuccess, onFail),
+            () -> onFail.accept(PairingFailure.CONNECTION));
+    }
+
+    private void resumePairing(String childUid, String code, Runnable onSuccess,
+            java.util.function.Consumer<PairingFailure> onFail) {
         String parentUid = uid();
-        if (parentUid == null) { onFail.run(); return; }
+        if (parentUid == null) { onFail.accept(PairingFailure.CONNECTION); return; }
+        com.google.firebase.database.DatabaseReference realtime = db.getReference("devices").child(childUid);
+        com.google.firebase.firestore.DocumentReference device = fs.collection("devices").document(childUid);
+        realtime.child("parentUid").child(parentUid).get().addOnSuccessListener(rt ->
+            device.collection("parents").document(parentUid).get(Source.SERVER).addOnSuccessListener(stored -> {
+                String rtCode = rt.getValue(String.class);
+                String fsCode = stored.exists() ? stored.getString("code") : null;
+                PairingPlan.Action action = PairingPlan.next(rtCode, fsCode, code);
+                if (action == PairingPlan.Action.CHILD_RESET_REQUIRED) {
+                    onFail.accept(PairingFailure.CHILD_RESET_REQUIRED);
+                    return;
+                }
+                if (action == PairingPlan.Action.COMPLETE) { onSuccess.run(); return; }
+                Runnable finish = () -> {
+                    if (action == PairingPlan.Action.REGISTER_REALTIME) { onSuccess.run(); return; }
+                    com.google.firebase.firestore.WriteBatch batch = fs.batch();
+                    Map<String, Object> membership = new HashMap<>();
+                    membership.put("code", code);
+                    batch.set(device.collection("parents").document(parentUid), membership);
+                    batch.update(device.collection("pairing").document("current"), "claimed_by", parentUid);
+                    batch.commit().addOnSuccessListener(done -> onSuccess.run())
+                        .addOnFailureListener(e -> { Log.e(TAG, "Firestore pairing incomplete; retry same code", e);
+                            onFail.accept(PairingFailure.CONNECTION); });
+                };
+                if (action == PairingPlan.Action.REGISTER_FIRESTORE) { finish.run(); return; }
+                claimRealtime(realtime, parentUid, code, finish, () -> onFail.accept(PairingFailure.CONNECTION));
+            }).addOnFailureListener(e -> { Log.e(TAG, "Cannot verify Firestore membership", e);
+                onFail.accept(PairingFailure.CONNECTION); }))
+            .addOnFailureListener(e -> { Log.e(TAG, "Cannot verify RTDB membership", e);
+                onFail.accept(PairingFailure.CONNECTION); });
+    }
+
+    private void claimRealtime(com.google.firebase.database.DatabaseReference device, String parentUid,
+            String code, Runnable success, Runnable failed) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("parentUid/" + parentUid, code);
         updates.put("pairing/claimed_by", parentUid);
-        db.getReference("devices").child(childUid).updateChildren(updates)
-            .addOnSuccessListener(v -> {
-                com.google.firebase.firestore.DocumentReference device = fs.collection("devices").document(childUid);
-                com.google.firebase.firestore.WriteBatch batch = fs.batch();
-                Map<String, Object> membership = new HashMap<>();
-                membership.put("code", code);
-                batch.set(device.collection("parents").document(parentUid), membership);
-                batch.update(device.collection("pairing").document("current"), "claimed_by", parentUid);
-                batch.commit().addOnSuccessListener(done -> onSuccess.run())
-                    .addOnFailureListener(e -> { Log.e(TAG, "Firestore pairing failed", e); onFail.run(); });
-            })
-            .addOnFailureListener(e -> { Log.e(TAG, "RTDB pairing failed", e); onFail.run(); });
+        device.updateChildren(updates).addOnSuccessListener(v -> success.run())
+            .addOnFailureListener(e -> { Log.e(TAG, "RTDB pairing failed", e); failed.run(); });
     }
 
     // ---------------------------------------------------------------- rules

@@ -8,7 +8,7 @@ Each completed implementation is tested and committed separately, then pushed.
 
 1. [x] VPN foreground lifecycle: API-compatible foreground notification and cleanup.
 2. [x] Empty remote snapshots clear persisted remote rules, preserving local rules.
-3. [ ] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
+3. [x] Pairing: recover partial membership, confirm revocation, reconnect existing parents.
 4. [ ] Remote edits: validate domains, show write results, avoid concurrent lost edits.
 5. [ ] Core: bounded DNS workers, safe parser slices, locale-independent matching, regressions.
 6. [ ] Verification: deliberate lint fixes and reproducible GitHub CI.
@@ -68,3 +68,18 @@ production/device requirements are stated separately.
 - Verification: 103 JVM tests passed, both APKs built, 73 Firebase emulator REST
   checks passed, including removal of the final list entries. Actual Android
   listener/preferences behavior still needs a connected-device check.
+
+### 3 — Pairing retry, reconnection and durable revocation
+
+- Parent connection waits for authentication and checks its own membership in
+  both databases. Existing parents reconnect without rewriting membership;
+  partial registration retries only the missing store with the original code.
+- A partial registration with a different/expired code requires child-side
+  PIN-gated revocation before a fresh pairing. The UI explains this rather than
+  weakening membership rules or claiming a cross-database transaction exists.
+- Revocation is persisted locally until both server deletions and membership
+  read-backs confirm absence. Pending entries retry after process/network
+  reconnection; the UI distinguishes pending from confirmed revocation.
+- Verification: 108 JVM tests, both debug APK builds, and 76 emulator REST
+  checks passed. Android callback/restart behavior and real-project access still
+  need devices. A trusted server coordinator remains an optional deployment task.

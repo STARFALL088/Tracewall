@@ -83,6 +83,13 @@ public class FirebaseSync {
         return INSTANCE;
     }
 
+    private android.content.SharedPreferences preferences;
+    private final java.util.Set<String> revocationsInFlight = new java.util.HashSet<>();
+
+    public void initialize(android.content.Context context) {
+        preferences = context.getApplicationContext().getSharedPreferences("tracewall.sync", android.content.Context.MODE_PRIVATE);
+    }
+
     // ---------------------------------------------------------------- auth
 
     /**
@@ -126,6 +133,15 @@ public class FirebaseSync {
         String deviceUid = uid();
         if (deviceUid == null || pairingWatchStarted) return;
         pairingWatchStarted = true;
+        realtimeDb.getReference(".info/connected").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (Boolean.TRUE.equals(snapshot.getValue(Boolean.class)) && preferences != null) {
+                    for (String parent : new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
+                            java.util.Collections.emptySet()))) revokeParent(parent, () -> {}, () -> {});
+                }
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.w(TAG, "Cannot watch revocation connectivity", error.toException()); }
+        });
         DatabaseReference device = realtimeDb.getReference("devices").child(deviceUid);
         device.child("pairing").addValueEventListener(new ValueEventListener() {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -142,8 +158,7 @@ public class FirebaseSync {
             });
         device.child("parentUid").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-                firestore.collection("devices").document(deviceUid).collection("parents")
-                    .document(snapshot.getKey()).delete();
+                revokeParent(snapshot.getKey(), () -> {}, () -> {});
             }
             public void onChildAdded(@NonNull DataSnapshot s, String previous) {}
             public void onChildChanged(@NonNull DataSnapshot s, String previous) {}
@@ -194,11 +209,42 @@ public class FirebaseSync {
             }).addOnFailureListener(e -> ready.accept(new java.util.ArrayList<>(parents)));
     }
 
-    public void revokeParent(String parentUid) {
+    public void revokeParent(String parentUid, Runnable confirmed, Runnable pending) {
         String deviceUid = uid();
-        if (deviceUid == null) return;
-        realtimeDb.getReference("devices").child(deviceUid).child("parentUid").child(parentUid).removeValue();
-        firestore.collection("devices").document(deviceUid).collection("parents").document(parentUid).delete();
+        if (deviceUid == null || preferences == null) { pending.run(); return; }
+        updatePendingRevocation(parentUid, true);
+        synchronized (revocationsInFlight) {
+            if (!revocationsInFlight.add(parentUid)) { pending.run(); return; }
+        }
+        DatabaseReference realtime = realtimeDb.getReference("devices").child(deviceUid).child("parentUid").child(parentUid);
+        com.google.firebase.firestore.DocumentReference member = firestore.collection("devices").document(deviceUid)
+            .collection("parents").document(parentUid);
+        com.google.android.gms.tasks.Task<Void> rt = realtime.removeValue(), fs = member.delete();
+        com.google.android.gms.tasks.Tasks.whenAllComplete(rt, fs).addOnCompleteListener(done -> {
+            if (!rt.isSuccessful() || !fs.isSuccessful()) {
+                finishRevocation(parentUid, false, confirmed, pending);
+                return;
+            }
+            com.google.android.gms.tasks.Task<DataSnapshot> readRt = realtime.get();
+            com.google.android.gms.tasks.Task<com.google.firebase.firestore.DocumentSnapshot> readFs =
+                member.get(com.google.firebase.firestore.Source.SERVER);
+            com.google.android.gms.tasks.Tasks.whenAllComplete(readRt, readFs).addOnCompleteListener(read ->
+                finishRevocation(parentUid, readRt.isSuccessful() && readFs.isSuccessful()
+                    && !readRt.getResult().exists() && !readFs.getResult().exists(), confirmed, pending));
+        });
+    }
+
+    private synchronized void updatePendingRevocation(String parentUid, boolean add) {
+        java.util.Set<String> next = new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
+            java.util.Collections.emptySet()));
+        if (add) next.add(parentUid); else next.remove(parentUid);
+        preferences.edit().putStringSet("pending_revocations", next).apply();
+    }
+
+    private void finishRevocation(String parentUid, boolean success, Runnable confirmed, Runnable pending) {
+        if (success) updatePendingRevocation(parentUid, false);
+        synchronized (revocationsInFlight) { revocationsInFlight.remove(parentUid); }
+        if (success) confirmed.run(); else pending.run();
     }
 
     // ----------------------------------------------------------- realtime db

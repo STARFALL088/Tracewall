@@ -72,4 +72,6 @@
     <string name="query_filter">Filter recent queries by domain or app</string>
     <string name="notif_active_channel">Active DNS protection</string>
     <string name="notif_active_text">Filtering ordinary DNS on this device. Tap to review protection.</string>
+    <string name="revoke_pending">Revocation is pending server confirmation. Keep cloud sync connected; it will retry after reconnecting.</string>
+    <string name="revoke_confirmed">Parent access revoked in both databases.</string>
 </resources>

@@ -174,8 +174,14 @@ public class MainActivity extends AppCompatActivity {
         ui.manageParents.setOnClickListener(v -> PinGate.require(this, () ->
             FirebaseSync.get().listParents(parents -> new AlertDialog.Builder(this)
                 .setTitle(R.string.revoke_parent)
-                .setItems(parents.toArray(new String[0]), (d, which) ->
-                    FirebaseSync.get().revokeParent(parents.get(which)))
+                .setItems(parents.toArray(new String[0]), (d, which) -> {
+                    Toast.makeText(this, R.string.revoke_pending, Toast.LENGTH_LONG).show();
+                    FirebaseSync.get().revokeParent(parents.get(which), () -> {
+                        if (!isDestroyed()) Toast.makeText(this, R.string.revoke_confirmed, Toast.LENGTH_LONG).show();
+                    }, () -> {
+                        if (!isDestroyed()) Toast.makeText(this, R.string.revoke_pending, Toast.LENGTH_LONG).show();
+                    });
+                })
                 .setNegativeButton(android.R.string.cancel, null).show())));
         ui.deviceCode.setOnLongClickListener(v -> {
             copyDeviceCode();

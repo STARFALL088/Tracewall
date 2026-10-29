@@ -49,4 +49,6 @@
     <string name="event_installed">Installed</string>
     <string name="event_protection_off">Protection is off</string>
     <string name="event_device">Device event</string>
+    <string name="pairing_partial_reset">A previous pairing partly succeeded with another code. Revoke this parent on the child, then generate a new code.</string>
+    <string name="pairing_retry">Pairing could not finish. Check connectivity and retry the same unexpired code. If it expires, revoke the partial parent on the child before trying a new code.</string>
 </resources>
