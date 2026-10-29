@@ -8,7 +8,7 @@ This file was absent at the start of the continuation; week labels below follow 
 | A — Firebase pairing and security | Scoped RTDB + Firestore permissions, expiring one-use QR/manual pairing, PIN-gated revocation | DONE — JVM, emulator rules, both APK builds |
 | B — Rule data and parsing | Larger licensed hosts lists, parser robustness, load timing | DONE — JVM tests and both APK builds |
 | C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | DONE — JVM tests and both APK builds |
-| D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | Pending |
+| D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | DONE — JVM tests and both APK builds |
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | Pending |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | Pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | Pending |
@@ -64,7 +64,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | Socket programming (UDP DNS forwarding) | `blocklist/.../net/DnsForwarder.java` | DONE |
 | Binary protocol parsing (DNS, IPv4/IPv6/UDP) | `blocklist/.../net/DnsMessage.java`, `IpPacket.java` | DONE |
 | Text parsing (hosts-file lists) | `blocklist/.../HostListParser.java` | DONE |
-| HTTP request + JSON parsing | blocklist refresh from a URL, rules import and export | PLANNED |
+| HTTP request + JSON parsing | `ListUpdater` HTTPS; `RulesJson` validated backups and document picker | DONE — built and JVM tested; device network checks pending |
 | XML parsing | none yet | PLANNED (optional) |
 | Room database (entity, DAO, batched writer) | `J/log/TracewallDb.java`, `QueryDao.java`, `HistoryWriter.java` | DONE |
 | Background work (`WorkManager` periodic list refresh) | none yet | PLANNED |

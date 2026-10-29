@@ -67,6 +67,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private final ActivityResultLauncher<String[]> rulesDocument = registerForActivityResult(
+        new ActivityResultContracts.OpenDocument(), uri -> {
+            if (uri != null) PinGate.require(this, () -> tracewall.child.io.RulesTransfer.importRules(this, uri));
+        });
+
     private final ActivityResultLauncher<String> notificationPermission =
         registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
@@ -134,6 +139,17 @@ public class MainActivity extends AppCompatActivity {
             .setPositiveButton(android.R.string.ok, (d, w) ->
                 openVpnSettings())
             .setNegativeButton(android.R.string.cancel, null).show());
+        ui.exportRules.setOnClickListener(v -> PinGate.require(this, () -> tracewall.child.io.RulesTransfer.exportRules(this)));
+        ui.importRules.setOnClickListener(v -> PinGate.require(this, () -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE);
+            if (intent.resolveActivity(getPackageManager()) == null) {
+                Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show();
+                return;
+            }
+            try { rulesDocument.launch(new String[] {"application/json", "text/json"}); }
+            catch (android.content.ActivityNotFoundException e) { Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show(); }
+        }));
+        ui.updateLists.setOnClickListener(v -> updateLists());
         ui.manageAllows.setOnClickListener(v -> showAllows());
         PinGate.ensureSet(this);
         ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
@@ -411,6 +427,34 @@ public class MainActivity extends AppCompatActivity {
         }, "tracewall-clear").start();
     }
 
+    private boolean listUpdateRunning;
+    private void updateLists() {
+        if (listUpdateRunning) return;
+        listUpdateRunning = true;
+        ui.updateLists.setEnabled(false);
+        tracewall.child.net.ListUpdater.update(this, new tracewall.child.net.ListUpdater.Listener() {
+            public void progress(int completed, int total) {
+                if (!isDestroyed()) ui.updateResult.setText(getString(R.string.update_progress, completed, total));
+            }
+            public void done(tracewall.child.net.ListUpdater.Result result) {
+                listUpdateRunning = false;
+                if (isDestroyed()) return;
+                ui.updateLists.setEnabled(true);
+                render();
+            }
+        });
+    }
+    private void renderUpdateResult() {
+        if (listUpdateRunning) return;
+        android.content.SharedPreferences sp = tracewall.child.net.ListUpdater.prefs(this);
+        long attempt = sp.getLong("attempt_ms", 0), success = sp.getLong("success_ms", 0);
+        if (attempt == 0) { ui.updateResult.setText(R.string.update_never); return; }
+        java.text.DateFormat format = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT);
+        ui.updateResult.setText(getString(R.string.update_result, sp.getInt("updated", 0), sp.getInt("failed", 0),
+            sp.getInt("added", 0), format.format(new java.util.Date(attempt)),
+            success == 0 ? getString(R.string.update_never_success) : format.format(new java.util.Date(success))));
+    }
+
     // ---------------------------------------------------------------- render
 
     private void render() {
@@ -419,6 +463,7 @@ public class MainActivity extends AppCompatActivity {
         if (ui.toggle.isChecked() != on) ui.toggle.setChecked(on);
         updatingToggle = false;
 
+        renderUpdateResult();
         ui.status.setText(on ? R.string.status_on : R.string.status_off);
 
         QueryLog.Stats s = QueryLog.get().stats();

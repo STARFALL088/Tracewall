@@ -33,6 +33,7 @@ public final class BlocklistStore {
     public static final String PREFS = "tracewall.rules";
     public static final String KEY_ALLOW = "allow";
     public static final String KEY_BLOCKED_UIDS = "blocked_uids";
+    public static final String KEY_LOCAL_CATEGORIES = "local_categories";
     public static final String KEY_ENABLED = "enabled";
     /** Parent-pushed rules live under separate keys so they can be replaced
      *  atomically without disturbing rules the child set on-device. */
@@ -85,13 +86,14 @@ public final class BlocklistStore {
             null
         );
         Set<String> activeCategories =
-            remoteCats != null ? remoteCats : lastCategories;
+            remoteCats != null ? remoteCats : spEarly.getStringSet(KEY_LOCAL_CATEGORIES,
+                lastCategories.isEmpty() ? tracewall.data.RulesJson.CATEGORIES : lastCategories);
 
         Map<String, DomainSet> perCategory = new LinkedHashMap<>();
         int malformed = 0;
         int duplicates = 0;
         for (String c : activeCategories) {
-            String text = readAsset(app, "categories/" + c + ".txt");
+            String text = readCategory(app, c);
             if (text == null) {
                 Log.w(TAG, "missing category asset: " + c);
                 continue;
@@ -274,6 +276,39 @@ public final class BlocklistStore {
             }
         }
         return out;
+    }
+
+    public synchronized tracewall.data.RulesJson exportLocal(Context ctx) {
+        SharedPreferences sp = prefs(ctx);
+        Map<String, Boolean> toggles = new java.util.TreeMap<>();
+        Set<String> active = sp.getStringSet(KEY_LOCAL_CATEGORIES, tracewall.data.RulesJson.CATEGORIES);
+        for (String category : tracewall.data.RulesJson.CATEGORIES) toggles.put(category, active.contains(category));
+        return new tracewall.data.RulesJson(localAllows(ctx),
+            parseUids(sp.getStringSet(KEY_BLOCKED_UIDS, Collections.emptySet())), toggles);
+    }
+
+    public synchronized void importLocal(Context ctx, tracewall.data.RulesJson rules) {
+        Set<String> uids = new HashSet<>(), active = new HashSet<>();
+        for (int uid : rules.blockedUids) uids.add(Integer.toString(uid));
+        for (Map.Entry<String, Boolean> entry : rules.categories.entrySet()) if (entry.getValue()) active.add(entry.getKey());
+        // The complete document is validated before this single local preferences transaction.
+        prefs(ctx).edit().putStringSet(KEY_ALLOW, rules.allow).putStringSet(KEY_BLOCKED_UIDS, uids)
+            .putStringSet(KEY_LOCAL_CATEGORIES, active).apply();
+        app = ctx.getApplicationContext();
+        reload();
+    }
+
+    private static String readCategory(Context ctx, String category) {
+        if (!tracewall.data.RulesJson.CATEGORIES.contains(category)) return null;
+        java.io.File downloaded = new java.io.File(ctx.getFilesDir(), "lists/" + category + ".txt");
+        if (downloaded.isFile()) {
+            try (java.io.InputStream input = new java.io.FileInputStream(downloaded)) {
+                String text = tracewall.data.ListData.utf8(tracewall.data.ListData.read(input, tracewall.data.ListData.MAX_BYTES));
+                tracewall.data.ListData.validate(text, 100);
+                return text;
+            } catch (IOException | IllegalArgumentException e) { Log.w(TAG, "Invalid downloaded list; using asset", e); }
+        }
+        return readAsset(ctx, "categories/" + category + ".txt");
     }
 
     private static String readAsset(Context ctx, String path) {

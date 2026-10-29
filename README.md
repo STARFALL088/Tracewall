@@ -487,6 +487,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| HTTPS refresh + JSON backups                  | DONE — JVM + APK builds | Bounded HTTPS, atomic files, validated PIN-gated local backups |
 | Larger licensed category lists                | DONE — JVM + APK builds | ~95k merged entries; 2.43 MB total assets; load time logged |
 | One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation |
 | Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
@@ -578,6 +579,34 @@ assets below 5 MB; this is deliberately incomplete coverage. The current total
 is 2,428,709 bytes. Source URLs and license links are also embedded in each file.
 Regeneration aborts before replacing assets if downloads or the size budget fail.
 `BlocklistStore` logs elapsed load time, malformed entries and duplicates in Logcat.
+
+In-app **Update lists** uses smaller refresh feeds, merged with the bundled
+baseline rather than the oversized full Block List Project downloads:
+
+| Category | Refresh URL | License / attribution |
+| --- | --- | --- |
+| adult | [Tiuxo porn](https://raw.githubusercontent.com/tiuxo/hosts/master/porn) | Tiuxo, [CC BY 4.0](https://github.com/tiuxo/hosts/blob/master/LICENSE); normalized and merged |
+| ads | [Tiuxo ads](https://raw.githubusercontent.com/tiuxo/hosts/master/ads) | Tiuxo, CC BY 4.0; normalized and merged |
+| gambling | [hostsVN Gambling VN](https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts-VN) | BigDargon, [MIT](https://github.com/bigdargon/hostsVN/blob/master/LICENSE); normalized and merged |
+| malware | [URLhaus hostfile](https://urlhaus.abuse.ch/downloads/hostfile/) | abuse.ch URLhaus, CC0; availability subject to upstream access policy |
+
+Refresh uses `HttpURLConnection` off the main thread, HTTPS-only redirects (up
+to three), 15-second connection / 20-second read timeouts, strict UTF-8, a 5 MB
+cap on each response and merged file, at least 100 unique downloaded entries,
+and zero malformed entries. Each valid category is synced to a temporary file
+and atomically replaced in `filesDir/lists/`; failed categories retain their
+previous file, or bundled asset. The policy reloads without restarting the VPN.
+The UI reports successful/failed categories, newly added rules, last attempt,
+and last fully successful update. Retaining the bundled baseline means domains
+removed upstream may remain blocked until a new APK baseline is shipped.
+
+PIN-gated **Export rules** / **Import rules** share JSON via FileProvider and
+select JSON with `ACTION_OPEN_DOCUMENT`. Version 1 contains only `version`,
+`allow`, `blocked_uids`, and all four boolean `categories`. Unknown/missing fields,
+invalid types/domains/UIDs, more than 1,000 entries per list, and files over
+256,000 bytes are rejected before applying. Import replaces local rules in one
+preferences edit; remote parent rules retain their precedence. No PIN, pairing
+secret, browsing history or remote membership is included.
 
 Each file is parsed by `HostListParser` into a `DomainSet` (exact hosts into a
 `HashSet`, wildcards into a small scanned list). A 200k-domain list stays cheap

@@ -30,6 +30,13 @@ public final class DomainSet {
         }
     }
 
+    /** A defensive, sorted copy for validated list merging and serialization. */
+    public Set<String> patterns() {
+        Set<String> out = new java.util.TreeSet<>(exact);
+        for (DomainPattern pattern : wildcards) out.add(pattern.text());
+        return out;
+    }
+
     public int size() { return exact.size() + wildcards.size(); }
     public int wildcardCount() { return wildcards.size(); }
 

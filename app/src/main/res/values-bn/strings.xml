@@ -56,4 +56,13 @@
     <string name="pairing_create_failed">পেয়ারিং কোড তৈরি করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</string>
     <string name="share_file">Tracewall ফাইল শেয়ার করুন</string>
     <string name="no_handler">এই কাজের জন্য কোনো অ্যাপ পাওয়া যায়নি।</string>
+    <string name="export_rules">নিয়ম রপ্তানি</string>
+    <string name="import_rules">নিয়ম আমদানি</string>
+    <string name="update_lists">তালিকা হালনাগাদ</string>
+    <string name="rules_imported">স্থানীয় নিয়ম আমদানি হয়েছে। অভিভাবকের নিয়ম বহাল আছে।</string>
+    <string name="rules_failed">নিয়ম স্থানান্তর করা যায়নি। সঠিক Tracewall JSON ব্যাকআপ ব্যবহার করুন (সর্বোচ্চ ২৫৬ কেবি এবং প্রতি তালিকায় ১,০০০ নিয়ম)।</string>
+    <string name="update_progress">তালিকা হালনাগাদ: %1$d/%2$d</string>
+    <string name="update_never">তালিকা এখনো হালনাগাদ হয়নি।</string>
+    <string name="update_never_success">কখনো নয়</string>
+    <string name="update_result">হালনাগাদ: %1$d · ব্যর্থ: %2$d · নতুন নিয়ম: %3$d\nশেষ চেষ্টা: %4$s · শেষ সফল হালনাগাদ: %5$s</string>
 </resources>
