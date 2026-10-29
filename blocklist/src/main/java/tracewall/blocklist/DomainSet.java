@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -30,11 +31,18 @@ public final class DomainSet {
         }
     }
 
+    /** A defensive, sorted copy for validated list merging and serialization. */
+    public Set<String> patterns() {
+        Set<String> out = new java.util.TreeSet<>(exact);
+        for (DomainPattern pattern : wildcards) out.add(pattern.text());
+        return out;
+    }
+
     public int size() { return exact.size() + wildcards.size(); }
     public int wildcardCount() { return wildcards.size(); }
 
     public boolean matches(String host) {
-        String h = host.toLowerCase();
+        String h = host.toLowerCase(Locale.ROOT);
         int end = h.length();
         while (end > 0 && h.charAt(end - 1) == '.') end--;
         h = h.substring(0, end);

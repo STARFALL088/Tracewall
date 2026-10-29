@@ -1,7 +1,5 @@
 package tracewall.net;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * A DNS message in RFC 1035 wire format - just enough of it to be a firewall.
  *
@@ -163,7 +161,8 @@ public final class DnsMessage {
      */
     public static DnsMessage parse(byte[] buf, int off, int len) {
         if (buf == null || len < HEADER_LEN) return null;
-        if (off < 0 || off + len > buf.length) return null;
+        if (off < 0 || off > buf.length || len > buf.length - off) return null;
+        int limit = off + len;
 
         int id = u16(buf, off);
         int flags = u16(buf, off + 2);
@@ -192,9 +191,9 @@ public final class DnsMessage {
 
         int p = off + HEADER_LEN;
         int[] end = new int[] { p };
-        String name = readName(buf, off, end);
+        String name = readName(buf, off, limit, end);
         if (name == null) return null;
-        if (end[0] + 4 > off + len) return null;
+        if (limit - end[0] < 4) return null;
         int qtype = u16(buf, end[0]);
         int qclass = u16(buf, end[0] + 2);
         return new DnsMessage(
@@ -216,7 +215,8 @@ public final class DnsMessage {
     }
 
     /**
-     * Read a (possibly compressed) name starting at {@code cursor[0]}.
+     * Read a (possibly compressed) name within {@code [base, limit)}, starting
+     * at {@code cursor[0]}. Compression offsets are relative to {@code base}.
      * Advances {@code cursor[0]} past the name as it appears at that position
      * - the pointer target bytes are never re-consumed by the caller.
      *
@@ -225,26 +225,30 @@ public final class DnsMessage {
      * firewall, not a resolver, so exotic IDN handling is left to the
      * upstream server that will actually answer the query.
      */
-    static String readName(byte[] buf, int base, int[] cursor) {
+    static String readName(byte[] buf, int base, int limit, int[] cursor) {
+        if (buf == null || cursor == null || cursor.length == 0
+                || base < 0 || limit < base || limit > buf.length) return null;
         int p = cursor[0];
         StringBuilder sb = new StringBuilder(64);
         boolean jumped = false;
-        int start = p;
+        int resume = p;
         int hops = 0;
-        int end = base + buf.length; // conservative: real limit is tighter
+        int wireLength = 1; // include the terminating root label
 
         while (true) {
-            if (p < 0 || p >= end) return null;
+            if (p < base || p >= limit) return null;
             int len = buf[p] & 0xFF;
             if ((len & 0xC0) == 0xC0) {
                 // compression pointer
-                if (p + 1 >= end) return null;
+                if (limit - p < 2) return null;
                 int target = ((len & 0x3F) << 8) | (buf[p + 1] & 0xFF);
+                // Compare in message-relative coordinates before adding base.
+                // Every hop must be backward, not just the first pointer.
+                if (target >= limit - base || target >= p - base) return null;
                 if (!jumped) {
-                    start = p + 2; // caller resumes after the ptr
+                    resume = p + 2; // caller resumes after the ptr
                     jumped = true;
                 }
-                if (target >= start) return null; // must point backwards
                 if (++hops > 64) return null; // pointer loop guard
                 p = base + target;
                 continue;
@@ -252,15 +256,16 @@ public final class DnsMessage {
             if ((len & 0xC0) != 0) return null; // reserved label type
             if (len == 0) {
                 // end of name
-                if (!jumped) start = p + 1;
-                cursor[0] = start;
+                if (!jumped) resume = p + 1;
+                cursor[0] = resume;
                 return sb.length() == 0 ? "." : sb.toString();
             }
             if (len > 63) return null;
-            if (p + 1 + len > end) return null;
+            if (len > limit - p - 1) return null;
+            wireLength += 1 + len;
+            if (wireLength > 255) return null;
             if (sb.length() > 0) sb.append('.');
             appendLabel(sb, buf, p + 1, len);
-            if (sb.length() > 253) return null;
             p += 1 + len;
         }
     }
@@ -295,16 +300,13 @@ public final class DnsMessage {
      * pointing at {@code address} (normally 0.0.0.0 - "this host does not
      * exist as far as you are concerned").
      *
-     * The question section is echoed byte-for-byte and every flag the client
-     * set except QR and RCODE is preserved, so the client accepts it as a
-     * genuine answer and does not retry in a loop.
+     * Includes the query's question, opcode and RD bit, sets QR and RA, and
+     * uses TTL 0 so the client does not cache a blocking answer. A null
+     * address defaults to 0.0.0.0; non-IPv4 address lengths are rejected.
      */
     public static byte[] buildAResponse(DnsMessage query, byte[] address) {
-        return buildSynthetic(
-            query,
-            TYPE_A,
-            address == null ? 4 : address.length
-        );
+        if (address != null && address.length != 4) return null;
+        return buildSynthetic(query, TYPE_A, address == null ? new byte[4] : address);
     }
 
     /**
@@ -313,43 +315,41 @@ public final class DnsMessage {
      * opt-out A records that must resolve to nothing.
      */
     public static byte[] buildEmptyResponse(DnsMessage query) {
-        return buildSynthetic(query, TYPE_A, 0);
+        return buildSynthetic(query, TYPE_A, null);
     }
 
     public static byte[] buildNxDomain(DnsMessage query) {
-        return buildSynthetic(query, -1, 0, RCODE_NXDOMAIN);
+        return buildSynthetic(query, -1, null, RCODE_NXDOMAIN);
     }
 
     public static byte[] buildRefused(DnsMessage query) {
-        return buildSynthetic(query, -1, 0, RCODE_REFUSED);
+        return buildSynthetic(query, -1, null, RCODE_REFUSED);
     }
 
     public static byte[] buildServFail(DnsMessage query) {
-        return buildSynthetic(query, -1, 0, RCODE_SERVFAIL);
+        return buildSynthetic(query, -1, null, RCODE_SERVFAIL);
     }
 
-    /**
-     * A record with TTL 0 and no address, which is the honest "we are not
-     * going to tell you" answer and keeps clients from caching our block.
-     */
+    /** Build a synthetic answer with optional RDATA and TTL 0. */
     private static byte[] buildSynthetic(
         DnsMessage query,
         int rtype,
-        int rdlen
+        byte[] rdata
     ) {
-        return buildSynthetic(query, rtype, rdlen, RCODE_NOERROR);
+        return buildSynthetic(query, rtype, rdata, RCODE_NOERROR);
     }
 
     private static byte[] buildSynthetic(
         DnsMessage query,
         int rtype,
-        int rdlen,
+        byte[] rdata,
         int rcode
     ) {
         if (query == null || query.qName() == null) return null;
         byte[] name = encodeName(query.qName());
         if (name == null) return null;
 
+        int rdlen = rdata == null ? 0 : rdata.length;
         int ancount = rdlen > 0 ? 1 : 0;
         // header(12) + question(name + TYPE(2) + CLASS(2))
         // + answer(name + TYPE(2) + CLASS(2) + TTL(4) + RDLENGTH(2) + rdata)
@@ -400,12 +400,7 @@ public final class DnsMessage {
             p += 2; // TTL low   -> 0, do not cache
             putU16(out, p, rdlen);
             p += 2; // RDLENGTH
-            if (rdlen == 4) {
-                out[p] = 0;
-                out[p + 1] = 0;
-                out[p + 2] = 0;
-                out[p + 3] = 0;
-            }
+            System.arraycopy(rdata, 0, out, p, rdlen);
         }
         return out;
     }
@@ -424,8 +419,9 @@ public final class DnsMessage {
         int queryId,
         boolean wasTruncatedOverTcp
     ) {
-        if (upstream == null || upstream.length < HEADER_LEN) return null;
-        byte[] out = copy(upstream, 0, upstream.length);
+        DnsMessage parsed = parse(upstream);
+        if (parsed == null) return null;
+        byte[] out = parsed.raw;
         putU16(out, 0, queryId & 0xFFFF);
         int flags = u16(out, 2) | FLAGS_QR | FLAGS_RA;
         if (wasTruncatedOverTcp) flags &= ~FLAGS_TC;
@@ -433,30 +429,53 @@ public final class DnsMessage {
         return out;
     }
 
-    /** Encode a dotted name as length-prefixed labels. FQDN dot optional. */
+    /**
+     * Encode a dotted name as length-prefixed labels. FQDN dot optional.
+     * Accepts the escaped dots, backslashes and decimal octets emitted by readName.
+     * Non-ASCII text must arrive punycoded rather than being replaced with '?'.
+     */
     public static byte[] encodeName(String name) {
-        if (name == null || name.isEmpty()) return new byte[] { 0 };
-        String s = name.endsWith(".")
-            ? name.substring(0, name.length() - 1)
-            : name;
-        if (s.isEmpty()) return new byte[] { 0 };
-        String[] labels = s.split("\\.");
-        int len = 1;
-        for (String l : labels) {
-            if (l.isEmpty() || l.length() > 63) return null;
-            len += 1 + l.length();
+        if (name == null || name.isEmpty() || name.equals(".")) return new byte[] { 0 };
+        if (name.length() > 255 * 4) return null; // even escaped names have a bounded size
+        byte[] out = new byte[255];
+        int labelStart = 0;
+        int labelLength = 0;
+        int p = 1;
+        for (int i = 0; i < name.length(); i++) {
+            int c = name.charAt(i);
+            if (c == '.') {
+                if (labelLength == 0) return null;
+                out[labelStart] = (byte) labelLength;
+                if (i == name.length() - 1) {
+                    out[p++] = 0;
+                    return copy(out, 0, p);
+                }
+                if (p >= out.length - 1) return null;
+                labelStart = p++;
+                labelLength = 0;
+                continue;
+            }
+            if (c == '\\') {
+                if (++i >= name.length()) return null;
+                c = name.charAt(i);
+                if (c >= '0' && c <= '9') {
+                    if (name.length() - i < 3) return null;
+                    int tens = name.charAt(i + 1) - '0';
+                    int ones = name.charAt(i + 2) - '0';
+                    if (tens < 0 || tens > 9 || ones < 0 || ones > 9) return null;
+                    c = (c - '0') * 100 + tens * 10 + ones;
+                    if (c > 255) return null;
+                    i += 2;
+                } else if (c > 0x7F) return null;
+            } else if (c > 0x7F) return null;
+            if (labelLength == 63 || p >= out.length - 1) return null;
+            out[p++] = (byte) c;
+            labelLength++;
         }
-        if (len > 255) return null;
-        byte[] out = new byte[len];
-        int p = 0;
-        for (String l : labels) {
-            byte[] b = l.getBytes(StandardCharsets.US_ASCII);
-            out[p++] = (byte) b.length;
-            System.arraycopy(b, 0, out, p, b.length);
-            p += b.length;
-        }
-        out[p] = 0;
-        return out;
+        if (labelLength == 0) return null;
+        out[labelStart] = (byte) labelLength;
+        out[p++] = 0;
+        return copy(out, 0, p);
     }
 
     // -------------------------------------------------------------- helpers

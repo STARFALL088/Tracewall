@@ -1,5 +1,7 @@
 package tracewall.blocklist;
 
+import java.util.Locale;
+
 /**
  * A single domain pattern.
  *
@@ -33,7 +35,7 @@ public final class DomainPattern {
 
     /** Allocation-light membership test. */
     public boolean matches(String host) {
-        String h = host.toLowerCase();
+        String h = host.toLowerCase(Locale.ROOT);
         int end = h.length();
         while (end > 0 && h.charAt(end - 1) == '.') end--;
         h = h.substring(0, end);
@@ -60,7 +62,7 @@ public final class DomainPattern {
      */
     public static DomainPattern parse(String raw) {
         if (raw == null) return null;
-        String text = raw.trim().toLowerCase();
+        String text = raw.trim().toLowerCase(Locale.ROOT);
         while (text.endsWith(".")) {
             text = text.substring(0, text.length() - 1);
         }

@@ -8,6 +8,8 @@
     android:paddingEnd="16dp"
     android:paddingBottom="8dp">
 
+    <ScrollView android:id="@+id/controls" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
@@ -47,13 +49,44 @@
         android:textSize="11sp"
         android:visibility="gone" />
 
+    <Button android:id="@+id/manageParents"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/revoke_parent" />
+    <Button android:id="@+id/shareAppNames" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/inventory_off" />
+
     <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/toggle"
+        android:saveEnabled="false"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
         android:text="@string/protection"
         android:textSize="18sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/makePermanent"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="@string/make_permanent" />
+        <Button android:id="@+id/manageAllows"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="@string/manage_allows" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <Button android:id="@+id/exportRules" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/export_rules" />
+        <Button android:id="@+id/importRules" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/import_rules" />
+        <Button android:id="@+id/updateLists" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/update_lists" />
+    </LinearLayout>
+    <TextView android:id="@+id/updateSchedule" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" />
+    <TextView android:id="@+id/updateResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:text="@string/update_never" />
+    <Button android:id="@+id/openHistory" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/history_open" />
+    <Button android:id="@+id/openRules" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/rules9_title" />
 
     <TextView
         android:id="@+id/status"
@@ -107,7 +140,7 @@
             android:paddingTop="6dp"
             android:paddingEnd="10dp"
             android:paddingBottom="6dp"
-            android:text="@string/action_copy_csv"
+            android:text="@string/history_quick_export"
             android:textSize="13sp" />
 
         <TextView
@@ -136,6 +169,11 @@
         android:text="@string/recent"
         android:textSize="13sp"
         android:textStyle="bold" />
+
+    <EditText android:id="@+id/queryFilter" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="@string/query_filter" android:inputType="text" android:maxLines="1" android:singleLine="true" android:importantForAutofill="no" />
+    </LinearLayout>
+    </ScrollView>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"

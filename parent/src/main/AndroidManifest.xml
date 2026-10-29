@@ -27,6 +27,8 @@
         <activity
             android:name=".DashboardActivity"
             android:exported="false" />
+        <activity android:name=".AppPickerActivity" android:exported="false"
+            android:label="@string/apps_picker_title" />
 
     </application>
 </manifest>

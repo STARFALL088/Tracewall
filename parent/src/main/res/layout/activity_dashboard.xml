@@ -14,6 +14,24 @@
         android:layout_height="wrap_content"
         android:textSize="12sp" />
 
+    <LinearLayout android:id="@+id/tamperBanner"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:background="#B71C1C" android:padding="8dp"
+        android:orientation="horizontal" android:visibility="gone">
+        <TextView android:id="@+id/tamperText"
+            android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+        <Button android:id="@+id/dismissTamper"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/dismiss_event" />
+    </LinearLayout>
+    <TextView android:id="@+id/lastSeen"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/last_seen_unknown" />
+    <TextView android:id="@+id/ruleStatus"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/rules_waiting" android:accessibilityLiveRegion="polite" />
+
     <!-- Allow-domain rule -->
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
@@ -61,6 +79,10 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:text="@string/dashboard_block_button" />
+
+    <Button android:id="@+id/editRules"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/remove_rule" />
 
     <!-- Category toggles -->
     <TextView

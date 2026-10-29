@@ -101,7 +101,7 @@ public final class IpPacket {
      */
     public static IpPacket parse(byte[] buf, int off, int len) {
         if (buf == null || len < 1) return null;
-        if (off < 0 || off + len > buf.length) return null;
+        if (off < 0 || off > buf.length || len > buf.length - off) return null;
         int version = (buf[off] & 0xF0) >>> 4;
         if (version == 4) return parseV4(buf, off, len);
         if (version == 6) return parseV6(buf, off, len);
@@ -120,9 +120,10 @@ public final class IpPacket {
 
         int totalLen = DnsMessage.u16(buf, p + 2);
         // A total length of 0 is what some TUN writers emit when the kernel
-        // fills it in later. Trust the buffer, not the header.
-        if (totalLen == 0 || totalLen > len) totalLen = len;
-        if (totalLen < ihl + UDP_HEADER_LEN) return null;
+        // fills it in later. Nonzero lengths must fit the supplied slice;
+        // clamping them would turn a truncated datagram into a different one.
+        if (totalLen == 0) totalLen = len;
+        if (totalLen > len || totalLen < ihl + UDP_HEADER_LEN) return null;
 
         int ident = DnsMessage.u16(buf, p + 4);
         int flagsFrag = DnsMessage.u16(buf, p + 6);
@@ -141,9 +142,7 @@ public final class IpPacket {
         int sport = DnsMessage.u16(buf, u);
         int dport = DnsMessage.u16(buf, u + 2);
         int udpLen = DnsMessage.u16(buf, u + 4);
-        if (udpLen < UDP_HEADER_LEN) udpLen = totalLen - ihl;
-        if (udpLen > totalLen - ihl) udpLen = totalLen - ihl;
-        if (udpLen < UDP_HEADER_LEN) return null;
+        if (udpLen < UDP_HEADER_LEN || udpLen > totalLen - ihl) return null;
 
         byte[] body = Arrays.copyOfRange(buf, u + UDP_HEADER_LEN, u + udpLen);
         return new IpPacket(4, src, dst, proto, sport, dport, body, ident, ttl, 0, 0, 0);
@@ -158,21 +157,18 @@ public final class IpPacket {
         int payloadLen = DnsMessage.u16(buf, p + 4);
         int next = buf[p + 6] & 0xFF;
         int hopLimit = buf[p + 7] & 0xFF;
-        if (payloadLen == 0 || IPV6_HEADER_LEN + payloadLen > len) payloadLen = len - IPV6_HEADER_LEN;
+        if (payloadLen == 0) payloadLen = len - IPV6_HEADER_LEN;
+        if (payloadLen < UDP_HEADER_LEN || payloadLen > len - IPV6_HEADER_LEN) return null;
         if (next != PROTO_UDP) return null;   // no extension-header walk
 
         byte[] src = Arrays.copyOfRange(buf, p + 8, p + 24);
         byte[] dst = Arrays.copyOfRange(buf, p + 24, p + 40);
 
         int u = p + IPV6_HEADER_LEN;
-        if (u + UDP_HEADER_LEN > off + len) return null;
         int sport = DnsMessage.u16(buf, u);
         int dport = DnsMessage.u16(buf, u + 2);
         int udpLen = DnsMessage.u16(buf, u + 4);
-        if (udpLen < UDP_HEADER_LEN || u + udpLen > off + len) {
-            udpLen = off + len - u;
-        }
-        if (udpLen < UDP_HEADER_LEN) return null;
+        if (udpLen < UDP_HEADER_LEN || udpLen > payloadLen) return null;
 
         byte[] body = Arrays.copyOfRange(buf, u + UDP_HEADER_LEN, u + udpLen);
         return new IpPacket(6, src, dst, PROTO_UDP, sport, dport, body, 0,
@@ -191,10 +187,13 @@ public final class IpPacket {
      * real zero is transmitted as 0xFFFF.
      */
     public byte[] buildResponse(byte[] src, byte[] dst, byte[] newPayload, int newIdentification) {
-        if (newPayload == null) return null;
+        int addressLength = isV4() ? 4 : 16;
+        int headerLength = isV4() ? IPV4_HEADER_LEN : IPV6_HEADER_LEN;
+        if (src == null || dst == null || src.length != addressLength
+                || dst.length != addressLength || newPayload == null) return null;
+        if (newPayload.length > 65535 - headerLength - UDP_HEADER_LEN) return null;
         int udpLen = UDP_HEADER_LEN + newPayload.length;
-        int total = isV4() ? IPV4_HEADER_LEN + udpLen : IPV6_HEADER_LEN + udpLen;
-        if (total > 65535) return null;
+        int total = headerLength + udpLen;
         byte[] out = new byte[total];
 
         if (isV4()) {
@@ -238,16 +237,19 @@ public final class IpPacket {
     /**
      * One's-complement sum over a region, with pseudo-header included for UDP.
      * Returns the value already folded and ready to write into the header.
+     * Returns -1 for an invalid buffer slice (outside the 16-bit checksum range).
      */
     public static int checksum(byte[] buf, int off, int len, int seed) {
-        int sum = seed;
+        if (buf == null || off < 0 || len < 0 || off > buf.length
+                || len > buf.length - off) return -1;
+        long sum = seed & 0xFFFFFFFFL;
         int i = 0;
         for (; i + 1 < len; i += 2) {
             sum += ((buf[off + i] & 0xFF) << 8) | (buf[off + i + 1] & 0xFF);
         }
         if (i < len) sum += (buf[off + i] & 0xFF) << 8;      // odd trailing byte
         while ((sum >>> 16) != 0) sum = (sum & 0xFFFF) + (sum >>> 16);
-        return (~sum) & 0xFFFF;
+        return (int) (~sum) & 0xFFFF;
     }
 
     private int udpChecksum(byte[] buf, byte[] src, byte[] dst) {

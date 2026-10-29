@@ -320,6 +320,46 @@ class IpPacketTest {
     }
 
     @Test
+    void responseBuildersRejectWrongAddressFamiliesAndOversizedPayloads() {
+        byte[] dns = DnsMessageTest.query(1, "address.test", DnsMessage.TYPE_A);
+        for (byte[] bytes : new byte[][] {v4Query(40000, 53, dns), CodecBoundsTest.v6Query(dns)}) {
+            IpPacket packet = IpPacket.parse(bytes);
+            assertNotNull(packet);
+            int width = packet.isV4() ? 4 : 16;
+            assertNull(packet.buildResponse(null, new byte[width], dns, 1));
+            assertNull(packet.buildResponse(new byte[width], null, dns, 1));
+            for (int size : new int[] {0, 3, 4, 5, 15, 16, 17}) {
+                if (size == width) continue;
+                assertNull(packet.buildResponse(new byte[size], new byte[width], dns, 1));
+                assertNull(packet.buildResponse(new byte[width], new byte[size], dns, 1));
+            }
+            int header = packet.isV4() ? IpPacket.IPV4_HEADER_LEN : IpPacket.IPV6_HEADER_LEN;
+            int limit = 65535 - header - IpPacket.UDP_HEADER_LEN;
+            assertNotNull(packet.buildResponse(new byte[width], new byte[width], new byte[limit], 1));
+            assertNull(packet.buildResponse(new byte[width], new byte[width], new byte[limit + 1], 1));
+        }
+    }
+
+    @Test
+    void checksumRejectsInvalidSlicesAndDoesNotOverflowForLargeRegions() {
+        byte[] bytes = new byte[16];
+        assertEquals(-1, IpPacket.checksum(null, 0, 0, 0));
+        assertEquals(-1, IpPacket.checksum(bytes, -1, 1, 0));
+        assertEquals(-1, IpPacket.checksum(bytes, 0, -1, 0));
+        assertEquals(-1, IpPacket.checksum(bytes, 1, Integer.MAX_VALUE, 0));
+        assertEquals(-1, IpPacket.checksum(bytes, Integer.MAX_VALUE, 16, 0));
+        assertEquals(-1, IpPacket.checksum(bytes, 16, 1, 0));
+        assertEquals(0xFFFF, IpPacket.checksum(bytes, 16, 0, 0));
+        byte[] large = new byte[131077];
+        java.util.Arrays.fill(large, (byte) 0xFF);
+        for (int off : new int[] {0, 1, 7}) {
+            int len = large.length - off;
+            assertEquals(referenceChecksum(large, off, len, Integer.MAX_VALUE),
+                    IpPacket.checksum(large, off, len, Integer.MAX_VALUE));
+        }
+    }
+
+    @Test
     void ipToTextFormatsV6() {
         byte[] ip6 = new byte[16];
         ip6[0] = 0x20; ip6[1] = 0x01; ip6[15] = (byte) 0x99;

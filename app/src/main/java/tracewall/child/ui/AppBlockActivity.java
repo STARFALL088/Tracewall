@@ -29,22 +29,36 @@ import tracewall.child.databinding.ActivityAppBlockBinding;
  */
 public class AppBlockActivity extends AppCompatActivity {
 
+    private static final String TAG = "TracewallLifecycle";
+    private android.os.Parcelable pendingScroll;
     private ActivityAppBlockBinding ui;
     private AppBlockAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Create views and restore search before the asynchronous app scan completes.
+        android.util.Log.d(TAG, "AppBlockActivity.onCreate");
         ui = ActivityAppBlockBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
 
         adapter = new AppBlockAdapter((app, block) -> {
             if (block) BlocklistStore.get().blockApp(this, app.uid);
-            else BlocklistStore.get().unblockApp(this, app.uid);
+            else {
+                app.blocked = true;
+                adapter.notifyDataSetChanged();
+                PinGate.require(this, () -> {
+                    BlocklistStore.get().unblockApp(this, app.uid);
+                    app.blocked = BlocklistStore.get().isAppBlocked(app.uid);
+                    adapter.notifyDataSetChanged();
+                    renderCount();
+                });
+            }
             renderCount();
         });
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
+        adapter.setStateRestorationPolicy(androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY);
 
         ui.filter.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
@@ -54,7 +68,47 @@ public class AppBlockActivity extends AppCompatActivity {
             }
         });
 
+        if (savedInstanceState != null) {
+            pendingScroll = savedInstanceState.getParcelable("apps_scroll");
+            ui.filter.setText(savedInstanceState.getString("apps_filter", ""));
+        }
         loadApps();
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        // Views become visible; no service action is issued.
+        android.util.Log.d(TAG, "AppBlockActivity.onStart");
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        // The user can now search and edit app rules.
+        android.util.Log.d(TAG, "AppBlockActivity.onResume");
+    }
+    @Override protected void onPause() {
+        // Lose focus without changing the VPN or rules.
+        android.util.Log.d(TAG, "AppBlockActivity.onPause");
+        super.onPause();
+    }
+    @Override protected void onStop() {
+        // A stopped activity does not own the VPN lifetime.
+        android.util.Log.d(TAG, "AppBlockActivity.onStop");
+        super.onStop();
+    }
+    @Override protected void onRestart() {
+        super.onRestart();
+        // Resume the existing screen state from the back stack.
+        android.util.Log.d(TAG, "AppBlockActivity.onRestart");
+    }
+    @Override protected void onDestroy() {
+        // App-scan completion checks isDestroyed before touching these views.
+        android.util.Log.d(TAG, "AppBlockActivity.onDestroy");
+        super.onDestroy();
+    }
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("apps_filter", ui.filter.getText().toString());
+        state.putParcelable("apps_scroll", pendingScroll != null ? pendingScroll : ui.list.getLayoutManager().onSaveInstanceState());
+        super.onSaveInstanceState(state);
     }
 
     private void loadApps() {
@@ -75,7 +129,12 @@ public class AppBlockActivity extends AppCompatActivity {
             }
             Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
             runOnUiThread(() -> {
+                if (isDestroyed()) return;
                 adapter.submit(apps);
+                if (pendingScroll != null && adapter.getItemCount() > 0) {
+                    ui.list.getLayoutManager().onRestoreInstanceState(pendingScroll);
+                    pendingScroll = null;
+                }
                 renderCount();
                 boolean none = apps.isEmpty();
                 ui.empty.setVisibility(none ? View.VISIBLE : View.GONE);

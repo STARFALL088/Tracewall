@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <!-- The application theme has no ActionBar. Keep an explicit, fixed Back control. -->
+    <Button android:id="@+id/rules_back" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:minHeight="48dp" android:text="@string/rules9_back" android:textAllCaps="false" />
+    <ScrollView android:id="@+id/rules_scroll" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+            <TextView android:id="@+id/rules_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_title" android:textSize="24sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_intro" android:textSize="16sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_precedence" android:textSize="16sp" android:paddingTop="12dp" />
+            <TextView android:id="@+id/rules_status" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_loading" android:textSize="16sp" android:accessibilityLiveRegion="polite" android:paddingTop="12dp" />
+            <Button android:id="@+id/refresh_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_refresh" android:textAllCaps="false" />
+            <TextView android:id="@+id/domains_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_domains" android:textSize="20sp" android:paddingTop="16dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_pattern" android:textSize="16sp" />
+            <EditText android:id="@+id/rule_pattern" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:inputType="textUri" android:maxLength="255" android:hint="@string/rules9_pattern_hint"
+                android:importantForAutofill="no" android:textSize="16sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_pattern_help" android:textSize="16sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_minutes" android:labelFor="@id/rule_minutes" android:textSize="16sp" android:paddingTop="12dp" />
+            <EditText android:id="@+id/rule_minutes" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:inputType="number" android:maxLength="5" android:importantForAutofill="no" android:textSize="16sp" />
+            <Button android:id="@+id/add_deny" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_add_deny" android:textAllCaps="false" />
+            <Button android:id="@+id/add_timed" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_add_timed" android:textAllCaps="false" />
+            <Button android:id="@+id/add_permanent" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_add_permanent" android:textAllCaps="false" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_expiry_help" android:textSize="16sp" />
+            <Button android:id="@+id/show_denies" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_denies" android:textAllCaps="false" />
+            <Button android:id="@+id/show_allows" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_allows" android:textAllCaps="false" />
+            <Button android:id="@+id/show_timed" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_timed" android:textAllCaps="false" />
+            <TextView android:id="@+id/profiles_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_profiles" android:textSize="20sp" android:paddingTop="16dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_schedule_help" android:textSize="16sp" />
+            <LinearLayout android:id="@+id/profile_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+            <Button android:id="@+id/new_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_new_profile" android:textAllCaps="false" />
+            <TextView android:id="@+id/profile_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_new_heading" android:textSize="20sp" android:paddingTop="12dp" />
+            <EditText android:id="@+id/profile_name" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:inputType="textCapSentences" android:maxLength="40"
+                android:hint="@string/rules9_profile_name" android:importantForAutofill="no" android:textSize="16sp" />
+            <CheckBox android:id="@+id/profile_enabled" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_enabled" android:textSize="16sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_days" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_monday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_monday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_tuesday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_tuesday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_wednesday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_wednesday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_thursday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_thursday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_friday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_friday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_saturday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_saturday" android:textSize="16sp" />
+            <CheckBox android:id="@+id/day_sunday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_sunday" android:textSize="16sp" />
+            <Button android:id="@+id/profile_start" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:textAllCaps="false" />
+            <Button android:id="@+id/profile_end" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:textAllCaps="false" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_categories" android:textSize="16sp" />
+            <CheckBox android:id="@+id/profile_ads" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_ads" android:textSize="16sp" />
+            <CheckBox android:id="@+id/profile_adult" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_adult" android:textSize="16sp" />
+            <CheckBox android:id="@+id/profile_gambling" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_gambling" android:textSize="16sp" />
+            <CheckBox android:id="@+id/profile_malware" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_malware" android:textSize="16sp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_uids" android:labelFor="@id/profile_uids" android:textSize="16sp" />
+            <EditText android:id="@+id/profile_uids" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:inputType="textMultiLine|textNoSuggestions" android:maxLength="12000"
+                android:importantForAutofill="no" android:textSize="16sp" android:gravity="top" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_uid_help" android:textSize="16sp" />
+            <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_save_profile" android:textAllCaps="false" />
+            <Button android:id="@+id/delete_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_delete_profile" android:textAllCaps="false" />
+            <TextView android:id="@+id/backup_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_backup" android:textSize="20sp" android:paddingTop="16dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/rules9_backup_help" android:textSize="16sp" />
+            <Button android:id="@+id/export_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_export" android:textAllCaps="false" />
+            <Button android:id="@+id/import_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/rules9_import" android:textAllCaps="false" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

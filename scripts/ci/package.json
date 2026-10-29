@@ -1,0 +1,12 @@
+{
+  "name": "tracewall-ci-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned emulator-only Firebase CLI; never used for deployment",
+  "engines": {
+    "node": "24.22.2"
+  },
+  "devDependencies": {
+    "firebase-tools": "15.34.2"
+  }
+}

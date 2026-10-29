@@ -4,7 +4,7 @@
 
     <!-- Pairing screen -->
     <string name="pairing_title">Connect to a child device</string>
-    <string name="pairing_body">Enter the device code shown on the child\'s Tracewall screen, or tap Scan QR to read it automatically.</string>
+    <string name="pairing_body">On the child device, tap the device UID and enter the parent PIN to generate a one-time code. Scan the QR or enter the UID and code below within five minutes.</string>
     <string name="pairing_hint">Device code (child\'s Firebase UID)</string>
     <string name="pairing_connect">Connect</string>
     <string name="pairing_scan">Scan QR Code</string>
@@ -24,7 +24,7 @@
     <string name="cat_adult">Adult</string>
     <string name="cat_ads">Ads</string>
     <string name="categories_pushed">Categories updated on child device</string>
-    <string name="dashboard_history">Recent queries</string>
+    <string name="dashboard_history">Recent activity (DNS and device events)</string>
     <string name="rule_domain_empty">Enter a domain</string>
     <string name="rule_pushed">Rule pushed: allow %1$s</string>
     <string name="rule_uid_empty">Enter an app UID</string>
@@ -36,4 +36,27 @@
     <string name="unpair_title">Disconnect from child?</string>
     <string name="unpair_body">You will need to re-enter the device code to reconnect.</string>
     <string name="unpair_yes">Disconnect</string>
+    <string name="protection_off_event">Protection stopped: %1$s\n%2$s</string>
+    <string name="dismiss_event">Dismiss</string>
+    <string name="last_seen">Last DNS activity: %1$s</string>
+    <string name="last_seen_unknown">Last DNS activity: unknown</string>
+    <string name="remove_rule">Remove an allow or blocked UID</string>
+    <string name="allow_entry">Allow: %1$s</string>
+    <string name="uid_entry">Blocked UID: %1$d</string>
+    <string name="pairing_code_hint">8-character one-time code</string>
+    <string name="pairing_code_invalid">Enter the child UID and a valid 8-character code from the child QR dialog.</string>
+    <string name="new_app_row">New app: %1$s</string>
+    <string name="event_installed">Installed</string>
+    <string name="event_protection_off">Protection is off</string>
+    <string name="event_device">Device event</string>
+    <string name="pairing_partial_reset">A previous pairing partly succeeded with another code. Revoke this parent on the child, then generate a new code.</string>
+    <string name="pairing_retry">Pairing could not finish. Check connectivity and retry the same unexpired code. If it expires, revoke the partial parent on the child before trying a new code.</string>
+    <string name="rule_domain_invalid">Enter a domain such as example.com or *.example.com, without a URL, path or spaces.</string>
+    <string name="rules_waiting">Waiting for the rules snapshot…</string>
+    <string name="rules_ready">Rules loaded. Changes require server confirmation.</string>
+    <string name="rules_pending">Change pending — waiting for the server. The child may be offline.</string>
+    <string name="rules_saved">Saved on the server. This does not confirm the child has applied it yet.</string>
+    <string name="rules_failed">Could not confirm rules. Check connectivity and parent access, then retry.</string>
+    <string name="verdict_block">BLOCK</string>
+    <string name="verdict_allow">allow</string>
 </resources>

@@ -12,3 +12,7 @@ captures/
 *.keystore
 google-services.json
 bin/
+node_modules/
+
+# Firebase emulator diagnostics
+*-debug.log

@@ -16,7 +16,7 @@ import tracewall.child.MainActivity;
 import tracewall.child.R;
 
 /**
- * The one notification this app posts: "protection is not running".
+ * Status notifications, including the VPN's ongoing foreground notification.
  *
  * A reboot cannot be repaired silently. Android 8+ forbids starting a plain
  * background Service from a boot receiver, and a VpnService started that way is
@@ -28,9 +28,47 @@ import tracewall.child.R;
 public final class Notifications {
 
     public static final String CHANNEL_ID = "tracewall.status";
+    private static final String PROTECTION_CHANNEL_ID = "tracewall.protection";
     public static final int ID_PROTECTION_OFF = 1;
+    public static final int ID_PROTECTION_ACTIVE = 3;
 
     private Notifications() { }
+
+    /** Must be built even when POST_NOTIFICATIONS was declined: FGS still requires it. */
+    public static Notification protectionActive(Context ctx) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationManager manager = ctx.getSystemService(NotificationManager.class);
+            if (manager != null) manager.createNotificationChannel(new NotificationChannel(
+                PROTECTION_CHANNEL_ID, ctx.getString(R.string.notif_active_channel),
+                NotificationManager.IMPORTANCE_LOW));
+        }
+        PendingIntent tap = PendingIntent.getActivity(ctx, 3,
+            new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26
+            ? new Notification.Builder(ctx, PROTECTION_CHANNEL_ID) : new Notification.Builder(ctx);
+        NotificationManagerCompat.from(ctx).cancel(ID_PROTECTION_OFF);
+        return builder.setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setContentTitle(ctx.getString(R.string.status_on))
+            .setContentText(ctx.getString(R.string.notif_active_text))
+            .setContentIntent(tap).setCategory(Notification.CATEGORY_SERVICE)
+            .setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false).build();
+    }
+
+    public static void showNewApp(Context ctx, String label, String packageName) {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(ctx,
+                "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) return;
+        ensureChannel(ctx);
+        PendingIntent tap = PendingIntent.getActivity(ctx, 2, new Intent(ctx, AppBlockActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Builder builder = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(ctx, CHANNEL_ID)
+            : new Notification.Builder(ctx);
+        NotificationManagerCompat.from(ctx).notify(2, builder.setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(ctx.getString(R.string.new_app_title))
+            .setContentText(ctx.getString(R.string.new_app_body, label, packageName))
+            .setContentIntent(tap).setAutoCancel(true).build());
+    }
 
     public static void ensureChannel(Context ctx) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;

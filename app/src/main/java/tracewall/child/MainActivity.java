@@ -35,6 +35,7 @@ import tracewall.child.log.QueryLogProvider;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.child.ui.AppBlockActivity;
 import tracewall.child.ui.QueryAdapter;
+import tracewall.child.ui.PinGate;
 import tracewall.child.ui.TrendView;
 import tracewall.child.vpn.DnsVpnService;
 
@@ -49,6 +50,8 @@ import tracewall.child.vpn.DnsVpnService;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "TracewallLifecycle";
+    private android.os.Parcelable pendingScroll;
     private static final long TICK_MS = 700;
     private static final long BUCKET_MS = 60_000L; // one trend bar = one minute
 
@@ -65,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
             ticker.postDelayed(this, TICK_MS);
         }
     };
+
+    private final ActivityResultLauncher<String[]> rulesDocument = registerForActivityResult(
+        new ActivityResultContracts.OpenDocument(), uri -> {
+            if (uri != null) PinGate.require(this, () -> tracewall.child.io.RulesTransfer.importRules(this, uri));
+        });
 
     private final ActivityResultLauncher<String> notificationPermission =
         registerForActivityResult(
@@ -95,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Inflate a new view tree; the VPN service has its own lifetime.
+        android.util.Log.d(TAG, "MainActivity.onCreate");
         ui = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
 
@@ -102,11 +112,26 @@ public class MainActivity extends AppCompatActivity {
         adapter = new QueryAdapter(labels, this::askRow);
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
+        adapter.setStateRestorationPolicy(androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY);
+        if (savedInstanceState != null) {
+            pendingScroll = savedInstanceState.getParcelable("query_scroll");
+            ui.queryFilter.setText(savedInstanceState.getString("query_filter", ""));
+            int controlsY = savedInstanceState.getInt("controls_scroll", 0);
+            ui.controls.post(() -> ui.controls.scrollTo(0, controlsY));
+        }
+        ui.queryFilter.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence value, int start, int count, int after) {}
+            public void onTextChanged(CharSequence value, int start, int before, int count) { render(); }
+            public void afterTextChanged(android.text.Editable value) {}
+        });
 
         ui.toggle.setOnCheckedChangeListener((button, checked) -> {
             if (updatingToggle) return;
             if (checked) requestStart();
-            else stopFiltering();
+            else {
+                render();
+                PinGate.require(this, this::stopFiltering);
+            }
         });
 
         if (
@@ -124,21 +149,58 @@ public class MainActivity extends AppCompatActivity {
         ui.actionApps.setOnClickListener(v ->
             startActivity(new Intent(this, AppBlockActivity.class))
         );
-        ui.copyCsv.setOnClickListener(v -> copyCsv());
+        ui.makePermanent.setOnClickListener(v -> new AlertDialog.Builder(this)
+            .setTitle(R.string.make_permanent)
+            .setMessage(R.string.permanent_body)
+            .setPositiveButton(android.R.string.ok, (d, w) ->
+                openVpnSettings())
+            .setNegativeButton(android.R.string.cancel, null).show());
+        ui.exportRules.setOnClickListener(v -> PinGate.require(this, () -> tracewall.child.io.RulesTransfer.exportRules(this)));
+        ui.importRules.setOnClickListener(v -> PinGate.require(this, () -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("application/json").addCategory(Intent.CATEGORY_OPENABLE);
+            if (intent.resolveActivity(getPackageManager()) == null) {
+                Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show();
+                return;
+            }
+            try { rulesDocument.launch(new String[] {"application/json", "text/json"}); }
+            catch (android.content.ActivityNotFoundException e) { Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show(); }
+        }));
+        ui.updateLists.setOnClickListener(v -> updateLists());
+        ui.openHistory.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.HistoryActivity.class)));
+        ui.openRules.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.RulesActivity.class)));
+        ui.manageAllows.setOnClickListener(v -> showAllows());
+        PinGate.ensureSet(this);
+        ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
-        ui.deviceCode.setOnClickListener(v -> showQrDialog());
+        ui.deviceCode.setOnClickListener(v -> PinGate.require(this, this::showQrDialog));
+        ui.shareAppNames.setText(FirebaseSync.get().isInventorySharingEnabled() ? R.string.inventory_on : R.string.inventory_off);
+        ui.shareAppNames.setOnClickListener(v -> PinGate.require(this, () -> configureInventorySharing(null)));
+        ui.manageParents.setOnClickListener(v -> PinGate.require(this, () ->
+            FirebaseSync.get().listParents(parents -> new AlertDialog.Builder(this)
+                .setTitle(R.string.revoke_parent)
+                .setItems(parents.toArray(new String[0]), (d, which) -> {
+                    Toast.makeText(this, R.string.revoke_pending, Toast.LENGTH_LONG).show();
+                    FirebaseSync.get().revokeParent(parents.get(which), () -> {
+                        if (!isDestroyed()) Toast.makeText(this, R.string.revoke_confirmed, Toast.LENGTH_LONG).show();
+                    }, () -> {
+                        if (!isDestroyed()) Toast.makeText(this, R.string.revoke_pending, Toast.LENGTH_LONG).show();
+                    });
+                })
+                .setNegativeButton(android.R.string.cancel, null).show())));
         ui.deviceCode.setOnLongClickListener(v -> {
             copyDeviceCode();
             return true;
         });
 
-        if (savedInstanceState == null) QueryLog.get().clear();
+        // Keep the process log when this Activity is recreated or reopened.
         render();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        // Resume visible-only polling and recheck OS settings.
+        android.util.Log.d(TAG, "MainActivity.onResume");
         ticker.post(refresh);
         checkPrivateDns();
         updateDeviceCode();
@@ -147,7 +209,44 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        // Stop polling while another screen owns the foreground.
+        android.util.Log.d(TAG, "MainActivity.onPause");
         ticker.removeCallbacks(refresh);
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        // The view is visible; rendering never starts the VPN.
+        android.util.Log.d(TAG, "MainActivity.onStart");
+    }
+    @Override protected void onStop() {
+        super.onStop();
+        // Hiding this screen leaves the service running.
+        android.util.Log.d(TAG, "MainActivity.onStop");
+    }
+    @Override protected void onRestart() {
+        super.onRestart();
+        // Return from a stopped screen without requesting VPN consent again.
+        android.util.Log.d(TAG, "MainActivity.onRestart");
+    }
+    @Override protected void onDestroy() {
+        // Remove pending UI callbacks; the service owns its own cleanup.
+        android.util.Log.d(TAG, "MainActivity.onDestroy");
+        ticker.removeCallbacksAndMessages(null);
+        super.onDestroy();
+    }
+    @Override protected void onSaveInstanceState(Bundle state) {
+        state.putString("query_filter", ui.queryFilter.getText().toString());
+        state.putParcelable("query_scroll", pendingScroll != null ? pendingScroll : ui.list.getLayoutManager().onSaveInstanceState());
+        state.putInt("controls_scroll", ui.controls.getScrollY());
+        super.onSaveInstanceState(state);
+    }
+    @Override protected void onRestoreInstanceState(Bundle state) {
+        // Framework view restoration must never fire a protection toggle action.
+        updatingToggle = true;
+        super.onRestoreInstanceState(state);
+        updatingToggle = false;
+        render();
     }
 
     // ------------------------------------------------------- warnings / info
@@ -183,10 +282,29 @@ public class MainActivity extends AppCompatActivity {
     private void showQrDialog() {
         String uid = FirebaseSync.get().uid();
         if (uid == null) return;
+        configureInventorySharing(() -> FirebaseSync.get().createPairing(pairing -> showPairingQr(pairing), () ->
+            Toast.makeText(this, R.string.pairing_create_failed, Toast.LENGTH_LONG).show()));
+    }
+
+    private void configureInventorySharing(Runnable after) {
+        android.widget.CheckBox share = new android.widget.CheckBox(this);
+        share.setText(R.string.inventory_consent);
+        share.setChecked(FirebaseSync.get().isInventorySharingEnabled());
+        new AlertDialog.Builder(this).setTitle(R.string.pairing_share_title)
+            .setMessage(R.string.pairing_share_body).setView(share)
+            .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                FirebaseSync.get().setInventorySharingEnabled(share.isChecked());
+                ui.shareAppNames.setText(share.isChecked() ? R.string.inventory_on : R.string.inventory_off);
+                if (after != null) after.run();
+            }).setNegativeButton(android.R.string.cancel, null).show();
+    }
+
+    private void showPairingQr(tracewall.security.PairingCode pairing) {
+        if (isFinishing() || isDestroyed()) return;
         try {
             int size = 512;
             BitMatrix matrix = new MultiFormatWriter().encode(
-                uid,
+                pairing.payload(),
                 BarcodeFormat.QR_CODE,
                 size,
                 size
@@ -208,6 +326,7 @@ public class MainActivity extends AppCompatActivity {
             iv.setPadding(32, 32, 32, 32);
             new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(R.string.qr_title)
+                .setMessage(getString(R.string.pairing_details, pairing.childUid, pairing.code))
                 .setView(iv)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
@@ -236,6 +355,17 @@ public class MainActivity extends AppCompatActivity {
 
     // ------------------------------------------------------------ protection
 
+    private void showAllows() {
+        String[] hosts = BlocklistStore.get().localAllows(this).toArray(new String[0]);
+        new AlertDialog.Builder(this).setTitle(R.string.manage_allows)
+            .setItems(hosts, (d, which) -> PinGate.require(this, () -> {
+                BlocklistStore.get().removeAllow(this, hosts[which]);
+                render();
+            }))
+            .setMessage(hosts.length == 0 ? getString(R.string.no_allows) : null)
+            .setNegativeButton(android.R.string.cancel, null).show();
+    }
+
     private void requestStart() {
         Intent prepare = VpnService.prepare(this);
         if (prepare != null) {
@@ -246,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startFiltering() {
-        startService(
+        ContextCompat.startForegroundService(this,
             new Intent(this, DnsVpnService.class).setAction(
                 DnsVpnService.ACTION_START
             )
@@ -279,8 +409,11 @@ public class MainActivity extends AppCompatActivity {
             .setTitle(e.host)
             .setMessage(getString(R.string.row_body, labels.label(e.uid)))
             .setPositiveButton(R.string.allow_yes, (dialog, which) -> {
-                BlocklistStore.get().allow(this, e.host);
-                render();
+                PinGate.require(this, () -> {
+                    if (!BlocklistStore.get().allow(this, e.host))
+                        Toast.makeText(this, R.string.rules9_edit_failed, Toast.LENGTH_LONG).show();
+                    render();
+                });
             });
         if (e.uid >= 10000) {
             b.setNegativeButton(R.string.block_app_yes, (dialog, which) -> {
@@ -306,77 +439,39 @@ public class MainActivity extends AppCompatActivity {
      */
     private void copyCsv() {
         new Thread(() -> {
-            StringBuilder sb = new StringBuilder(
-                "time_ms,host,type,blocked,uid,policy,latency_ms,resolver\n"
-            );
-            int rows = 0;
-            try (
-                Cursor c = getContentResolver().query(
-                    QueryLogProvider.CONTENT_URI,
-                    null,
-                    null,
-                    null,
-                    null
-                )
-            ) {
-                if (c != null) {
+            try {
+                java.io.File file = tracewall.child.io.ShareFiles.target(this, "history.csv");
+                try (java.io.Writer writer = new java.io.OutputStreamWriter(
+                        new java.io.FileOutputStream(file), java.nio.charset.StandardCharsets.UTF_8);
+                     Cursor c = getContentResolver().query(QueryLogProvider.CONTENT_URI,
+                         null, null, null, null)) {
+                    writer.write("time_ms,host,type,blocked,uid,policy,latency_ms,resolver\r\n");
+                    if (c == null) throw new java.io.IOException("History unavailable");
+                    String[] columns = {"time_ms", "host", "type", "blocked", "uid", "policy", "latency_ms", "resolver"};
                     while (c.moveToNext()) {
-                        sb.append(c.getLong(c.getColumnIndexOrThrow("time_ms")))
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("host"))
-                            )
-                            .append(',')
-                            .append(c.getInt(c.getColumnIndexOrThrow("type")))
-                            .append(',')
-                            .append(
-                                c.getInt(c.getColumnIndexOrThrow("blocked"))
-                            )
-                            .append(',')
-                            .append(c.getInt(c.getColumnIndexOrThrow("uid")))
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("policy"))
-                            )
-                            .append(',')
-                            .append(
-                                c.getLong(c.getColumnIndexOrThrow("latency_ms"))
-                            )
-                            .append(',')
-                            .append(
-                                c.getString(c.getColumnIndexOrThrow("resolver"))
-                            )
-                            .append('\n');
-                        rows++;
+                        Object[] row = new Object[columns.length];
+                        for (int i = 0; i < columns.length; i++) {
+                            String value = c.getString(c.getColumnIndexOrThrow(columns[i]));
+                            row[i] = i == 1 || i == 5 || i == 7 ? tracewall.data.CsvRow.spreadsheetText(value) : value;
+                        }
+                        writer.write(tracewall.data.CsvRow.of(row));
                     }
                 }
-            } catch (RuntimeException e) {
-                runOnUiThread(() ->
-                    Toast.makeText(
-                        this,
-                        R.string.csv_failed,
-                        Toast.LENGTH_LONG
-                    ).show()
-                );
-                return;
+                runOnUiThread(() -> tracewall.child.io.ShareFiles.send(this, file, "text/csv"));
+            } catch (java.io.IOException | RuntimeException e) {
+                runOnUiThread(() -> Toast.makeText(this, R.string.csv_failed, Toast.LENGTH_LONG).show());
             }
-
-            final int count = rows;
-            final String csv = sb.toString();
-            runOnUiThread(() -> {
-                ClipboardManager cm = (ClipboardManager) getSystemService(
-                    Context.CLIPBOARD_SERVICE
-                );
-                if (cm != null) cm.setPrimaryClip(
-                    ClipData.newPlainText("Tracewall history", csv)
-                );
-                Toast.makeText(
-                    this,
-                    getString(R.string.csv_copied, count),
-                    Toast.LENGTH_LONG
-                ).show();
-            });
         }, "tracewall-export").start();
+    }
+
+    private void openVpnSettings() {
+        for (String action : new String[] {Settings.ACTION_VPN_SETTINGS, Settings.ACTION_SETTINGS}) {
+            Intent intent = new Intent(action);
+            if (intent.resolveActivity(getPackageManager()) == null) continue;
+            try { startActivity(intent); return; }
+            catch (android.content.ActivityNotFoundException ignored) { /* Try general settings. */ }
+        }
+        Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show();
     }
 
     private void confirmClearHistory() {
@@ -414,14 +509,46 @@ public class MainActivity extends AppCompatActivity {
         }, "tracewall-clear").start();
     }
 
+    private boolean listUpdateRunning;
+    private void updateLists() {
+        if (listUpdateRunning) return;
+        listUpdateRunning = true;
+        ui.updateLists.setEnabled(false);
+        tracewall.child.net.ListUpdater.update(this, new tracewall.child.net.ListUpdater.Listener() {
+            public void progress(int completed, int total) {
+                if (!isDestroyed()) ui.updateResult.setText(getString(R.string.update_progress, completed, total));
+            }
+            public void done(tracewall.child.net.ListUpdater.Result result) {
+                listUpdateRunning = false;
+                if (isDestroyed()) return;
+                ui.updateLists.setEnabled(true);
+                render();
+            }
+        });
+    }
+    private void renderUpdateResult() {
+        if (listUpdateRunning) return;
+        android.content.SharedPreferences sp = tracewall.child.net.ListUpdater.prefs(this);
+        long attempt = sp.getLong("attempt_ms", 0), success = sp.getLong("success_ms", 0);
+        if (attempt == 0) { ui.updateResult.setText(R.string.update_never); return; }
+        java.text.DateFormat format = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT);
+        ui.updateResult.setText(getString(R.string.update_result, sp.getInt("updated", 0), sp.getInt("failed", 0),
+            sp.getInt("added", 0), format.format(new java.util.Date(attempt)),
+            success == 0 ? getString(R.string.update_never_success) : format.format(new java.util.Date(success))));
+    }
+
     // ---------------------------------------------------------------- render
 
     private void render() {
+        // Anonymous sign-in can finish after onResume; show pairing as soon as it is ready.
+        updateDeviceCode();
         boolean on = DnsVpnService.isRunning();
         updatingToggle = true;
         if (ui.toggle.isChecked() != on) ui.toggle.setChecked(on);
         updatingToggle = false;
 
+        ui.updateSchedule.setText(BlocklistStore.isEnabled(this) ? R.string.update_scheduled : R.string.update_not_scheduled);
+        renderUpdateResult();
         ui.status.setText(on ? R.string.status_on : R.string.status_off);
 
         QueryLog.Stats s = QueryLog.get().stats();
@@ -436,8 +563,18 @@ public class MainActivity extends AppCompatActivity {
             )
         );
 
-        List<QueryLog.Entry> recent = QueryLog.get().snapshot(60);
-        adapter.submit(recent);
+        List<QueryLog.Entry> recent = QueryLog.get().snapshot(500);
+        List<QueryLog.Entry> visible = new java.util.ArrayList<>();
+        String filter = ui.queryFilter.getText().toString();
+        for (QueryLog.Entry entry : recent) {
+            if (tracewall.data.TextFilter.matches(filter, entry.host, labels.label(entry.uid))) visible.add(entry);
+            if (visible.size() == 60) break;
+        }
+        adapter.submit(visible);
+        if (pendingScroll != null && !visible.isEmpty()) {
+            ui.list.getLayoutManager().onRestoreInstanceState(pendingScroll);
+            pendingScroll = null;
+        }
         updateTrend(recent);
     }
 

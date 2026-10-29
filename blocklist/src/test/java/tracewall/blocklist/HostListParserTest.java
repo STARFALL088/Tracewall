@@ -81,6 +81,19 @@ class HostListParserTest {
     }
 
     @Test
+    void mergesAliasesInlineCommentsAndDuplicatesAcrossPrefixes() {
+        HostListParser.Result result = HostListParser.parse(
+            "# header\r\n0.0.0.0 ADS.example.com tracker.example.com # note\n"
+            + "127.0.0.1 ads.example.com\ntracker.example.com#inline\n"
+            + "127.0.0.1 localhost localhost.localdomain\n::1 ip6-localhost ip6-loopback");
+        assertEquals(2, result.entriesParsed());
+        assertEquals(2, result.duplicates());
+        assertEquals(0, result.malformed());
+        assertTrue(result.set().matches("tracker.example.com"));
+        assertFalse(result.set().matches("localhost.localdomain"));
+    }
+
+    @Test
     void nullInputYieldsEmptySetNotACrash() {
         HostListParser.Result n = HostListParser.parse(null);
         assertEquals(0, n.entriesParsed());

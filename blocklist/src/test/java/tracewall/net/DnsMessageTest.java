@@ -261,6 +261,10 @@ class DnsMessageTest {
         DnsMessage m = DnsMessage.parse(r);
         assertNotNull(m);
         assertEquals(0, m.anCount());
+        assertEquals(DnsMessage.TYPE_AAAA, m.qType());
+        assertEquals(DnsMessage.CLASS_IN, m.qClass());
+        assertEquals(DnsMessage.RCODE_NOERROR, m.rCode());
+        assertTrue(m.isResponse());
         assertEquals(7, m.id());
         assertEquals("blocked.test", m.qName());
     }
@@ -375,6 +379,55 @@ class DnsMessageTest {
             DnsMessage.encodeName("example.com.")
         );
         assertArrayEquals(new byte[] { 0 }, DnsMessage.encodeName("."));
+    }
+
+    @Test
+    void aResponseCopiesTheSuppliedAddressAndRejectsNonV4Addresses() {
+        DnsMessage query = DnsMessage.parse(query(17, "address.test", DnsMessage.TYPE_A));
+        byte[] address = {(byte) 192, 0, 2, 17};
+        byte[] reply = DnsMessage.buildAResponse(query, address);
+        assertNotNull(reply);
+        assertArrayEquals(address, java.util.Arrays.copyOfRange(reply, reply.length - 4, reply.length));
+        assertEquals(4, DnsMessage.u16(reply, reply.length - 6));
+        address[0] = 0;
+        assertEquals(192, reply[reply.length - 4] & 0xFF, "builder must copy the address");
+        for (int len : new int[] {0, 1, 3, 5, 16}) {
+            assertNull(DnsMessage.buildAResponse(query, new byte[len]), "address length " + len);
+        }
+        byte[] zero = DnsMessage.buildAResponse(query, null);
+        assertNotNull(zero, "null keeps the default 0.0.0.0 answer");
+        assertArrayEquals(new byte[4], java.util.Arrays.copyOfRange(zero, zero.length - 4, zero.length));
+    }
+
+    @Test
+    void normalizeRejectsMalformedQuestionsAndPreservesOpaqueResponseBytes() {
+        byte[] malformed = new byte[DnsMessage.HEADER_LEN];
+        DnsMessage.putU16(malformed, 2, DnsMessage.FLAGS_QR);
+        DnsMessage.putU16(malformed, 4, 1);
+        assertNull(DnsMessage.normalizeResponse(malformed, 1, true));
+
+        byte[] response = DnsMessage.buildAResponse(
+                DnsMessage.parse(query(17, "opaque.test", DnsMessage.TYPE_A)), new byte[4]);
+        DnsMessage.putU16(response, 2, DnsMessage.FLAGS_QR | DnsMessage.FLAGS_TC | 0x0020);
+        byte[] original = response.clone();
+        byte[] normalized = DnsMessage.normalizeResponse(response, 23, true);
+        assertNotNull(normalized);
+        assertArrayEquals(original, response);
+        assertArrayEquals(java.util.Arrays.copyOfRange(original, 4, original.length),
+                java.util.Arrays.copyOfRange(normalized, 4, normalized.length));
+        assertEquals(DnsMessage.FLAGS_QR | DnsMessage.FLAGS_RA | 0x0020, DnsMessage.u16(normalized, 2));
+        assertEquals(23, DnsMessage.u16(normalized, 0));
+    }
+
+    @Test
+    void encodeNameRejectsRepeatedTrailingDotsAndNonAsciiRatherThanChangingTheName() {
+        assertNull(DnsMessage.encodeName("a.."));
+        assertNull(DnsMessage.encodeName(".."));
+        assertNull(DnsMessage.encodeName("caf\u00e9.test"));
+        assertNull(DnsMessage.encodeName("a\\"));
+        assertNull(DnsMessage.encodeName("\\12.test"));
+        assertNull(DnsMessage.encodeName("\\256.test"));
+        assertNull(DnsMessage.encodeName("\\2x5.test"));
     }
 
     @Test

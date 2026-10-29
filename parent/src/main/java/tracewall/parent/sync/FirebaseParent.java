@@ -11,18 +11,20 @@ import com.google.firebase.firestore.FirebaseFirestoreSettings;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.PersistentCacheSettings;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.Source;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import tracewall.security.PairingPlan;
+import tracewall.data.RuleEdits;
+import tracewall.data.AppInventory;
+import tracewall.security.PairingCode;
 
 /**
  * Parent-side Firebase facade.
  *
- * <p><b>Pairing model</b>: the child device displays its Firebase UID as a
- * "device code". The parent enters that code here. On pairing,
- * {@link #registerAsParent} writes {@code /devices/{childUid}/parentUid/{parentUid} = true}
- * to the Realtime Database. The security rules then allow the parent UID to
- * read and write the child's data for the lifetime of the pairing.
+ * <p>Pairing requires the child's UID and a short-lived one-time code.
+ * Each database independently validates an atomic claim and parent registration.
  *
  * <p>Call {@link #signInAnonymously} once from
  * {@code TracewallParentApp.onCreate()} before any Activity starts.
@@ -62,6 +64,10 @@ public class FirebaseParent {
     // ---------------------------------------------------------------- auth
 
     public void signInAnonymously(@NonNull Runnable callback) {
+        signInAnonymously(callback, () -> {});
+    }
+
+    public void signInAnonymously(@NonNull Runnable callback, @NonNull Runnable failed) {
         FirebaseUser current = auth.getCurrentUser();
         if (current != null) {
             callback.run();
@@ -72,7 +78,7 @@ public class FirebaseParent {
                 Log.d(TAG, "signed in as " + r.getUser().getUid());
                 callback.run();
             })
-            .addOnFailureListener(e -> Log.e(TAG, "sign-in failed", e));
+            .addOnFailureListener(e -> { Log.e(TAG, "sign-in failed", e); failed.run(); });
     }
 
     /** @return current parent UID, or {@code null} if not yet signed in. */
@@ -83,120 +89,184 @@ public class FirebaseParent {
 
     // -------------------------------------------------------------- pairing
 
-    /**
-     * Register this device as the parent of the child identified by
-     * {@code childUid}. Writes {@code /devices/{childUid}/parentUid/{parentUid} = true}
-     * so the RTDB security rules will grant this parent full access.
-     *
-     * @param childUid  the UID shown on the child's device
-     * @param onSuccess called on the main thread when the write succeeds
-     * @param onFail    called on the main thread when the write fails
-     */
-    public void registerAsParent(
-        @NonNull String childUid,
-        @NonNull Runnable onSuccess,
-        @NonNull Runnable onFail
-    ) {
+    public enum PairingFailure { CONNECTION, CHILD_RESET_REQUIRED }
+
+    /** Resume only the missing claim; existing membership is never overwritten. */
+    public void registerAsParent(String childUid, String code, Runnable onSuccess,
+            java.util.function.Consumer<PairingFailure> onFail) {
+        signInAnonymously(() -> resumePairing(childUid, code, onSuccess, onFail),
+            () -> onFail.accept(PairingFailure.CONNECTION));
+    }
+
+    private void resumePairing(String childUid, String code, Runnable onSuccess,
+            java.util.function.Consumer<PairingFailure> onFail) {
         String parentUid = uid();
-        if (parentUid == null) {
-            Log.w(TAG, "registerAsParent: not signed in");
-            onFail.run();
-            return;
-        }
-        // Write to RTDB (for real-time rules channel security)
-        db.getReference("devices")
-            .child(childUid)
-            .child("parentUid")
-            .child(parentUid)
-            .setValue(true)
-            .addOnSuccessListener(v -> {
-                Log.i(TAG, "paired with child " + childUid + " (RTDB)");
-                // Mirror to Firestore so the Firestore security rules can
-                // also verify this pairing without cross-database lookups.
-                fs.collection("devices")
-                    .document(childUid)
-                    .collection("parents")
-                    .document(parentUid)
-                    .set(new HashMap<>())
-                    .addOnSuccessListener(fv -> {
-                        Log.i(
-                            TAG,
-                            "paired with child " + childUid + " (Firestore)"
-                        );
-                        onSuccess.run();
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Firestore pairing write failed", e);
-                        // RTDB succeeded so the child can still receive rules;
-                        // Firestore history reads will fail until this is fixed.
-                        onFail.run();
-                    });
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "pairing failed", e);
-                onFail.run();
-            });
+        if (parentUid == null) { onFail.accept(PairingFailure.CONNECTION); return; }
+        com.google.firebase.database.DatabaseReference realtime = db.getReference("devices").child(childUid);
+        com.google.firebase.firestore.DocumentReference device = fs.collection("devices").document(childUid);
+        realtime.child("parentUid").child(parentUid).get().addOnSuccessListener(rt ->
+            device.collection("parents").document(parentUid).get(Source.SERVER).addOnSuccessListener(stored -> {
+                String rtCode = rt.getValue(String.class);
+                String fsCode = stored.exists() ? stored.getString("code") : null;
+                PairingPlan.Action action = PairingPlan.next(rtCode, fsCode, code);
+                if (action == PairingPlan.Action.CHILD_RESET_REQUIRED) {
+                    onFail.accept(PairingFailure.CHILD_RESET_REQUIRED);
+                    return;
+                }
+                if (action == PairingPlan.Action.COMPLETE) { onSuccess.run(); return; }
+                Runnable finish = () -> {
+                    if (action == PairingPlan.Action.REGISTER_REALTIME) { onSuccess.run(); return; }
+                    com.google.firebase.firestore.WriteBatch batch = fs.batch();
+                    Map<String, Object> membership = new HashMap<>();
+                    membership.put("code", code);
+                    batch.set(device.collection("parents").document(parentUid), membership);
+                    batch.update(device.collection("pairing").document("current"), "claimed_by", parentUid);
+                    batch.commit().addOnSuccessListener(done -> onSuccess.run())
+                        .addOnFailureListener(e -> { Log.e(TAG, "Firestore pairing incomplete; retry same code", e);
+                            onFail.accept(PairingFailure.CONNECTION); });
+                };
+                if (action == PairingPlan.Action.REGISTER_FIRESTORE) { finish.run(); return; }
+                claimRealtime(realtime, parentUid, code, finish, () -> onFail.accept(PairingFailure.CONNECTION));
+            }).addOnFailureListener(e -> { Log.e(TAG, "Cannot verify Firestore membership", e);
+                onFail.accept(PairingFailure.CONNECTION); }))
+            .addOnFailureListener(e -> { Log.e(TAG, "Cannot verify RTDB membership", e);
+                onFail.accept(PairingFailure.CONNECTION); });
+    }
+
+    private void claimRealtime(com.google.firebase.database.DatabaseReference device, String parentUid,
+            String code, Runnable success, Runnable failed) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("parentUid/" + parentUid, code);
+        updates.put("pairing/claimed_by", parentUid);
+        device.updateChildren(updates).addOnSuccessListener(v -> success.run())
+            .addOnFailureListener(e -> { Log.e(TAG, "RTDB pairing failed", e); failed.run(); });
     }
 
     // ---------------------------------------------------------------- rules
 
-    /**
-     * Push allow-list and blocked-UID rules to the child device.
-     * Uses {@code updateChildren} so that a concurrent {@link #pushCategories}
-     * call on the same node is not overwritten.
-     */
-    public void pushRules(
-        @NonNull String childUid,
-        @NonNull List<String> allow,
-        @NonNull List<Integer> blockedUids
-    ) {
-        Map<String, Object> allowMap = new HashMap<>();
-        for (int i = 0; i < allow.size(); i++) allowMap.put(
-            String.valueOf(i),
-            allow.get(i)
-        );
-
-        Map<String, Object> uidsMap = new HashMap<>();
-        for (int i = 0; i < blockedUids.size(); i++) uidsMap.put(
-            String.valueOf(i),
-            blockedUids.get(i).longValue()
-        );
-
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("allow", allowMap);
-        updates.put("blocked_uids", uidsMap);
-
-        db.getReference("devices")
-            .child(childUid)
-            .child("rules")
-            .updateChildren(updates)
-            .addOnSuccessListener(v ->
-                Log.i(TAG, "rules pushed to " + childUid)
-            )
-            .addOnFailureListener(e -> Log.e(TAG, "rule push failed", e));
+    /** Saved names are not credentials. Require both memberships; Firestore must answer from the server. */
+    public void verifyAccess(String childUid, Runnable accepted, Runnable failed) {
+        if (!PairingCode.validChildUid(childUid)) { failed.run(); return; }
+        signInAnonymously(() -> {
+            String parentUid = uid();
+            if (parentUid == null) { failed.run(); return; }
+            db.getReference("devices").child(childUid).child("parentUid").child(parentUid).get()
+                .addOnSuccessListener(realtime -> {
+                    if (!realtime.exists() || !(realtime.getValue() instanceof String)) { failed.run(); return; }
+                    fs.collection("devices").document(childUid).collection("parents").document(parentUid)
+                        .get(Source.SERVER).addOnSuccessListener(member -> {
+                            if (member.exists() && realtime.getValue().equals(member.get("code"))) accepted.run();
+                            else failed.run();
+                        }).addOnFailureListener(error -> failed.run());
+                }).addOnFailureListener(error -> failed.run());
+        }, failed);
     }
 
-    /**
-     * Push category toggles to the child device.
-     * The child's {@code BlocklistStore} reloads with only the enabled
-     * categories when the snapshot arrives.
-     *
-     * @param childUid   the paired child's UID
-     * @param categories map of category name → enabled; e.g. {"ads": false}
-     */
-    public void pushCategories(
-        @NonNull String childUid,
-        @NonNull Map<String, Boolean> categories
+    public static final class AppSnapshot {
+        public final List<AppInventory.Entry> entries;
+        public final boolean cached;
+        private AppSnapshot(List<AppInventory.Entry> entries, boolean cached) { this.entries = entries; this.cached = cached; }
+    }
+
+    /** A cached inventory is viewable, but must not be presented as a fresh confirmed snapshot. */
+    public ListenerRegistration listenApps(String childUid, java.util.function.Consumer<AppSnapshot> ready, Runnable failed) {
+        return fs.collection("devices").document(childUid).collection("apps")
+            .limit(AppInventory.MAX_ENTRIES + 1L)
+            .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE, (snapshot, error) -> {
+                if (error != null || snapshot == null) { failed.run(); return; }
+                try {
+                    List<Map<String, Object>> rows = new java.util.ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
+                        Map<String, Object> row = doc.getData();
+                        if (row == null || !doc.getId().equals(row.get("package")))
+                            throw new IllegalArgumentException("App package/document mismatch");
+                        rows.add(row);
+                    }
+                    ready.accept(new AppSnapshot(AppInventory.parse(rows), snapshot.getMetadata().isFromCache()
+                        || snapshot.getMetadata().hasPendingWrites()));
+                } catch (IllegalArgumentException invalid) { failed.run(); }
+            });
+    }
+
+    public com.google.firebase.database.ValueEventListener listenRules(
+        String childUid, java.util.function.Consumer<com.google.firebase.database.DataSnapshot> listener,
+        Runnable onError
     ) {
-        db.getReference("devices")
-            .child(childUid)
-            .child("rules")
-            .child("categories")
-            .setValue(categories)
-            .addOnSuccessListener(v ->
-                Log.i(TAG, "categories pushed to " + childUid)
-            )
-            .addOnFailureListener(e -> Log.e(TAG, "category push failed", e));
+        com.google.firebase.database.ValueEventListener registration =
+            new com.google.firebase.database.ValueEventListener() {
+                @Override public void onDataChange(@NonNull com.google.firebase.database.DataSnapshot snapshot) {
+                    listener.accept(snapshot);
+                }
+                @Override public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {
+                    Log.e(TAG, "rules listen failed: " + error.getMessage());
+                    onError.run();
+                }
+            };
+        db.getReference("devices").child(childUid).child("rules").addValueEventListener(registration);
+        return registration;
+    }
+
+    public void removeRulesListener(String childUid, com.google.firebase.database.ValueEventListener listener) {
+        db.getReference("devices").child(childUid).child("rules").removeEventListener(listener);
+    }
+
+    public interface WriteListener { void complete(boolean serverAccepted); }
+
+    public void editAllow(String childUid, String domain, boolean add, WriteListener listener) {
+        String normalized = RuleEdits.domain(domain);
+        edit(childUid, "allow", current -> RuleEdits.allow(current, normalized, add), listener);
+    }
+
+    public void editBlockedUid(String childUid, int uid, boolean block, WriteListener listener) {
+        edit(childUid, "blocked_uids", current -> RuleEdits.blocked(current, uid, block), listener);
+    }
+
+    public void editCategory(String childUid, String category, boolean enabled, WriteListener listener) {
+        edit(childUid, "categories", current -> RuleEdits.category(current, category, enabled), listener);
+    }
+
+    /** The SDK retries this single intent against current server data on conflicts. */
+    private void edit(String childUid, String field,
+            java.util.function.Function<Object, Map<String, Object>> change, WriteListener listener) {
+        db.getReference("devices").child(childUid).child("rules").child(field)
+            .runTransaction(new com.google.firebase.database.Transaction.Handler() {
+                @NonNull @Override public com.google.firebase.database.Transaction.Result doTransaction(
+                        @NonNull com.google.firebase.database.MutableData data) {
+                    try {
+                        Map<String, Object> next = change.apply(data.getValue());
+                        data.setValue(next.isEmpty() ? null : next);
+                        return com.google.firebase.database.Transaction.success(data);
+                    } catch (IllegalArgumentException e) {
+                        Log.w(TAG, "Rejected invalid rule edit", e);
+                        return com.google.firebase.database.Transaction.abort();
+                    }
+                }
+                @Override public void onComplete(com.google.firebase.database.DatabaseError error,
+                        boolean committed, com.google.firebase.database.DataSnapshot snapshot) {
+                    if (error != null) Log.w(TAG, "Rule edit was not accepted", error.toException());
+                    listener.complete(error == null && committed);
+                }
+            }, false);
+    }
+
+    /** Recent device events, including stable IDs for the tamper banner and activity feed. */
+    public ListenerRegistration listenEvents(String childUid, HistoryListener listener) {
+        return fs.collection("devices").document(childUid).collection("events")
+            .orderBy("time_ms", Query.Direction.DESCENDING)
+            .limit(50)
+            .addSnapshotListener((snap, err) -> {
+                if (err != null) { Log.e(TAG, "events listen error", err); return; }
+                if (snap == null) return;
+                List<Map<String, Object>> events = new java.util.ArrayList<>();
+                for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
+                    Map<String, Object> event = doc.getData();
+                    if (event != null) {
+                        event.put("id", doc.getId());
+                        events.add(event);
+                    }
+                }
+                listener.onHistory(events);
+            });
     }
 
     // -------------------------------------------------------------- history

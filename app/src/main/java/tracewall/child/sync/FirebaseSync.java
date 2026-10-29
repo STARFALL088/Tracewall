@@ -22,7 +22,8 @@ import java.util.Map;
  *
  * <p><b>Authentication</b> ({@link FirebaseAuth}): anonymous sign-in pairs the
  * child device with the parent without requiring the child to create an account.
- * The UID produced by anonymous auth is the shared key that both apps use to
+ * The UID produced by anonymous auth identifies the device; pairing also requires
+ * a one-time code. Both apps use it to
  * address the same Realtime Database node and Firestore documents.
  *
  * <p><b>Realtime Database</b> ({@link FirebaseDatabase}): low-latency
@@ -82,6 +83,30 @@ public class FirebaseSync {
         return INSTANCE;
     }
 
+    private android.content.SharedPreferences preferences;
+    private android.content.Context applicationContext;
+    private final java.util.Set<String> revocationsInFlight = new java.util.HashSet<>();
+
+    public void initialize(android.content.Context context) {
+        applicationContext = context.getApplicationContext();
+        preferences = applicationContext.getSharedPreferences("tracewall.sync", android.content.Context.MODE_PRIVATE);
+    }
+
+    public boolean isInventorySharingEnabled() {
+        return preferences != null && preferences.getBoolean("share_app_names", false);
+    }
+    public void setInventorySharingEnabled(boolean enabled) {
+        if (preferences == null) throw new IllegalStateException("Sync is not initialized");
+        preferences.edit().putBoolean("share_app_names", enabled).apply();
+        refreshInstalledApps();
+    }
+    /** Opt-out requests deletion too; failed/offline work retries at startup/reconnection. */
+    public void refreshInstalledApps() {
+        String deviceUid = uid();
+        if (deviceUid == null || applicationContext == null) return;
+        AppInventoryPublisher.publish(applicationContext, firestore, deviceUid, this::isInventorySharingEnabled);
+    }
+
     // ---------------------------------------------------------------- auth
 
     /**
@@ -113,6 +138,131 @@ public class FirebaseSync {
     public String uid() {
         FirebaseUser u = auth.getCurrentUser();
         return u == null ? null : u.getUid();
+    }
+
+    private String realtimeClaim;
+    private String firestoreClaim;
+    private java.util.Set<String> currentParents = java.util.Collections.emptySet();
+    private boolean pairingWatchStarted;
+
+    /** Start child-side cleanup after BOTH databases have accepted the same parent. */
+    public void watchPairing() {
+        String deviceUid = uid();
+        if (deviceUid == null || pairingWatchStarted) return;
+        pairingWatchStarted = true;
+        realtimeDb.getReference(".info/connected").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (Boolean.TRUE.equals(snapshot.getValue(Boolean.class)) && preferences != null) {
+                    refreshInstalledApps();
+                    for (String parent : new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
+                            java.util.Collections.emptySet()))) revokeParent(parent, () -> {}, () -> {});
+                }
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.w(TAG, "Cannot watch revocation connectivity", error.toException()); }
+        });
+        DatabaseReference device = realtimeDb.getReference("devices").child(deviceUid);
+        device.child("pairing").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                realtimeClaim = snapshot.child("claimed_by").getValue(String.class);
+                clearUsedPairing(deviceUid);
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "pairing watch failed", error.toException()); }
+        });
+        firestore.collection("devices").document(deviceUid).collection("pairing")
+            .document("current").addSnapshotListener((snapshot, error) -> {
+                if (error != null) { Log.e(TAG, "pairing watch failed", error); return; }
+                firestoreClaim = snapshot == null ? null : snapshot.getString("claimed_by");
+                clearUsedPairing(deviceUid);
+            });
+        device.child("parentUid").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
+            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                revokeParent(snapshot.getKey(), () -> {}, () -> {});
+            }
+            public void onChildAdded(@NonNull DataSnapshot s, String previous) {}
+            public void onChildChanged(@NonNull DataSnapshot s, String previous) {}
+            public void onChildMoved(@NonNull DataSnapshot s, String previous) {}
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "revocation watch failed", error.toException()); }
+        });
+        device.child("parentUid").addValueEventListener(new ValueEventListener() {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                java.util.Set<String> parents = new java.util.HashSet<>();
+                for (DataSnapshot row : snapshot.getChildren()) parents.add(row.getKey());
+                currentParents = parents;
+                refreshInstalledApps();
+            }
+            public void onCancelled(@NonNull DatabaseError error) { Log.e(TAG, "parents watch failed", error.toException()); }
+        });
+    }
+
+    private void clearUsedPairing(String deviceUid) {
+        if (realtimeClaim == null || !realtimeClaim.equals(firestoreClaim)) return;
+        realtimeDb.getReference("devices").child(deviceUid).child("pairing").removeValue();
+        firestore.collection("devices").document(deviceUid).collection("pairing").document("current").delete();
+    }
+
+    public void createPairing(java.util.function.Consumer<tracewall.security.PairingCode> ready, Runnable failed) {
+        String deviceUid = uid();
+        if (deviceUid == null) { failed.run(); return; }
+        tracewall.security.PairingCode pairing = new tracewall.security.PairingCode(
+            deviceUid, tracewall.security.PairingCode.generate());
+        Map<String, Object> value = new HashMap<>();
+        value.put("code", pairing.code);
+        value.put("expires_ms", System.currentTimeMillis() + tracewall.security.PairingCode.LIFETIME_MS);
+        realtimeDb.getReference("devices").child(deviceUid).child("pairing").setValue(value)
+            .addOnSuccessListener(v -> firestore.collection("devices").document(deviceUid)
+                .collection("pairing").document("current").set(value)
+                .addOnSuccessListener(done -> ready.accept(pairing))
+                .addOnFailureListener(e -> failed.run()))
+            .addOnFailureListener(e -> failed.run());
+    }
+
+    public void listParents(java.util.function.Consumer<java.util.List<String>> ready) {
+        java.util.Set<String> parents = new java.util.TreeSet<>(currentParents);
+        String deviceUid = uid();
+        if (deviceUid == null) { ready.accept(new java.util.ArrayList<>(parents)); return; }
+        firestore.collection("devices").document(deviceUid).collection("parents").get()
+            .addOnSuccessListener(rows -> {
+                for (com.google.firebase.firestore.DocumentSnapshot row : rows) parents.add(row.getId());
+                ready.accept(new java.util.ArrayList<>(parents));
+            }).addOnFailureListener(e -> ready.accept(new java.util.ArrayList<>(parents)));
+    }
+
+    public void revokeParent(String parentUid, Runnable confirmed, Runnable pending) {
+        String deviceUid = uid();
+        if (deviceUid == null || preferences == null) { pending.run(); return; }
+        updatePendingRevocation(parentUid, true);
+        synchronized (revocationsInFlight) {
+            if (!revocationsInFlight.add(parentUid)) { pending.run(); return; }
+        }
+        DatabaseReference realtime = realtimeDb.getReference("devices").child(deviceUid).child("parentUid").child(parentUid);
+        com.google.firebase.firestore.DocumentReference member = firestore.collection("devices").document(deviceUid)
+            .collection("parents").document(parentUid);
+        com.google.android.gms.tasks.Task<Void> rt = realtime.removeValue(), fs = member.delete();
+        com.google.android.gms.tasks.Tasks.whenAllComplete(rt, fs).addOnCompleteListener(done -> {
+            if (!rt.isSuccessful() || !fs.isSuccessful()) {
+                finishRevocation(parentUid, false, confirmed, pending);
+                return;
+            }
+            com.google.android.gms.tasks.Task<DataSnapshot> readRt = realtime.get();
+            com.google.android.gms.tasks.Task<com.google.firebase.firestore.DocumentSnapshot> readFs =
+                member.get(com.google.firebase.firestore.Source.SERVER);
+            com.google.android.gms.tasks.Tasks.whenAllComplete(readRt, readFs).addOnCompleteListener(read ->
+                finishRevocation(parentUid, readRt.isSuccessful() && readFs.isSuccessful()
+                    && !readRt.getResult().exists() && !readFs.getResult().exists(), confirmed, pending));
+        });
+    }
+
+    private synchronized void updatePendingRevocation(String parentUid, boolean add) {
+        java.util.Set<String> next = new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
+            java.util.Collections.emptySet()));
+        if (add) next.add(parentUid); else next.remove(parentUid);
+        preferences.edit().putStringSet("pending_revocations", next).apply();
+    }
+
+    private void finishRevocation(String parentUid, boolean success, Runnable confirmed, Runnable pending) {
+        if (success) updatePendingRevocation(parentUid, false);
+        synchronized (revocationsInFlight) { revocationsInFlight.remove(parentUid); }
+        if (success) confirmed.run(); else pending.run();
     }
 
     // ----------------------------------------------------------- realtime db
@@ -200,6 +350,36 @@ public class FirebaseSync {
         history
             .add(record)
             .addOnFailureListener(e -> Log.e(TAG, "Firestore write failed", e));
+    }
+
+    public void reportNewApp(String label, String packageName, long installedAt) {
+        if (!isInventorySharingEnabled()) return;
+        signInAnonymously(() -> {
+            String deviceUid = uid();
+            if (deviceUid == null || !isInventorySharingEnabled()) return;
+            Map<String, Object> event = new HashMap<>();
+            event.put("type", "new_app");
+            event.put("label", label);
+            event.put("package", packageName);
+            event.put("time_ms", installedAt);
+            firestore.collection("devices").document(deviceUid).collection("events").add(event)
+                .addOnFailureListener(e -> Log.e(TAG, "new app event write failed", e));
+        });
+    }
+
+    /** Firestore's persistent queue retains this event while offline. */
+    public void reportProtectionOff(String reason) {
+        long time = System.currentTimeMillis();
+        signInAnonymously(() -> {
+            String deviceUid = uid();
+            if (deviceUid == null) return;
+            Map<String, Object> event = new HashMap<>();
+            event.put("type", "protection_off");
+            event.put("reason", reason);
+            event.put("time_ms", time);
+            firestore.collection("devices").document(deviceUid).collection("events")
+                .add(event).addOnFailureListener(e -> Log.e(TAG, "event write failed", e));
+        });
     }
 
     /**

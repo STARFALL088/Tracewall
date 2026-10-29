@@ -1,19 +1,63 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "devices": {
       "$uid": {
-        // The child (auth.uid === $uid) has full access to its own node.
-        // Any registered parent (a UID stored under parentUid/{parentUid})
-        // also gets full read/write so it can push rules and read history.
-        ".read": "auth != null && (auth.uid === $uid || data.child('parentUid').child(auth.uid).exists())",
-        ".write": "auth != null && (auth.uid === $uid || data.child('parentUid').child(auth.uid).exists())",
+        "rules": {
+          ".read": "(auth != null && auth.uid === $uid) || (auth != null && root.child('devices').child($uid).child('parentUid').child(auth.uid).exists())",
+          ".write": "auth != null && root.child('devices').child($uid).child('parentUid').child(auth.uid).exists()",
+          "allow": {
+            "$index": {
+              ".validate": "newData.isString() && newData.val().length <= 253"
+            }
+          },
+          "blocked_uids": {
+            "$index": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2147483647"
+            }
+          },
+          "categories": {
+            "$category": {
+              ".validate": "($category === 'adult' || $category === 'gambling' || $category === 'ads' || $category === 'malware') && newData.isBoolean()"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
         "parentUid": {
-          // Any authenticated user may write into this sub-tree to register
-          // as a parent. The child UID itself is the shared secret: it is a
-          // 28-character random string that the parent obtains out-of-band
-          // (the child shows it on screen). Existing entries are immutable
-          // to prevent a third party from de-registering a legitimate parent.
-          ".write": "auth != null"
+          ".read": "auth != null && auth.uid === $uid",
+          "$parent": {
+            ".write": "((auth != null && auth.uid === $uid) && !newData.exists()) || (auth != null && auth.uid === $parent && auth.uid !== $uid && !data.exists() && newData.isString() && newData.val() === data.parent().parent().child('pairing/code').val() && data.parent().parent().child('pairing/expires_ms').val() > now && !data.parent().parent().child('pairing/claimed_by').exists() && newData.parent().parent().child('pairing/claimed_by').val() === auth.uid)",
+            ".read": "(auth != null && auth.uid === $uid) || (auth != null && auth.uid === $parent)"
+          }
+        },
+        "pairing": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['code', 'expires_ms'])",
+          "code": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-HJ-NP-Z2-9]{8}$/)"
+          },
+          "expires_ms": {
+            ".validate": "newData.isNumber() && (newData.val() === data.val() || (newData.val() > now && newData.val() <= now + 330000))"
+          },
+          "claimed_by": {
+            ".write": "auth != null && auth.uid !== $uid && !data.exists() && newData.val() === auth.uid && data.parent().child('expires_ms').val() > now && newData.parent().parent().child('parentUid').child(auth.uid).val() === data.parent().child('code').val()",
+            ".validate": "newData.isString()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "history": {
+          ".read": "(auth != null && auth.uid === $uid) || (auth != null && root.child('devices').child($uid).child('parentUid').child(auth.uid).exists())",
+          ".write": "auth != null && auth.uid === $uid"
+        },
+        "events": {
+          ".read": "(auth != null && auth.uid === $uid) || (auth != null && root.child('devices').child($uid).child('parentUid').child(auth.uid).exists())",
+          ".write": "auth != null && auth.uid === $uid"
         }
       }
     }

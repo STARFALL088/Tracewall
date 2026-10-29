@@ -1,7 +1,10 @@
 package tracewall.child.vpn;
 
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.LinkProperties;
 import android.net.Network;
@@ -22,15 +25,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import tracewall.blocklist.PolicyEngine;
 import tracewall.child.R;
+import tracewall.child.ui.Notifications;
+import tracewall.child.sync.FirebaseSync;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.log.HistoryWriter;
 import tracewall.child.log.QueryLog;
 import tracewall.net.DnsForwarder;
+import tracewall.net.BoundedWorkPool;
 import tracewall.net.DnsMessage;
 import tracewall.net.IpPacket;
 
@@ -52,9 +58,8 @@ import tracewall.net.IpPacket;
  *      not fix them up for a TUN write, and a bad checksum means the client
  *      silently drops our answer - the app looks broken for no visible reason.
  *
- * No startForeground(): a VpnService already gets a system-owned notification
- * and is exempt from the API 34 foreground-service-type rules. Adding one
- * would mean declaring a specialUse subtype to buy nothing.
+ * The system VPN indicator does not replace the service's foreground lifetime.
+ * A consented VPN qualifies for Android 14's systemExempted foreground type.
  */
 public class DnsVpnService extends VpnService implements Runnable {
 
@@ -73,6 +78,9 @@ public class DnsVpnService extends VpnService implements Runnable {
     );
 
     private static final AtomicBoolean running = new AtomicBoolean(false);
+    private static final AtomicLong rejectedPackets = new AtomicLong();
+
+    public static long rejectedPackets() { return rejectedPackets.get(); }
 
     /** True between establish() and teardown, for the UI to trust. */
     public static boolean isRunning() {
@@ -87,30 +95,66 @@ public class DnsVpnService extends VpnService implements Runnable {
     private ParcelFileDescriptor tun;
     private FileOutputStream tunOut;
     private ExecutorService workers;
-    private DnsForwarder forwarder;
+    private ExecutorService events;
+    private volatile DnsForwarder forwarder;
     private ConnectivityManager.NetworkCallback networkCallback;
     private volatile boolean stop;
+    private BroadcastReceiver packageReceiver;
+    private final AtomicBoolean offReported = new AtomicBoolean();
 
     /** Android side of the pure-JVM forwarder's binder contract. */
     private final DnsForwarder.SocketBinder binder =
         new DnsForwarder.SocketBinder() {
             @Override
-            public void bind(DatagramSocket s) {
-                protect(s);
+            public void bind(DatagramSocket s) throws IOException {
+                if (!protect(s)) throw new IOException("Could not protect upstream UDP socket");
             }
 
             @Override
-            public void bind(Socket s) {
-                protect(s);
+            public void bind(Socket s) throws IOException {
+                if (!protect(s)) throw new IOException("Could not protect upstream TCP socket");
             }
         };
 
     @Override
     public void onCreate() {
         super.onCreate();
-        workers = Executors.newFixedThreadPool(4);
+        rejectedPackets.set(0);
+        workers = BoundedWorkPool.create("tracewall-dns", 4, 128);
+        events = BoundedWorkPool.create("tracewall-events", 1, 16);
         uidAttributor = new UidAttributor(this);
         HistoryWriter.get().start(this);
+        packageReceiver = new BroadcastReceiver() {
+            @Override public void onReceive(Context context, Intent intent) {
+                if (intent.getData() != null) FirebaseSync.get().refreshInstalledApps();
+                if (!Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())
+                        || intent.getBooleanExtra(Intent.EXTRA_REPLACING, false) || intent.getData() == null) return;
+                String packageName = intent.getData().getSchemeSpecificPart();
+                if (packageName == null || packageName.isEmpty()) return;
+                long installedAt = System.currentTimeMillis();
+                PendingResult pending = goAsync();
+                try {
+                    events.execute(() -> {
+                        try {
+                            String label = packageName;
+                            try { label = String.valueOf(getPackageManager().getApplicationLabel(
+                                getPackageManager().getApplicationInfo(packageName, 0))); }
+                            catch (android.content.pm.PackageManager.NameNotFoundException ignored) { /* Removed immediately after install. */ }
+                            if (label.length() > 200) label = label.substring(0, 200);
+                            tracewall.child.ui.Notifications.showNewApp(DnsVpnService.this, label, packageName);
+                            FirebaseSync.get().reportNewApp(label, packageName, installedAt);
+                        } finally { pending.finish(); }
+                    });
+                } catch (RejectedExecutionException e) { pending.finish(); }
+            }
+        };
+        IntentFilter installs = new IntentFilter(Intent.ACTION_PACKAGE_ADDED);
+        installs.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        installs.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        installs.addDataScheme("package");
+        // PACKAGE_ADDED is a protected system broadcast; exported permits privileged installers.
+        androidx.core.content.ContextCompat.registerReceiver(this, packageReceiver, installs,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED);
 
         forwarder = new DnsForwarder(
             systemResolvers(),
@@ -152,7 +196,21 @@ public class DnsVpnService extends VpnService implements Runnable {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
+            reportOff("user_toggle");
             BlocklistStore.setEnabled(this, false);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        try {
+            android.app.Notification notification = Notifications.protectionActive(this);
+            if (Build.VERSION.SDK_INT >= 34) {
+                startForeground(Notifications.ID_PROTECTION_ACTIVE, notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED);
+            } else {
+                startForeground(Notifications.ID_PROTECTION_ACTIVE, notification);
+            }
+        } catch (RuntimeException e) {
+            Log.e(TAG, "cannot enter foreground; VPN was not started", e);
             stopSelf();
             return START_NOT_STICKY;
         }
@@ -198,6 +256,8 @@ public class DnsVpnService extends VpnService implements Runnable {
             Log.e(TAG, "tunnel failed", e);
         } finally {
             teardown();
+            // A failed/closed TUN must not leave an idle foreground service behind.
+            stopSelf();
         }
     }
 
@@ -227,7 +287,11 @@ public class DnsVpnService extends VpnService implements Runnable {
                     }
                 );
             } catch (RejectedExecutionException ignored) {
-                // shutting down; drop the packet
+                if (!workers.isShutdown()) {
+                    long dropped = rejectedPackets.incrementAndGet();
+                    // Log only at powers of two, not once per packet during a burst.
+                    if ((dropped & (dropped - 1)) == 0) Log.w(TAG, "DNS queue full; dropped packets=" + dropped);
+                }
             }
         }
     }
@@ -273,11 +337,21 @@ public class DnsVpnService extends VpnService implements Runnable {
         String resolver = "local";
 
         if (blocked) {
-            answer = DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 });
+            answer = q.qType() == DnsMessage.TYPE_A
+                ? DnsMessage.buildAResponse(q, new byte[] { 0, 0, 0, 0 })
+                : DnsMessage.buildEmptyResponse(q);
         } else {
             try {
-                int wireId = forwarder.nextId(); // our id, not the client's
-                DnsForwarder.Reply r = forwarder.forward(query, wireId);
+                DnsForwarder current = forwarder;
+                DnsForwarder.Reply r;
+                try {
+                    r = current.forward(query, current.nextId());
+                } catch (DnsForwarder.ForwardException e) {
+                    // Only a retired pool warrants one retry after handover.
+                    DnsForwarder replacement = forwarder;
+                    if (!current.isClosed() || replacement == current) throw e;
+                    r = replacement.forward(query, replacement.nextId());
+                }
                 answer = DnsMessage.normalizeResponse(r.bytes, q.id(), false);
                 resolver = r.resolver;
             } catch (DnsForwarder.ForwardException e) {
@@ -324,6 +398,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     }
 
     private void teardown() {
+        reportOff("unexpected_stop");
         stop = true;
         running.set(false);
         synchronized (writeLock) {
@@ -344,8 +419,16 @@ public class DnsVpnService extends VpnService implements Runnable {
         Log.i(TAG, "tunnel down");
     }
 
+    private void reportOff(String reason) {
+        if ((running.get() || BlocklistStore.isEnabled(this))
+                && offReported.compareAndSet(false, true)) {
+            FirebaseSync.get().reportProtectionOff(reason);
+        }
+    }
+
     @Override
     public void onRevoke() {
+        reportOff("vpn_revoked");
         Log.i(
             TAG,
             "permission revoked - another VPN took over, or the user said no"
@@ -355,8 +438,13 @@ public class DnsVpnService extends VpnService implements Runnable {
 
     @Override
     public void onDestroy() {
+        reportOff("service_destroyed");
         stop = true;
         running.set(false);
+        if (packageReceiver != null) {
+            unregisterReceiver(packageReceiver);
+            packageReceiver = null;
+        }
         if (networkCallback != null) {
             try {
                 ConnectivityManager cm = (ConnectivityManager) getSystemService(
@@ -369,6 +457,8 @@ public class DnsVpnService extends VpnService implements Runnable {
             networkCallback = null;
         }
         if (workers != null) workers.shutdownNow();
+        // Let already accepted goAsync broadcasts finish their PendingResult.
+        if (events != null) events.shutdown();
         if (forwarder != null) forwarder.close();
         if (tun != null) {
             try {
@@ -376,6 +466,7 @@ public class DnsVpnService extends VpnService implements Runnable {
             } catch (IOException ignored) {}
             tun = null;
         }
+        stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();
     }
 
