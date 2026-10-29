@@ -72,6 +72,7 @@ public final class BlocklistStore {
      * which category caught it - that reason is what the UI shows.
      */
     public synchronized void load(Context ctx, Set<String> categories) {
+        long started = android.os.SystemClock.elapsedRealtime();
         if (ctx != null) app = ctx.getApplicationContext();
         if (app == null) return;
         if (categories != null) lastCategories = new HashSet<>(categories);
@@ -133,7 +134,7 @@ public final class BlocklistStore {
             " malformed, " +
             duplicates +
             " dupes)";
-        Log.i(TAG, "policy loaded: " + summary);
+        Log.i(TAG, "policy loaded in " + (android.os.SystemClock.elapsedRealtime() - started) + " ms: " + summary);
     }
 
     public synchronized void reload() {

@@ -72,16 +72,23 @@ public final class HostListParser {
             if (line.isEmpty()) continue;
             if (line.startsWith("#") || line.startsWith("!") || line.startsWith("[")) continue;
 
-            String host = extractHost(line);
-            if (host == null) { malformed++; continue; }
-            // A blocklist entry with no dot is junk (or a local alias we cannot
-            // route anyway), so it is counted as malformed rather than trusted.
-            if (host.indexOf('.') < 0) { malformed++; continue; }
-
-            DomainPattern pattern = DomainPattern.parse(host);
-            if (pattern == null) { malformed++; continue; }
-            if (!seen.add(pattern.text())) { duplicates++; continue; }
-            parsed++;
+            int comment = line.indexOf('#');
+            if (comment >= 0) line = line.substring(0, comment).trim();
+            String[] tokens = WS.split(line);
+            int firstHost = looksLikeAddress(tokens[0]) ? 1 : 0;
+            if (firstHost == tokens.length) { malformed++; continue; }
+            // Hosts files can list multiple aliases on one line. Bare format is one domain.
+            int end = firstHost == 0 ? 1 : tokens.length;
+            for (int i = firstHost; i < end; i++) {
+                String host = tokens[i];
+                if (host.equals("localhost") || host.equals("localhost.localdomain")
+                        || host.equals("ip6-localhost") || host.equals("ip6-loopback")) continue;
+                DomainPattern pattern = host.indexOf('.') < 0 || looksLikeAddress(host)
+                    ? null : DomainPattern.parse(host);
+                if (pattern == null) { malformed++; continue; }
+                if (!seen.add(pattern.text())) { duplicates++; continue; }
+                parsed++;
+            }
         }
 
         List<DomainPattern> list = new ArrayList<>(seen.size());
@@ -90,32 +97,6 @@ public final class HostListParser {
             if (p != null) list.add(p);
         }
         return new Result(new DomainSet(list), lines, parsed, malformed, duplicates);
-    }
-
-    /**
-     * Strip an optional leading IP address and return the host. Returns null
-     * when the line has no host-shaped token at all.
-     *
-     * Any address prefix counts - IPv4 dotted quad or IPv6 (which contains ':').
-     * Matching on ':' rather than enumerating loopback spellings means
-     * "::1 host" and "0:0:0:0:0:0:0:1 host" both work without special cases.
-     */
-    private static String extractHost(String line) {
-        String first = null;
-        String second = null;
-        for (String p : WS.split(line)) {
-            if (p.isEmpty()) continue;
-            if (first == null) first = p;
-            else if (second == null) { second = p; break; }
-        }
-        if (first == null) return null;
-
-        // hosts format: <address> <host> [host...]
-        if (second != null && looksLikeAddress(first)) return second;
-
-        // Adblock syntax "address=/host/" is a different format - not ours.
-        if (first.indexOf('/') >= 0) return null;
-        return first;
     }
 
     private static boolean looksLikeAddress(String token) {

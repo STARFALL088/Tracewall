@@ -487,6 +487,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                   | Notes                                    |
 | ---------------------------------------------- | ------------------------ | ---------------------------------------- |
+| Larger licensed category lists                | DONE — JVM + APK builds | ~95k merged entries; 2.43 MB total assets; load time logged |
 | One-time pairing + scoped Firebase rules       | DONE — builds + emulator tested | Expiry, atomic claims per database, PIN-gated revocation |
 | Parent rule list editing                      | 🔄 Compiles + JVM tested | Full snapshot before edits, preserves lists, removal UI |
 | Parent tamper banner + last seen              | 🔄 Compiles              | Latest off event, persistent dismissal; newest DNS history time |
@@ -563,12 +564,20 @@ These are honest, not excuses — the filter works correctly for everything in �
 
 `app/src/main/assets/categories/` — one hosts-format file per category:
 
-| File           | Lines | Source                                                                                                                                  |
-| -------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `malware.txt`  | ~420  | Snapshot of [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) hostfile — regenerate with `scripts/fetch-malware-list.sh` |
-| `adult.txt`    | ~22   | Short curated seed — proves the category works                                                                                          |
-| `gambling.txt` | ~22   | Short curated seed                                                                                                                      |
-| `ads.txt`      | ~53   | Short curated seed                                                                                                                      |
+| File | Entries | Source URL | License |
+| --- | ---: | --- | --- |
+| `malware.txt` | ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot) | URLhaus terms; existing data, not refreshed by this script |
+| `adult.txt` | 60,020 | [Block List Project porn hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+| `gambling.txt` | 15,020 | [Block List Project gambling hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+| `ads.txt` | 20,049 | [Block List Project ads hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
+
+Run `scripts/fetch-lists.sh` (curl + Python 3) to download, normalize, sort,
+deduplicate and merge these sources with the bundled entries. The script takes
+a bounded alphabetical subset (60k adult / 15k gambling / 20k ads) to keep all
+assets below 5 MB; this is deliberately incomplete coverage. The current total
+is 2,428,709 bytes. Source URLs and license links are also embedded in each file.
+Regeneration aborts before replacing assets if downloads or the size budget fail.
+`BlocklistStore` logs elapsed load time, malformed entries and duplicates in Logcat.
 
 Each file is parsed by `HostListParser` into a `DomainSet` (exact hosts into a
 `HashSet`, wildcards into a small scanned list). A 200k-domain list stays cheap
