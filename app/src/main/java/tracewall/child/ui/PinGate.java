@@ -35,6 +35,11 @@ public final class PinGate {
         if (!store(activity).isSet()) prompt(activity, true, () -> {});
     }
 
+    /** Account recovery on an existing protected installation still needs its PIN. */
+    public static boolean isConfigured(Context context) {
+        return store(context).isSet();
+    }
+
     public static void require(AppCompatActivity activity, Runnable allowed) {
         // If setup has not finished, setting a PIN must not authorize an action.
         if (!store(activity).isSet()) {

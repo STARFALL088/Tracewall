@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_open">Account / sign in</string>
+    <string name="account_local">No account. Local protection is available.</string>
+    <string name="account_guest">Guest identity. Link an account to keep this device recoverable.</string>
+    <string name="account_linked">Signed in. Account access does not replace the protection PIN.</string>
+</resources>

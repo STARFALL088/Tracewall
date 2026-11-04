@@ -6,8 +6,8 @@ import android.util.Log;
 import tracewall.parent.sync.FirebaseParent;
 
 /**
- * Application subclass: signs in anonymously so the parent UID is ready
- * before PairingActivity or DashboardActivity starts.
+ * Observes the selected account without silently replacing a signed-out
+ * session with another anonymous identity.
  */
 public class TracewallParentApp extends Application {
 
@@ -16,7 +16,11 @@ public class TracewallParentApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        FirebaseParent.get().signInAnonymously(() ->
-                Log.i(TAG, "Firebase ready, parent uid=" + FirebaseParent.get().uid()));
+        FirebaseParent.get().initialize(this);
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+            if (auth.getCurrentUser() != null
+                    && tracewall.auth.IdentityAnchor.bind(this, auth.getCurrentUser().getUid()))
+                Log.i(TAG, "Firebase session ready");
+        });
     }
 }

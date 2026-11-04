@@ -84,9 +84,21 @@ public class DashboardActivity extends AppCompatActivity {
         super.onStart();
         started = true;
         int ticket = ++connection;
+        // Never render one account's cached feed after sign-out/account selection.
+        recentHistory = Collections.emptyList();
+        recentEvents = Collections.emptyList();
+        latestEventId = null;
+        renderFeed();
+        ui.tamperBanner.setVisibility(android.view.View.GONE);
+        ui.lastSeen.setText(R.string.last_seen_unknown);
         rules.pause();
         setRuleControls(false);
         if (!writingRules) ui.ruleStatus.setText(R.string.rules_waiting);
+        if (FirebaseParent.get().uid() == null) {
+            startActivity(new android.content.Intent(this, PairingActivity.class));
+            finish();
+            return;
+        }
         FirebaseParent.get().verifyAccess(childUid, () -> attachCloud(ticket), () -> {
             if (current(ticket)) ui.ruleStatus.setText(R.string.device_switch_failed);
         });
@@ -180,11 +192,18 @@ public class DashboardActivity extends AppCompatActivity {
         menu.add(Menu.NONE, 3, Menu.NONE, R.string.menu_app_picker);
         menu.add(Menu.NONE, 4, Menu.NONE, R.string.menu_rename_device);
         menu.add(Menu.NONE, 5, Menu.NONE, R.string.menu_forget_device);
+        menu.add(Menu.NONE, 6, Menu.NONE, R.string.account_open);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == 6) {
+            startActivity(new android.content.Intent(this, tracewall.auth.AuthActivity.class)
+                .putExtra(tracewall.auth.AuthActivity.EXTRA_ROLE, tracewall.auth.AuthActivity.ROLE_PARENT)
+                .putExtra(tracewall.auth.AuthActivity.EXTRA_BOUND_UID, tracewall.auth.IdentityAnchor.get(this)));
+            return true;
+        }
         if (item.getItemId() == 2) { DevicePicker.show(this, this::restartDashboard, this::addDevice); return true; }
         if (item.getItemId() == 3) { startActivity(new android.content.Intent(this, AppPickerActivity.class)); return true; }
         if (item.getItemId() == 4) { renameDevice(); return true; }
@@ -210,12 +229,14 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private FirebaseParent.WriteListener beginWrite() {
+        int ticket = connection;
+        String writerUid = FirebaseParent.get().uid();
         writingRules = true;
         setRuleControls(false);
         ui.ruleStatus.setText(R.string.rules_pending);
         return accepted -> {
             writingRules = false;
-            if (isFinishing() || isDestroyed()) return;
+            if (!current(ticket) || !java.util.Objects.equals(writerUid, FirebaseParent.get().uid())) return;
             setRuleControls(rules.isReady());
             ui.ruleStatus.setText(accepted ? R.string.rules_saved : R.string.rules_failed);
         };

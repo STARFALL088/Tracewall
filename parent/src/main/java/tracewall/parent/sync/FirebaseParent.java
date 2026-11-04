@@ -26,8 +26,8 @@ import tracewall.security.PairingCode;
  * <p>Pairing requires the child's UID and a short-lived one-time code.
  * Each database independently validates an atomic claim and parent registration.
  *
- * <p>Call {@link #signInAnonymously} once from
- * {@code TracewallParentApp.onCreate()} before any Activity starts.
+ * <p>The account UI explicitly selects the session. Background operations
+ * never replace a signed-out account with another anonymous identity.
  */
 public class FirebaseParent {
 
@@ -38,6 +38,13 @@ public class FirebaseParent {
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final FirebaseDatabase db = FirebaseDatabase.getInstance();
     private final FirebaseFirestore fs = FirebaseFirestore.getInstance();
+    private android.content.Context applicationContext;
+
+    public void initialize(android.content.Context context) {
+        applicationContext = context.getApplicationContext();
+        FirebaseUser current = auth.getCurrentUser();
+        if (current != null) tracewall.auth.IdentityAnchor.bind(applicationContext, current.getUid());
+    }
 
     public interface HistoryListener {
         void onHistory(List<Map<String, Object>> records);
@@ -63,38 +70,30 @@ public class FirebaseParent {
 
     // ---------------------------------------------------------------- auth
 
-    public void signInAnonymously(@NonNull Runnable callback) {
-        signInAnonymously(callback, () -> {});
-    }
-
-    public void signInAnonymously(@NonNull Runnable callback, @NonNull Runnable failed) {
-        FirebaseUser current = auth.getCurrentUser();
-        if (current != null) {
-            callback.run();
-            return;
-        }
-        auth.signInAnonymously()
-            .addOnSuccessListener(r -> {
-                Log.d(TAG, "signed in as " + r.getUser().getUid());
-                callback.run();
-            })
-            .addOnFailureListener(e -> { Log.e(TAG, "sign-in failed", e); failed.run(); });
+    private void whenSignedIn(@NonNull Runnable callback, @NonNull Runnable failed) {
+        if (uid() != null) callback.run();
+        else failed.run();
     }
 
     /** @return current parent UID, or {@code null} if not yet signed in. */
     public String uid() {
         FirebaseUser u = auth.getCurrentUser();
-        return u == null ? null : u.getUid();
+        return u != null && applicationContext != null
+            && tracewall.auth.IdentityAnchor.matches(applicationContext, u.getUid()) ? u.getUid() : null;
     }
 
     // -------------------------------------------------------------- pairing
 
-    public enum PairingFailure { CONNECTION, CHILD_RESET_REQUIRED }
+    public enum PairingFailure { CONNECTION, CHILD_RESET_REQUIRED, SAME_IDENTITY }
 
     /** Resume only the missing claim; existing membership is never overwritten. */
     public void registerAsParent(String childUid, String code, Runnable onSuccess,
             java.util.function.Consumer<PairingFailure> onFail) {
-        signInAnonymously(() -> resumePairing(childUid, code, onSuccess, onFail),
+        if (childUid != null && childUid.equals(uid())) {
+            onFail.accept(PairingFailure.SAME_IDENTITY);
+            return;
+        }
+        whenSignedIn(() -> resumePairing(childUid, code, onSuccess, onFail),
             () -> onFail.accept(PairingFailure.CONNECTION));
     }
 
@@ -102,6 +101,10 @@ public class FirebaseParent {
             java.util.function.Consumer<PairingFailure> onFail) {
         String parentUid = uid();
         if (parentUid == null) { onFail.accept(PairingFailure.CONNECTION); return; }
+        Runnable accepted = () -> {
+            if (parentUid.equals(uid())) onSuccess.run();
+            else onFail.accept(PairingFailure.CONNECTION);
+        };
         com.google.firebase.database.DatabaseReference realtime = db.getReference("devices").child(childUid);
         com.google.firebase.firestore.DocumentReference device = fs.collection("devices").document(childUid);
         realtime.child("parentUid").child(parentUid).get().addOnSuccessListener(rt ->
@@ -113,15 +116,15 @@ public class FirebaseParent {
                     onFail.accept(PairingFailure.CHILD_RESET_REQUIRED);
                     return;
                 }
-                if (action == PairingPlan.Action.COMPLETE) { onSuccess.run(); return; }
+                if (action == PairingPlan.Action.COMPLETE) { accepted.run(); return; }
                 Runnable finish = () -> {
-                    if (action == PairingPlan.Action.REGISTER_REALTIME) { onSuccess.run(); return; }
+                    if (action == PairingPlan.Action.REGISTER_REALTIME) { accepted.run(); return; }
                     com.google.firebase.firestore.WriteBatch batch = fs.batch();
                     Map<String, Object> membership = new HashMap<>();
                     membership.put("code", code);
                     batch.set(device.collection("parents").document(parentUid), membership);
                     batch.update(device.collection("pairing").document("current"), "claimed_by", parentUid);
-                    batch.commit().addOnSuccessListener(done -> onSuccess.run())
+                    batch.commit().addOnSuccessListener(done -> accepted.run())
                         .addOnFailureListener(e -> { Log.e(TAG, "Firestore pairing incomplete; retry same code", e);
                             onFail.accept(PairingFailure.CONNECTION); });
                 };
@@ -147,15 +150,17 @@ public class FirebaseParent {
     /** Saved names are not credentials. Require both memberships; Firestore must answer from the server. */
     public void verifyAccess(String childUid, Runnable accepted, Runnable failed) {
         if (!PairingCode.validChildUid(childUid)) { failed.run(); return; }
-        signInAnonymously(() -> {
+        whenSignedIn(() -> {
             String parentUid = uid();
             if (parentUid == null) { failed.run(); return; }
             db.getReference("devices").child(childUid).child("parentUid").child(parentUid).get()
                 .addOnSuccessListener(realtime -> {
+                    if (!parentUid.equals(uid())) { failed.run(); return; }
                     if (!realtime.exists() || !(realtime.getValue() instanceof String)) { failed.run(); return; }
                     fs.collection("devices").document(childUid).collection("parents").document(parentUid)
                         .get(Source.SERVER).addOnSuccessListener(member -> {
-                            if (member.exists() && realtime.getValue().equals(member.get("code"))) accepted.run();
+                            if (parentUid.equals(uid()) && member.exists()
+                                    && realtime.getValue().equals(member.get("code"))) accepted.run();
                             else failed.run();
                         }).addOnFailureListener(error -> failed.run());
                 }).addOnFailureListener(error -> failed.run());

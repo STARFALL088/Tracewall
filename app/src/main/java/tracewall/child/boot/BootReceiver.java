@@ -38,9 +38,8 @@ public final class BootReceiver extends BroadcastReceiver {
         Log.i(TAG, "boot: wanted=" + wanted + " running=" + running);
 
         if (wanted && !running) {
-            // Pre-warm Firebase so the anonymous UID is ready before the user
-            // opens the app and the rules listener can start immediately.
-            FirebaseSync.get().signInAnonymously(() ->
+            // Never create a guest identity behind the account screen.
+            FirebaseSync.get().whenSignedIn(() ->
                 Log.i(TAG, "Firebase pre-warmed after boot")
             );
             Notifications.showProtectionOff(context, true);

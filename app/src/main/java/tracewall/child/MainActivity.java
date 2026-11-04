@@ -59,6 +59,18 @@ public class MainActivity extends AppCompatActivity {
     private QueryAdapter adapter;
     private AppLabels labels;
     private boolean updatingToggle;
+    private boolean awaitingInitialAccount;
+    private static final String ACCOUNT_PREFS = "tracewall.account.ui";
+    private static final String ACCOUNT_CHOICE = "account_choice_made";
+
+    private final ActivityResultLauncher<Intent> account = registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(), result -> {
+            awaitingInitialAccount = false;
+            getSharedPreferences(ACCOUNT_PREFS, MODE_PRIVATE).edit().putBoolean(ACCOUNT_CHOICE, true).apply();
+            PinGate.ensureSet(this);
+            updateAccountStatus();
+            updateDeviceCode();
+        });
 
     private final Handler ticker = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() {
@@ -107,6 +119,8 @@ public class MainActivity extends AppCompatActivity {
         android.util.Log.d(TAG, "MainActivity.onCreate");
         ui = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
+        awaitingInitialAccount = savedInstanceState != null
+            && savedInstanceState.getBoolean("account_initial_pending", false);
 
         labels = new AppLabels(getPackageManager());
         adapter = new QueryAdapter(labels, this::askRow);
@@ -169,7 +183,13 @@ public class MainActivity extends AppCompatActivity {
         ui.openHistory.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.HistoryActivity.class)));
         ui.openRules.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.RulesActivity.class)));
         ui.manageAllows.setOnClickListener(v -> showAllows());
-        PinGate.ensureSet(this);
+        ui.accountButton.setOnClickListener(v -> PinGate.require(this, () -> openAccount(false)));
+        if (!awaitingInitialAccount && com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() == null
+                && !PinGate.isConfigured(this)
+                && !getSharedPreferences(ACCOUNT_PREFS, MODE_PRIVATE).getBoolean(ACCOUNT_CHOICE, false)) {
+            openAccount(true);
+        } else if (!awaitingInitialAccount) PinGate.ensureSet(this);
+        updateAccountStatus();
         ui.copyCsv.setOnClickListener(v -> PinGate.require(this, this::copyCsv));
         ui.clearHistory.setOnClickListener(v -> confirmClearHistory());
         ui.deviceCode.setOnClickListener(v -> PinGate.require(this, this::showQrDialog));
@@ -204,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
         ticker.post(refresh);
         checkPrivateDns();
         updateDeviceCode();
+        updateAccountStatus();
     }
 
     @Override
@@ -237,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         state.putString("query_filter", ui.queryFilter.getText().toString());
+        state.putBoolean("account_initial_pending", awaitingInitialAccount);
         state.putParcelable("query_scroll", pendingScroll != null ? pendingScroll : ui.list.getLayoutManager().onSaveInstanceState());
         state.putInt("controls_scroll", ui.controls.getScrollY());
         super.onSaveInstanceState(state);
@@ -265,6 +287,20 @@ public class MainActivity extends AppCompatActivity {
         );
         boolean active = mode != null && !mode.equals("off");
         ui.privateDnsWarning.setVisibility(active ? View.VISIBLE : View.GONE);
+    }
+
+    private void openAccount(boolean initial) {
+        if (initial) awaitingInitialAccount = true;
+        account.launch(new Intent(this, tracewall.auth.AuthActivity.class)
+            .putExtra(tracewall.auth.AuthActivity.EXTRA_ROLE, tracewall.auth.AuthActivity.ROLE_CHILD)
+            .putExtra(tracewall.auth.AuthActivity.EXTRA_BOUND_UID, tracewall.auth.IdentityAnchor.get(this))
+            .putExtra(tracewall.auth.AuthActivity.EXTRA_INITIAL, initial));
+    }
+
+    private void updateAccountStatus() {
+        com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        ui.accountStatus.setText(user == null || FirebaseSync.get().uid() == null ? R.string.account_local
+            : user.isAnonymous() ? R.string.account_guest : R.string.account_linked);
     }
 
     /** Show the Firebase UID as a tappable device code for pairing. */

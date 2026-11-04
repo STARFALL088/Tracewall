@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_open">অ্যাকাউন্ট / সাইন ইন</string>
+    <string name="account_local">জোড়া লাগানোর আগে সাইন ইন করুন বা অতিথি পরিচয় বেছে নিন।</string>
+    <string name="account_guest">অতিথি পরিচয়। পরে এই অভিভাবক পরিচয় ফিরে পেতে একটি অ্যাকাউন্ট যুক্ত করুন।</string>
+    <string name="account_linked">সাইন ইন করা আছে। সংরক্ষিত প্রতিটি ডিভাইসে অভিভাবকের অনুমতি যাচাই করা হবে।</string>
+    <string name="account_required">শিশুর ডিভাইসে যুক্ত হতে একটি অ্যাকাউন্ট বা অতিথি সেশন বেছে নিন।</string>
+    <string name="account_same_child">অভিভাবক ও শিশুর জন্য আলাদা অ্যাকাউন্ট ব্যবহার করুন। একই অ্যাকাউন্ট নিজের অভিভাবক হতে পারে না।</string>
+</resources>

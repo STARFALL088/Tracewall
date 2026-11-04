@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TracewallAuthTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="TracewallAuthSection" parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

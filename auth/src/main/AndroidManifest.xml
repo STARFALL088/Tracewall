@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Firebase/Play services handles SMS retrieval. No SMS or phone permissions. -->
+    <application>
+        <activity
+            android:name="tracewall.auth.AuthActivity"
+            android:exported="false"
+            android:label="@string/auth_title_initial"
+            android:theme="@style/TracewallAuthTheme"
+            android:windowSoftInputMode="adjustResize" />
+    </application>
+</manifest>

@@ -23,6 +23,11 @@
         android:text="@string/pairing_body"
         android:textSize="14sp" />
 
+    <TextView android:id="@+id/accountStatus" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/account_local" />
+    <Button android:id="@+id/accountButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/account_open" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -38,6 +43,7 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <EditText android:id="@+id/pairingCodeInput"
+        android:saveEnabled="false"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:hint="@string/pairing_code_hint" android:inputType="textCapCharacters"
         android:maxLength="8" android:maxLines="1" />

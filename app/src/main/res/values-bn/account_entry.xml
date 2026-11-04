@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_open">অ্যাকাউন্ট / সাইন ইন</string>
+    <string name="account_local">কোনো অ্যাকাউন্ট নেই। স্থানীয় সুরক্ষা ব্যবহার করা যাবে।</string>
+    <string name="account_guest">অতিথি পরিচয়। এই ডিভাইসের পরিচয় ফিরে পেতে একটি অ্যাকাউন্ট যুক্ত করুন।</string>
+    <string name="account_linked">সাইন ইন করা আছে। অ্যাকাউন্টে প্রবেশ সুরক্ষার পিনের বিকল্প নয়।</string>
+</resources>

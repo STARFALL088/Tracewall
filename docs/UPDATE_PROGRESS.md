@@ -249,3 +249,43 @@ production/device requirements are stated separately.
   temporary test helper was uninstalled and its absence verified. Child
   protection remains foreground/running. Earlier missing HTTPS/SVCB audit rows
   and the non-PIN local history-clear flow remain separate unresolved defects.
+
+### Shared authentication — email, Google and phone (2026-11-04)
+
+- Added a shared Java Android `:auth` library and account entry/status in both
+  apps: email/password (including Gmail addresses), creation/linking, password
+  reset, email verification/refresh, same-account email reauthentication, Google
+  Credential Manager and phone OTP. Guest and local-only entry are explicit.
+- Existing identities link providers, never silently sign in as another UID.
+  Durable installation anchors guard startup, cloud facades and callbacks.
+  Background startup/events no longer create anonymous users. No normal
+  primary sign-out/switch/merge/delete is exposed for either role; Parent and
+  Child require different identities under the existing device-keyed schema.
+- Recovery is verified in an isolated named Firebase app with no database
+  clients. Only the exact bound UID reaches primary auth via `updateCurrentUser`.
+  This prevents wrong-account recovery from exposing SDK-owned pending writes
+  to another principal and avoids consuming a phone OTP twice. Secondary SDK
+  sessions are cleared; stale operations never promote a candidate.
+- Child account changes retain the PIN gate, including recovery on previously
+  protected installs. Account activity is private and secure-windowed; passwords
+  and OTPs are not saved/restored. Phone consent starts unchecked, transient
+  tokens remain in RAM, and generation/completion/cooldown guards reject stale
+  or duplicate work. English/Bengali parity covers 81 strings and one plural.
+- Verification: 245 regular JVM tests (188 core / 57 auth), 8 real Android SDK
+  tests against a local demo Auth emulator and 15 Python tests passed. Both APKs
+  built; all three lint tasks passed with zero errors (8 auth dependency-version
+  advisories, 30 Child / 20 Parent warnings). SDK tests verify guest linking,
+  collision retention, exact/wrong recovery, session cleanup, stale ownership,
+  existing-primary retention and phone credential copying/token refresh.
+- Robolectric includes simulated API 24/API 34 UI and preference behavior,
+  rotation/secret clearing, validation, guest/recovery restrictions and heading
+  compatibility. Compiled manifests confirm non-exported account activities
+  and no SMS/contacts/phone-number reading permissions. CI now runs auth unit,
+  real-SDK demo-emulator and lint tasks and retains their reports.
+- Setup guide: `docs/authentication.md`. Both generated app symbol tables lack
+  `default_web_client_id`; Google console/OAuth configuration is still required.
+  No production providers, billing, rules or accounts were changed. No real
+  Google chooser, email action, SMS delivery, reCAPTCHA or Play Integrity success
+  is claimed. ADB has no attached device; new auth APKs are built, not installed.
+  Earlier physical pairing/round-trip and privacy/diagnostics/feed tasks remain
+  separate pending work; no app data, protection PIN or managed policy was reset.

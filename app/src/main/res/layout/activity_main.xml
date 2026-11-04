@@ -26,6 +26,12 @@
         android:text="@string/tagline"
         android:textSize="13sp" />
 
+    <TextView android:id="@+id/accountStatus" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="8dp"
+        android:text="@string/account_local" android:textSize="12sp" />
+    <Button android:id="@+id/accountButton" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/account_open" />
+
     <!-- Shown only when Private DNS / DoH is active and may bypass the filter. -->
     <TextView
         android:id="@+id/privateDnsWarning"

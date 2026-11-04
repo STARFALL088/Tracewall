@@ -12,10 +12,9 @@ import tracewall.data.RemoteRules;
  *
  * Two things happen here and nowhere else:
  *
- *   1. Anonymous sign-in. This produces a stable UID that both the child and
- *      the parent app use to address the same Realtime Database node and
- *      Firestore documents. It must succeed before the rules listener is
- *      attached, which is why the listener is started inside the callback.
+ *   1. Observe authentication. The account screen explicitly chooses named
+ *      sign-in, a guest identity, or local use without an account. Background
+ *      startup never silently creates or replaces an identity.
  *
  *   2. Rules listener. Once signed in, we subscribe to the parent's rule
  *      pushes for the lifetime of the process. We never detach this listener
@@ -26,6 +25,7 @@ import tracewall.data.RemoteRules;
 public class TracewallApp extends Application {
 
     private static final String TAG = "Tracewall";
+    private String attachedUid;
 
     @Override
     public void onCreate() {
@@ -35,8 +35,20 @@ public class TracewallApp extends Application {
         FirebaseSync.get().initialize(ctx);
         if (BlocklistStore.isEnabled(ctx)) tracewall.child.net.ListRefreshWorker.schedule(ctx);
 
-        FirebaseSync.get().signInAnonymously(() -> {
-            Log.i(TAG, "Firebase ready, child uid=" + FirebaseSync.get().uid());
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener(auth -> {
+            com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
+            if (user == null || user.getUid().equals(attachedUid)) return;
+            if (!tracewall.auth.IdentityAnchor.bind(ctx, user.getUid())) {
+                Log.e(TAG, "Account does not match this protected device; cloud synchronization paused");
+                return;
+            }
+            if (attachedUid != null) {
+                // Child upgrades link credentials to the existing UID, never swap it.
+                Log.e(TAG, "Child identity changed unexpectedly; retaining existing protection");
+                return;
+            }
+            attachedUid = user.getUid();
+            Log.i(TAG, "Firebase session ready; starting child synchronization");
 
             FirebaseSync.get().watchPairing();
             FirebaseSync.get().refreshInstalledApps();
@@ -44,6 +56,7 @@ public class TracewallApp extends Application {
             // Process-lifetime subscription: the parent writes to
             // /devices/{uid}/rules and we apply it immediately.
             FirebaseSync.get().listenForRules(snapshot -> {
+                if (!attachedUid.equals(FirebaseSync.get().uid())) return;
                 try {
                     // An absent snapshot explicitly clears the remote keys. Local
                     // rules remain separate in BlocklistStore and are never erased.

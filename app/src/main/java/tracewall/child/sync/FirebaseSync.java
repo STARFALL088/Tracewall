@@ -36,9 +36,8 @@ import java.util.Map;
  * loading all rows. History rows are written to
  * {@code /devices/{uid}/history/{recordId}}.
  *
- * <p>Call {@link #signInAnonymously} once at app startup (e.g. from
- * {@code Application.onCreate}). All other methods are no-ops until the sign-in
- * callback fires.
+ * <p>The account UI selects a named or guest identity. Background work is a
+ * no-op without an authenticated session and never creates another identity.
  *
  * <p>Replace {@code app/google-services.json} with the real file from your
  * Firebase console before using any of these APIs at runtime.
@@ -90,6 +89,8 @@ public class FirebaseSync {
     public void initialize(android.content.Context context) {
         applicationContext = context.getApplicationContext();
         preferences = applicationContext.getSharedPreferences("tracewall.sync", android.content.Context.MODE_PRIVATE);
+        FirebaseUser current = auth.getCurrentUser();
+        if (current != null) tracewall.auth.IdentityAnchor.bind(applicationContext, current.getUid());
     }
 
     public boolean isInventorySharingEnabled() {
@@ -109,35 +110,16 @@ public class FirebaseSync {
 
     // ---------------------------------------------------------------- auth
 
-    /**
-     * Sign in anonymously so that both the child and parent apps share a
-     * stable UID without requiring user credentials on the child device.
-     *
-     * @param callback called on the main thread once the UID is available
-     *                 (or immediately if the user is already signed in).
-     */
-    public void signInAnonymously(@NonNull Runnable callback) {
-        FirebaseUser current = auth.getCurrentUser();
-        if (current != null) {
-            Log.d(TAG, "Already signed in as " + current.getUid());
-            callback.run();
-            return;
-        }
-
-        auth.signInAnonymously()
-            .addOnSuccessListener(result -> {
-                Log.d(TAG, "Signed in as " + result.getUser().getUid());
-                callback.run();
-            })
-            .addOnFailureListener(e ->
-                Log.e(TAG, "Anonymous sign-in failed", e)
-            );
+    /** Background publishers must not race or replace an explicit account login. */
+    public void whenSignedIn(@NonNull Runnable callback) {
+        if (uid() != null) callback.run();
     }
 
     /** @return the current Firebase UID, or {@code null} if not yet signed in. */
     public String uid() {
         FirebaseUser u = auth.getCurrentUser();
-        return u == null ? null : u.getUid();
+        return u != null && applicationContext != null
+            && tracewall.auth.IdentityAnchor.matches(applicationContext, u.getUid()) ? u.getUid() : null;
     }
 
     private String realtimeClaim;
@@ -152,6 +134,7 @@ public class FirebaseSync {
         pairingWatchStarted = true;
         realtimeDb.getReference(".info/connected").addValueEventListener(new ValueEventListener() {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!deviceUid.equals(uid())) return;
                 if (Boolean.TRUE.equals(snapshot.getValue(Boolean.class)) && preferences != null) {
                     refreshInstalledApps();
                     for (String parent : new java.util.HashSet<>(preferences.getStringSet("pending_revocations",
@@ -163,6 +146,7 @@ public class FirebaseSync {
         DatabaseReference device = realtimeDb.getReference("devices").child(deviceUid);
         device.child("pairing").addValueEventListener(new ValueEventListener() {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!deviceUid.equals(uid())) return;
                 realtimeClaim = snapshot.child("claimed_by").getValue(String.class);
                 clearUsedPairing(deviceUid);
             }
@@ -170,12 +154,14 @@ public class FirebaseSync {
         });
         firestore.collection("devices").document(deviceUid).collection("pairing")
             .document("current").addSnapshotListener((snapshot, error) -> {
+                if (!deviceUid.equals(uid())) return;
                 if (error != null) { Log.e(TAG, "pairing watch failed", error); return; }
                 firestoreClaim = snapshot == null ? null : snapshot.getString("claimed_by");
                 clearUsedPairing(deviceUid);
             });
         device.child("parentUid").addChildEventListener(new com.google.firebase.database.ChildEventListener() {
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                if (!deviceUid.equals(uid())) return;
                 revokeParent(snapshot.getKey(), () -> {}, () -> {});
             }
             public void onChildAdded(@NonNull DataSnapshot s, String previous) {}
@@ -185,6 +171,7 @@ public class FirebaseSync {
         });
         device.child("parentUid").addValueEventListener(new ValueEventListener() {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (!deviceUid.equals(uid())) return;
                 java.util.Set<String> parents = new java.util.HashSet<>();
                 for (DataSnapshot row : snapshot.getChildren()) parents.add(row.getKey());
                 currentParents = parents;
@@ -195,6 +182,7 @@ public class FirebaseSync {
     }
 
     private void clearUsedPairing(String deviceUid) {
+        if (!deviceUid.equals(uid())) return;
         if (realtimeClaim == null || !realtimeClaim.equals(firestoreClaim)) return;
         realtimeDb.getReference("devices").child(deviceUid).child("pairing").removeValue();
         firestore.collection("devices").document(deviceUid).collection("pairing").document("current").delete();
@@ -272,7 +260,7 @@ public class FirebaseSync {
      * The listener is called immediately with the current value, then again
      * whenever the parent modifies {@code /devices/{uid}/rules}.
      *
-     * <p>Must be called after {@link #signInAnonymously} has completed.
+     * <p>Requires an account or explicit guest session.
      *
      * @return the attached {@link ValueEventListener} - pass it to
      *         {@link #removeRulesListener} when the caller is destroyed.
@@ -288,7 +276,7 @@ public class FirebaseSync {
         ValueEventListener vel = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                listener.onRulesUpdated(snapshot);
+                if (uid.equals(uid())) listener.onRulesUpdated(snapshot);
             }
 
             @Override
@@ -317,7 +305,7 @@ public class FirebaseSync {
      * Write a single DNS history record to Firestore so the parent app can
      * page through the child's history without loading the full Room database.
      *
-     * <p>Must be called after {@link #signInAnonymously} has completed.
+     * <p>Requires an account or explicit guest session.
      *
      * @param timeMs    Unix epoch time of the query (milliseconds)
      * @param host      the queried hostname
@@ -354,7 +342,7 @@ public class FirebaseSync {
 
     public void reportNewApp(String label, String packageName, long installedAt) {
         if (!isInventorySharingEnabled()) return;
-        signInAnonymously(() -> {
+        whenSignedIn(() -> {
             String deviceUid = uid();
             if (deviceUid == null || !isInventorySharingEnabled()) return;
             Map<String, Object> event = new HashMap<>();
@@ -370,7 +358,7 @@ public class FirebaseSync {
     /** Firestore's persistent queue retains this event while offline. */
     public void reportProtectionOff(String reason) {
         long time = System.currentTimeMillis();
-        signInAnonymously(() -> {
+        whenSignedIn(() -> {
             String deviceUid = uid();
             if (deviceUid == null) return;
             Map<String, Object> event = new HashMap<>();
@@ -400,14 +388,7 @@ public class FirebaseSync {
     // ---------------------------------------------------------------- helpers
 
     private String requireUid(String caller) {
-        String uid = uid();
-        if (uid == null) {
-            Log.w(
-                TAG,
-                caller +
-                    " called before sign-in; call signInAnonymously() first"
-            );
-        }
-        return uid;
+        // Local use without an account is supported, not an exceptional state.
+        return uid();
     }
 }

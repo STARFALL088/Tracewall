@@ -34,3 +34,4 @@ rootProject.name = "Tracewall"
 include(":blocklist")
 include(":app")
 include(":parent")
+include(":auth")

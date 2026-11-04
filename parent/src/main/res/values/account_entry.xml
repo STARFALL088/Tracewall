@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="account_open">Account / sign in</string>
+    <string name="account_local">Sign in or choose a guest identity before pairing.</string>
+    <string name="account_guest">Guest identity. Link an account to recover this parent identity later.</string>
+    <string name="account_linked">Signed in. Each saved device still requires verified parent access.</string>
+    <string name="account_required">Choose an account or an explicit guest session to connect to a child.</string>
+    <string name="account_same_child">Parent and Child must use different accounts. An account cannot parent itself.</string>
+</resources>
