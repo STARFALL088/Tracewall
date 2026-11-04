@@ -215,3 +215,37 @@ production/device requirements are stated separately.
   manifest inspection confirms the editor exists and is non-exported; all 71
   feature-resource keys match across languages. Actual Android PIN/picker,
   preference recovery, schedule/time-zone behavior and UI flows remain pending.
+
+### Device follow-up — DNS socket recovery (2026-11-04)
+
+- Both apps were tested on the same authorized Samsung SM-A127F / Android 13.
+  Parent anonymous authentication succeeded. The normal Child PIN gate was
+  authorized, and Child generated a real pairing code after both database
+  writes completed, without enabling optional app-name sharing.
+- Parent pairing then failed at its server-only Firestore membership read:
+  `UNAVAILABLE` / `UnknownHostException` for `firestore.googleapis.com`.
+  The VPN logged repeated upstream `Pending connect failure` errors. This was
+  a DNS-forwarding failure, not evidence of invalid pairing codes or denied
+  Firebase permissions.
+- Fixed the forwarder to keep healthy sockets protected and connected to one
+  resolver, use the checked connect overload for new sockets, and close failed
+  sockets instead of returning them to the pool. A different resolver gets a
+  fresh socket. Four deterministic regressions cover failure eviction,
+  resolver fallback, healthy reuse and peer changes; the two failure-eviction
+  regressions were observed failing before the fix.
+- Verification: 188 JVM tests passed; both debug APKs and both lint tasks passed
+  with zero errors (30 child / 20 parent warnings). Both updated APKs were
+  installed using data-preserving replacement and their device hashes matched
+  the local artifacts. No production Firebase rules or console settings changed.
+- Physical retest: all 21 ordinary test-app DNS response checks passed across
+  three batches, including the current metadata-suppression behavior. All four
+  independent HTTPS reachability checks succeeded. The new VPN process logged
+  zero forwarding warnings / pending-connect failures during this retest and
+  no crash-buffer entries. These checks do not establish history completeness,
+  successful pairing, SDK callbacks or a parent-to-child rule round trip.
+- Post-fix pairing is still pending: the phone reached its Android lock screen,
+  and the request for a normal user unlock timed out. No lock-screen interaction
+  or PIN retry was attempted. USB stay-awake was restored and read back; the
+  temporary test helper was uninstalled and its absence verified. Child
+  protection remains foreground/running. Earlier missing HTTPS/SVCB audit rows
+  and the non-PIN local history-clear flow remain separate unresolved defects.

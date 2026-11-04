@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -118,10 +119,9 @@ public final class DnsForwarder {
         DnsMessage.putU16(wire, 0, queryId);
 
         DatagramSocket sock = null;
+        boolean reusable = false;
         try {
-            sock = acquire();
-            if (binder != null) binder.bind(sock);
-            sock.connect(addr, IpPacket.PORT_DNS);
+            sock = acquire(addr);
             sock.setSoTimeout(timeoutMs);
             sock.send(new DatagramPacket(wire, wire.length));
 
@@ -143,16 +143,20 @@ public final class DnsForwarder {
             }
             if (msg.isTruncated()) {
                 Reply tcp = retryOverTcp(addr, wire, queryId);
-                if (tcp != null) return tcp;
+                if (tcp != null) { reusable = true; return tcp; }
                 throw new ForwardException(resolver + ": truncated, TCP retry failed");
             }
+            reusable = true;
             return new Reply(reply, false, addr.getHostAddress());
         } catch (SocketTimeoutException e) {
             throw new ForwardException(resolver + ": timeout");
         } catch (IOException e) {
             throw new ForwardException(resolver + ": " + e.getMessage());
         } finally {
-            if (sock != null) release(sock);
+            if (sock != null) {
+                if (reusable) release(sock);
+                else sock.close();
+            }
         }
     }
 
@@ -225,21 +229,35 @@ public final class DnsForwarder {
      * ephemeral port allocation, so reuse pays. Capped so a burst of queries
      * cannot exhaust the process's file descriptors.
      */
-    private synchronized DatagramSocket acquire() throws IOException {
+    // Package-private so lifecycle tests need neither reflection nor a DNS server.
+    synchronized DatagramSocket acquire(InetAddress resolver) throws IOException {
         if (closed) throw new IOException("forwarder closed");
-        DatagramSocket s = pool.poll();
-        return s != null ? s : new DatagramSocket();
+        DatagramSocket s;
+        while ((s = pool.poll()) != null) {
+            if (!s.isClosed() && s.isConnected() && s.getPort() == IpPacket.PORT_DNS
+                    && resolver.equals(s.getInetAddress())) return s;
+            s.close();
+        }
+        s = new DatagramSocket();
+        try {
+            if (binder != null) binder.bind(s);
+            // Use the checked overload, and never reconnect a pooled descriptor.
+            s.connect(new InetSocketAddress(resolver, IpPacket.PORT_DNS));
+            return s;
+        } catch (IOException | RuntimeException error) {
+            s.close();
+            throw error;
+        }
     }
 
-    private synchronized void release(DatagramSocket s) {
+    synchronized void release(DatagramSocket s) {
         if (closed) {
             if (s != null) s.close();
             return;
         }
         if (s == null || s.isClosed()) return;
-        try {
-            s.disconnect();
-        } catch (RuntimeException ignored) { }
+        // Keep healthy sockets protected and connected to exactly one resolver.
+        if (!s.isConnected()) { s.close(); return; }
         if (!pool.offer(s)) s.close();
     }
 
