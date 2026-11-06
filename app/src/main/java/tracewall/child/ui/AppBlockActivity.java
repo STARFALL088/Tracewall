@@ -1,8 +1,5 @@
 package tracewall.child.ui;
 
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -15,12 +12,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import tracewall.child.R;
+import tracewall.child.apps.InstalledAppCatalog;
 import tracewall.child.block.BlocklistStore;
 import tracewall.child.databinding.ActivityAppBlockBinding;
+import tracewall.data.AppInventory;
 
 /**
  * Per-app blocking, one switch per installed app.
@@ -138,22 +136,16 @@ public class AppBlockActivity extends AppCompatActivity {
         renderState();
         appScan = new Thread(() -> {
             try {
-                PackageManager pm = getPackageManager();
                 List<AppBlockAdapter.App> apps = new ArrayList<>();
-                for (PackageInfo pi : pm.getInstalledPackages(0)) {
+                for (InstalledAppCatalog.Entry entry :
+                        InstalledAppCatalog.scan(this, AppInventory.MAX_ENTRIES)) {
                     if (Thread.currentThread().isInterrupted()) return;
-                    ApplicationInfo ai = pi.applicationInfo;
-                    if (ai == null || ai.uid < 10000) continue;
-                    boolean system = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
-                            && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0;
-                    if (system) continue;
                     apps.add(new AppBlockAdapter.App(
-                            String.valueOf(ai.loadLabel(pm)),
-                            pi.packageName,
-                            ai.uid,
-                            BlocklistStore.get().isAppBlocked(ai.uid)));
+                            entry.label,
+                            entry.packageName,
+                            entry.uid,
+                            BlocklistStore.get().isAppBlocked(entry.uid)));
                 }
-                Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
                 if (Thread.currentThread().isInterrupted()) return;
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;

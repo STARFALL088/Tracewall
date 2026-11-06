@@ -7,9 +7,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -96,11 +98,13 @@ public final class BlocklistStore {
             if (policyLoaded) return;
             local = new RulesJson(Collections.emptySet(), Collections.emptySet(), localToggles(sp));
         }
+        int controlUid = app.getApplicationInfo().uid;
+        List<ScheduledProfile> runtimeProfiles = withoutUid(local.profiles, controlUid);
         Set<String> remoteCats = sp.getStringSet(KEY_REMOTE_CATEGORIES, null);
         Set<String> activeCategories = remoteCats != null ? remoteCats : sp.getStringSet(KEY_LOCAL_CATEGORIES,
                 lastCategories.isEmpty() ? RulesJson.CATEGORIES : lastCategories);
         Set<String> needed = new TreeSet<>(activeCategories);
-        for (ScheduledProfile profile : local.profiles) needed.addAll(profile.categories);
+        for (ScheduledProfile profile : runtimeProfiles) needed.addAll(profile.categories);
         Map<String, DomainSet> allCategories = new LinkedHashMap<>();
         Map<String, DomainSet> perCategory = new LinkedHashMap<>();
         Map<String, DomainSet> managedCategories = new LinkedHashMap<>();
@@ -122,17 +126,19 @@ public final class BlocklistStore {
         }
         Set<String> remoteAllow = sp.getStringSet(KEY_REMOTE_ALLOW, Collections.emptySet());
         Set<Integer> remoteUids = parseUids(sp.getStringSet(KEY_REMOTE_BLOCKED_UIDS, Collections.emptySet()));
+        remoteUids.remove(controlUid);
         // Preserve the legacy live-policy path, even if an old allowlist has an
         // unsupported query name. A malformed old allow must not disable all
         // category filtering on a cold start just because backup validation fails.
         Set<String> mergedAllow = new HashSet<>(sp.getStringSet(KEY_ALLOW, Collections.emptySet()));
         mergedAllow.addAll(remoteAllow);
         Set<Integer> uids = parseUids(sp.getStringSet(KEY_BLOCKED_UIDS, Collections.emptySet()));
+        uids.remove(controlUid);
         uids.addAll(remoteUids);
         PolicyEngine managed = new PolicyEngine(DomainSet.of(remoteAllow), managedCategories, remoteUids);
         // Parent allows stay authoritative; local imports/exceptions cannot weaken parent blocks.
         engine = new PolicyEngine(DomainSet.of(mergedAllow), perCategory, uids, DomainSet.of(local.deny),
-                local.temporaryAllows, allCategories, local.profiles, managed);
+                local.temporaryAllows, allCategories, runtimeProfiles, managed);
         policyLoaded = true;
         summary =
             engine.summary() +
@@ -195,7 +201,7 @@ public final class BlocklistStore {
 
     public synchronized void blockApp(Context ctx, int uid) {
         if (ctx != null) app = ctx.getApplicationContext();
-        if (app == null || uid < 0) return;
+        if (app == null || uid < 0 || uid == app.getApplicationInfo().uid) return;
         SharedPreferences sp = prefs(app);
         Set<String> next = new HashSet<>(
             sp.getStringSet(KEY_BLOCKED_UIDS, Collections.<String>emptySet())
@@ -300,6 +306,23 @@ public final class BlocklistStore {
             }
         }
         return out;
+    }
+
+    /** A local backup/profile can name raw UIDs; never let one target this control process. */
+    private static List<ScheduledProfile> withoutUid(List<ScheduledProfile> profiles, int excludedUid) {
+        List<ScheduledProfile> safe = new ArrayList<>();
+        for (ScheduledProfile profile : profiles) {
+            if (!profile.blockedUids.contains(excludedUid)) {
+                safe.add(profile);
+                continue;
+            }
+            Set<Integer> uids = new TreeSet<>(profile.blockedUids);
+            uids.remove(excludedUid);
+            if (!profile.categories.isEmpty() || !uids.isEmpty()) {
+                safe.add(new ScheduledProfile(profile.name, profile.schedule, profile.categories, uids));
+            }
+        }
+        return safe;
     }
 
     public synchronized RulesJson exportLocal(Context ctx) {

@@ -1,8 +1,6 @@
 package tracewall.child.sync;
 
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.util.Log;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -17,6 +15,7 @@ import java.util.concurrent.ExecutorService;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import tracewall.child.apps.InstalledAppCatalog;
 import tracewall.data.AppInventory;
 import tracewall.net.BoundedWorkPool;
 import tracewall.net.LatestWork;
@@ -44,18 +43,10 @@ final class AppInventoryPublisher {
                 Context app = request.app;
                 Map<String, AppInventory.Entry> installed = new HashMap<>();
                 long now = System.currentTimeMillis();
-                if (sharing) for (PackageInfo info : app.getPackageManager().getInstalledPackages(0)) {
-                    ApplicationInfo ai = info.applicationInfo;
-                    if (ai == null || ai.uid < 10000 || ((ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
-                            && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0)) continue;
-                    if (installed.size() == AppInventory.MAX_ENTRIES) {
-                        Log.w("Tracewall", "App-name snapshot capped at " + AppInventory.MAX_ENTRIES);
-                        break;
-                    }
-                    String label = String.valueOf(ai.loadLabel(app.getPackageManager()));
-                    if (label.length() > 200) label = label.substring(0,
-                        Character.isHighSurrogate(label.charAt(199)) ? 199 : 200);
-                    try { installed.put(info.packageName, new AppInventory.Entry(info.packageName, label, ai.uid, now)); }
+                if (sharing) for (InstalledAppCatalog.Entry entry :
+                        InstalledAppCatalog.scan(app, AppInventory.MAX_ENTRIES)) {
+                    try { installed.put(entry.packageName,
+                            new AppInventory.Entry(entry.packageName, entry.label, entry.uid, now)); }
                     catch (IllegalArgumentException e) { Log.w("Tracewall", "Skipped invalid app-name metadata"); }
                 }
                 CollectionReference apps = request.store.collection("devices").document(request.uid).collection("apps");
