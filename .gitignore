@@ -13,6 +13,8 @@ captures/
 google-services.json
 bin/
 node_modules/
+__pycache__/
+*.pyc
 
 # Firebase emulator diagnostics
 *-debug.log
