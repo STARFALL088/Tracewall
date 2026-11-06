@@ -65,6 +65,8 @@ and read history from any device, in real time.
 Captured from **v2.2.0** on a Samsung SM-A127F running Android 13. Protection
 was left off, and the screens contain no private DNS history or account data.
 
+### Child app
+
 | Home | Activity | Protect |
 | :--: | :------: | :-----: |
 | [![Tracewall Home](docs/screenshots/03-child-home.png)](docs/screenshots/03-child-home.png) | [![Tracewall Activity](docs/screenshots/04-child-activity.png)](docs/screenshots/04-child-activity.png) | [![Tracewall Protect](docs/screenshots/05-child-protect.png)](docs/screenshots/05-child-protect.png) |
@@ -72,6 +74,22 @@ was left off, and the screens contain no private DNS history or account data.
 | Family | Settings |
 | :----: | :------: |
 | [![Tracewall Family](docs/screenshots/06-child-family.png)](docs/screenshots/06-child-family.png) | [![Tracewall Settings](docs/screenshots/07-child-settings.png)](docs/screenshots/07-child-settings.png) |
+
+### Parent app
+
+The pairing screen is the normal signed-out app. Dashboard pages were rendered
+on the same phone with temporary local sample state so no Firebase account,
+membership, or child history had to be published. That preview-only bypass was
+not committed; the official v2.2.0 APK was reinstalled and hash-verified after
+capture.
+
+| Pairing | Overview | Activity |
+| :-----: | :------: | :------: |
+| [![Tracewall Parent pairing](docs/screenshots/08-parent-pairing.png)](docs/screenshots/08-parent-pairing.png) | [![Tracewall Parent overview](docs/screenshots/09-parent-overview.png)](docs/screenshots/09-parent-overview.png) | [![Tracewall Parent activity](docs/screenshots/10-parent-activity.png)](docs/screenshots/10-parent-activity.png) |
+
+| Rules | Devices |
+| :---: | :-----: |
+| [![Tracewall Parent rules](docs/screenshots/11-parent-rules.png)](docs/screenshots/11-parent-rules.png) | [![Tracewall Parent devices](docs/screenshots/12-parent-devices.png)](docs/screenshots/12-parent-devices.png) |
 
 ---
 
