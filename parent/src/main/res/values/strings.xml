@@ -51,6 +51,10 @@
     <string name="event_device">Device event</string>
     <string name="pairing_partial_reset">A previous pairing partly succeeded with another code. Revoke this parent on the child, then generate a new code.</string>
     <string name="pairing_retry">Pairing could not finish. Check connectivity and retry the same unexpired code. If it expires, revoke the partial parent on the child before trying a new code.</string>
+    <string name="pairing_uid_invalid">That is not a complete child device UID. Copy the full UID shown on the child\'s Family screen.</string>
+    <string name="pairing_not_found">No matching pairing was found. Check the UID and code, and make sure the code has not expired.</string>
+    <string name="pairing_permission">The server denied access. Sign in with the parent account that paired this device.</string>
+    <string name="pairing_network">Could not reach the server. Check the internet connection and retry.</string>
     <string name="rule_domain_invalid">Enter a domain such as example.com or *.example.com, without a URL, path or spaces.</string>
     <string name="rules_waiting">Loading remote rules…</string>
     <string name="rules_ready">Rules loaded. Changes require server confirmation.</string>

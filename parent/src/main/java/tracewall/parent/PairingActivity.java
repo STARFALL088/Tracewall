@@ -120,7 +120,7 @@ public class PairingActivity extends AppCompatActivity {
         String code = ui.pairingCodeInput.getText().toString().trim();
         String name = ui.deviceName.getText().toString().trim();
         if (!tracewall.security.PairingCode.validChildUid(childUid)) {
-            ui.childUidInput.setError(getString(R.string.pairing_code_invalid)); return;
+            ui.childUidInput.setError(getString(R.string.pairing_uid_invalid)); return;
         }
         tracewall.security.PairingCode pairing;
         try { pairing = code.isEmpty() ? null : new tracewall.security.PairingCode(childUid, code); }
@@ -152,16 +152,22 @@ public class PairingActivity extends AppCompatActivity {
         java.util.function.Consumer<FirebaseParent.PairingFailure> failed = failure -> {
             if (isFinishing() || isDestroyed()) return;
             setBusy(false);
-            int message = failure == FirebaseParent.PairingFailure.CHILD_RESET_REQUIRED
-                ? R.string.pairing_partial_reset : failure == FirebaseParent.PairingFailure.SAME_IDENTITY
-                    ? R.string.account_same_child : R.string.pairing_retry;
+            int message;
+            switch (failure) {
+                case CHILD_RESET_REQUIRED: message = R.string.pairing_partial_reset; break;
+                case SAME_IDENTITY: message = R.string.account_same_child; break;
+                case INVALID_UID: message = R.string.pairing_uid_invalid; break;
+                case NOT_FOUND: message = R.string.pairing_not_found; break;
+                case PERMISSION: message = R.string.pairing_permission; break;
+                case NETWORK: message = R.string.pairing_network; break;
+                default: message = R.string.pairing_retry; break;
+            }
             ui.pairingStatus.setText(message);
             ui.pairingStatus.setVisibility(View.VISIBLE);
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         };
 
-        if (pairing == null) FirebaseParent.get().verifyAccess(childUid, connected,
-            () -> failed.accept(FirebaseParent.PairingFailure.CONNECTION));
+        if (pairing == null) FirebaseParent.get().verifyAccess(childUid, connected, failed);
         else FirebaseParent.get().registerAsParent(childUid, pairing.code, connected, failed);
     }
     private void setBusy(boolean busy) {

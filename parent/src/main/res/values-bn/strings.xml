@@ -51,6 +51,10 @@
     <string name="event_device">ডিভাইসের ঘটনা</string>
     <string name="pairing_partial_reset">অন্য কোড দিয়ে আগের পেয়ারিং আংশিক হয়েছে। শিশুর ডিভাইসে এই অভিভাবককে বাতিল করে নতুন কোড তৈরি করুন।</string>
     <string name="pairing_retry">পেয়ারিং শেষ হয়নি। সংযোগ পরীক্ষা করে একই মেয়াদবহাল কোড দিয়ে আবার চেষ্টা করুন। মেয়াদ শেষ হলে শিশুর ডিভাইসে আংশিক সংযোগ বাতিল করে নতুন কোড নিন।</string>
+    <string name="pairing_uid_invalid">এটি সম্পূর্ণ শিশু ডিভাইস ইউআইডি নয়। শিশুর ডিভাইসের Family পৃষ্ঠায় দেখানো পুরো ইউআইডি কপি করুন।</string>
+    <string name="pairing_not_found">মিলে যাওয়া কোনো পেয়ারিং পাওয়া যায়নি। ইউআইডি ও কোড পরীক্ষা করুন এবং কোডের মেয়াদ শেষ হয়নি কি না দেখুন।</string>
+    <string name="pairing_permission">সার্ভার অ্যাক্সেস অস্বীকার করেছে। যে অভিভাবক অ্যাকাউন্ট এই ডিভাইসটি পেয়ার করেছে সেটি দিয়ে সাইন ইন করুন।</string>
+    <string name="pairing_network">সার্ভারে পৌঁছানো যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</string>
     <string name="rule_domain_invalid">example.com বা *.example.com-এর মতো ডোমেইন দিন; ইউআরএল, পাথ বা ফাঁকা স্থান নয়।</string>
     <string name="rules_waiting">দূরবর্তী নিয়ম আনা হচ্ছে…</string>
     <string name="rules_ready">নিয়ম এসেছে। পরিবর্তনে সার্ভারের নিশ্চিতকরণ দরকার।</string>

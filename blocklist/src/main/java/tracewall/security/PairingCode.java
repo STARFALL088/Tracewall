@@ -29,8 +29,14 @@ public final class PairingCode {
         return out.toString();
     }
 
+    /**
+     * Firebase Auth UIDs are long opaque identifiers (28 characters for
+     * generated accounts, 21 digits for Google), never free-form names. The
+     * lower bound rejects typos such as "abc" before they reach the network,
+     * and the charset keeps the value safe as a database path segment.
+     */
     public static boolean validChildUid(String uid) {
-        return uid != null && uid.matches("[A-Za-z0-9_-]{1,128}");
+        return uid != null && uid.matches("[A-Za-z0-9_-]{20,128}");
     }
 
     public String payload() { return "tracewall:1:" + childUid + ":" + code; }

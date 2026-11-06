@@ -87,7 +87,15 @@ public class FirebaseParent {
 
     // -------------------------------------------------------------- pairing
 
-    public enum PairingFailure { CONNECTION, CHILD_RESET_REQUIRED, SAME_IDENTITY }
+    public enum PairingFailure {
+        CONNECTION,
+        INVALID_UID,
+        NOT_FOUND,
+        PERMISSION,
+        NETWORK,
+        CHILD_RESET_REQUIRED,
+        SAME_IDENTITY
+    }
 
     /** Resume only the missing claim; existing membership is never overwritten. */
     public void registerAsParent(String childUid, String code, Runnable onSuccess,
@@ -152,22 +160,69 @@ public class FirebaseParent {
 
     /** Saved names are not credentials. Require both memberships; Firestore must answer from the server. */
     public void verifyAccess(String childUid, Runnable accepted, Runnable failed) {
-        if (!PairingCode.validChildUid(childUid)) { failed.run(); return; }
+        verifyAccess(childUid, accepted, failure -> failed.run());
+    }
+
+    /**
+     * Same check as {@link #verifyAccess(String, Runnable, Runnable)}, with a
+     * reason so the pairing screen can distinguish a typo in the UID from a
+     * missing pairing, a rules denial, or an unreachable server. The generic
+     * two-callback overload stays for screens that only need success/failure.
+     */
+    public void verifyAccess(String childUid, Runnable accepted,
+            java.util.function.Consumer<PairingFailure> failed) {
+        if (!PairingCode.validChildUid(childUid)) {
+            failed.accept(PairingFailure.INVALID_UID);
+            return;
+        }
         whenSignedIn(() -> {
             String parentUid = uid();
-            if (parentUid == null) { failed.run(); return; }
+            if (parentUid == null) { failed.accept(PairingFailure.CONNECTION); return; }
             db.getReference("devices").child(childUid).child("parentUid").child(parentUid).get()
                 .addOnSuccessListener(realtime -> {
-                    if (!parentUid.equals(uid())) { failed.run(); return; }
-                    if (!realtime.exists() || !(realtime.getValue() instanceof String)) { failed.run(); return; }
+                    if (!parentUid.equals(uid())) { failed.accept(PairingFailure.CONNECTION); return; }
+                    if (!realtime.exists() || !(realtime.getValue() instanceof String)) {
+                        failed.accept(PairingFailure.NOT_FOUND);
+                        return;
+                    }
                     fs.collection("devices").document(childUid).collection("parents").document(parentUid)
                         .get(Source.SERVER).addOnSuccessListener(member -> {
                             if (parentUid.equals(uid()) && member.exists()
                                     && realtime.getValue().equals(member.get("code"))) accepted.run();
-                            else failed.run();
-                        }).addOnFailureListener(error -> failed.run());
-                }).addOnFailureListener(error -> failed.run());
-        }, failed);
+                            else failed.accept(PairingFailure.NOT_FOUND);
+                        }).addOnFailureListener(error -> failed.accept(failureOf(error)));
+                }).addOnFailureListener(error -> failed.accept(failureOf(error)));
+        }, () -> failed.accept(PairingFailure.CONNECTION));
+    }
+
+    /** Map a database/Firestore failure to a message the pairing screen can act on. */
+    private static PairingFailure failureOf(Exception error) {
+        com.google.firebase.database.DatabaseError database =
+            com.google.firebase.database.DatabaseError.fromException(error);
+        if (database != null) {
+            int code = database.getCode();
+            if (code == com.google.firebase.database.DatabaseError.PERMISSION_DENIED) {
+                return PairingFailure.PERMISSION;
+            }
+            if (code == com.google.firebase.database.DatabaseError.DISCONNECTED
+                    || code == com.google.firebase.database.DatabaseError.NETWORK_ERROR
+                    || code == com.google.firebase.database.DatabaseError.UNAVAILABLE) {
+                return PairingFailure.NETWORK;
+            }
+        }
+        if (error instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+            switch (((com.google.firebase.firestore.FirebaseFirestoreException) error).getCode()) {
+                case PERMISSION_DENIED:
+                case UNAUTHENTICATED:
+                    return PairingFailure.PERMISSION;
+                case UNAVAILABLE:
+                case DEADLINE_EXCEEDED:
+                    return PairingFailure.NETWORK;
+                default:
+                    break;
+            }
+        }
+        return PairingFailure.CONNECTION;
     }
 
     public static final class AppSnapshot {

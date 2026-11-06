@@ -44,7 +44,7 @@ public class ParentNavigationTest {
     @Before public void localDeviceOnly() {
         Application app = RuntimeEnvironment.getApplication();
         assertTrue(ParentDevices.prefs(app).edit().clear().commit());
-        ParentDevices.remember(app, "test-child-uid", "Study phone");
+        ParentDevices.remember(app, "test-child-uid-0123456789ab", "Study phone");
     }
 
     @After public void closeCreatedUi() {
@@ -110,7 +110,7 @@ public class ParentNavigationTest {
         navigation().setSelectedItemId(R.id.nav_devices);
         String selected = ((TextView) activity.findViewById(R.id.childUidLabel)).getText().toString();
         assertTrue(selected.contains("Study phone"));
-        assertTrue(selected.contains("test-child-uid"));
+        assertTrue(selected.contains("test-child-uid-0123456789ab"));
         for (int control : new int[]{R.id.switchDeviceButton, R.id.addDeviceButton, R.id.renameDeviceButton,
                 R.id.forgetDeviceButton, R.id.forgetSavedButton, R.id.dashboardAccountButton})
             assertEquals(View.VISIBLE, activity.findViewById(control).getVisibility());
