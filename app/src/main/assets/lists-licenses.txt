@@ -24,8 +24,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-abuse.ch URLhaus — CC0
-https://urlhaus.abuse.ch/downloads/hostfile/
+Malware hosts: urlhaus-filter (malware-filter) — GPL-3.0
+https://gitlab.com/malware-filter/urlhaus-filter
+The filter is generated from abuse.ch URLhaus data — CC0
+https://urlhaus.abuse.ch/
+The direct abuse.ch hostfile endpoint was retired (HTTP 410); the app
+refreshes the maintained malware-filter mirror instead.
 
 Bundled adult/gambling/ads snapshots: Block List Project, Unlicense
 https://github.com/blocklistproject/Lists/blob/master/LICENSE

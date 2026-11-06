@@ -78,6 +78,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     );
 
     private static final AtomicBoolean running = new AtomicBoolean(false);
+    private static final AtomicBoolean starting = new AtomicBoolean(false);
     private static final AtomicLong rejectedPackets = new AtomicLong();
 
     public static long rejectedPackets() { return rejectedPackets.get(); }
@@ -85,6 +86,11 @@ public class DnsVpnService extends VpnService implements Runnable {
     /** True between establish() and teardown, for the UI to trust. */
     public static boolean isRunning() {
         return running.get();
+    }
+
+    /** True after the start intent and before the tunnel/policy is ready. */
+    public static boolean isStarting() {
+        return starting.get();
     }
 
     private final BlocklistStore blocklist = BlocklistStore.get();
@@ -197,6 +203,7 @@ public class DnsVpnService extends VpnService implements Runnable {
         String action = intent == null ? ACTION_START : intent.getAction();
         if (ACTION_STOP.equals(action)) {
             reportOff("user_toggle");
+            starting.set(false);
             BlocklistStore.setEnabled(this, false);
             stopSelf();
             return START_NOT_STICKY;
@@ -221,16 +228,25 @@ public class DnsVpnService extends VpnService implements Runnable {
     private synchronized void startTunnel() {
         if (tunThread != null) return; // already up or starting
         stop = false;
+        starting.set(true);
         tunThread = new Thread(this, "tracewall-tun");
         tunThread.start();
     }
 
-    /** Tunnel thread: load rules, establish, then read packets until stopped. */
+    /**
+     * Tunnel thread: establish first, then build the policy.
+     *
+     * Establish() is what registers the VPN with the system and captures DNS.
+     * Parsing the lists used to run first, which left the phone unprotected for
+     * the whole parse while the UI claimed protection was off. Now the tunnel
+     * exists immediately and DNS queries queue (unanswered) until the policy is
+     * ready, so no query can slip through unfiltered and the UI can show a
+     * truthful "starting" state.
+     */
     @Override
     public void run() {
+        long tunnelStarted = android.os.SystemClock.elapsedRealtime();
         try {
-            blocklist.load(this, DEFAULT_CATEGORIES);
-
             Builder b = new Builder();
             b.setSession(getString(R.string.app_name));
             b.setMtu(IpPacket.TUN_MTU);
@@ -248,9 +264,13 @@ public class DnsVpnService extends VpnService implements Runnable {
                 return;
             }
             tunOut = new FileOutputStream(tun.getFileDescriptor());
+            if (stop) return;
+            blocklist.load(this, DEFAULT_CATEGORIES);
+            if (stop) return;
             running.set(true);
             BlocklistStore.setEnabled(this, true);
-            Log.i(TAG, "tunnel up: " + blocklist.summary());
+            Log.i(TAG, "tunnel up in "
+                + (android.os.SystemClock.elapsedRealtime() - tunnelStarted) + " ms: " + blocklist.summary());
             loop();
         } catch (Exception e) {
             Log.e(TAG, "tunnel failed", e);
@@ -400,6 +420,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     private void teardown() {
         reportOff("unexpected_stop");
         stop = true;
+        starting.set(false);
         running.set(false);
         synchronized (writeLock) {
             if (tunOut != null) {
@@ -440,6 +461,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     public void onDestroy() {
         reportOff("service_destroyed");
         stop = true;
+        starting.set(false);
         running.set(false);
         if (packageReceiver != null) {
             unregisterReceiver(packageReceiver);

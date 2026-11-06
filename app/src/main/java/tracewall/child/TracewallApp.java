@@ -34,6 +34,10 @@ public class TracewallApp extends Application {
         final android.content.Context ctx = getApplicationContext();
         FirebaseSync.get().initialize(ctx);
         if (BlocklistStore.isEnabled(ctx)) tracewall.child.net.ListRefreshWorker.schedule(ctx);
+        // Parse the category lists off the main thread. First paint, the rules
+        // listener and the VPN toggle then reuse the warm policy instead of
+        // blocking the UI for the duration of a cold parse.
+        BlocklistStore.get().preload(ctx);
 
         com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener(auth -> {
             com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
@@ -61,7 +65,7 @@ public class TracewallApp extends Application {
                     // An absent snapshot explicitly clears the remote keys. Local
                     // rules remain separate in BlocklistStore and are never erased.
                     RemoteRules rules = RemoteRules.parse(snapshot.getValue());
-                    BlocklistStore.get().applyRemoteRules(ctx, rules.allow,
+                    BlocklistStore.get().applyRemoteRulesAsync(ctx, rules.allow,
                         rules.blockedUids, rules.categories);
                 } catch (IllegalArgumentException e) {
                     Log.w(TAG, "Rejected invalid remote rules; retaining last valid state", e);

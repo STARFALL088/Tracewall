@@ -237,7 +237,8 @@ services locally; they do not run the Android APKs.
   Refreshes trust upstream HTTPS feeds without signed manifests. Categories
   update atomically one file at a time, so partial updates can mix feed ages.
   Baseline retention prevents upstream removals taking effect for baseline
-  entries. URLhaus access policy may reject credential-free refresh requests.
+  entries. abuse.ch retired its direct hostfile endpoint, so malware refreshes
+  use the maintained urlhaus-filter mirror instead; that mirror can lag or move.
 - JSON validation covers schema, limits and rule data, not authenticity of a
   backup. Imports are local only, bounded to 256,000 bytes and 1,000 entries per
   list. Android picker/share behavior and update interruption still need devices.

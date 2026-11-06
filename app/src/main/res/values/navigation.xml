@@ -17,6 +17,7 @@
     <string name="nav_settings_title">Your preferences</string>
     <string name="nav_settings_subtitle">Account, device settings, and your data.</string>
     <string name="nav_protection_hint_on">Ordinary DNS requests are being filtered on this device.</string>
+    <string name="nav_protection_hint_starting">Starting the tunnel and loading the rule lists. Requests will be filtered as soon as this finishes.</string>
     <string name="nav_protection_hint_off">Turn on protection to filter ordinary DNS requests.</string>
     <string name="nav_enable_label">Filter DNS requests</string>
     <string name="nav_session_title">This session</string>

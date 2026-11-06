@@ -17,6 +17,7 @@
     <string name="nav_settings_title">আপনার পছন্দ</string>
     <string name="nav_settings_subtitle">অ্যাকাউন্ট, ডিভাইস সেটিংস ও আপনার ডেটা।</string>
     <string name="nav_protection_hint_on">এই ডিভাইসে সাধারণ DNS অনুরোধ ফিল্টার করা হচ্ছে।</string>
+    <string name="nav_protection_hint_starting">টানেল চালু ও নিয়মের তালিকা লোড হচ্ছে। শেষ হলেই অনুরোধ ফিল্টার করা শুরু হবে।</string>
     <string name="nav_protection_hint_off">সাধারণ DNS অনুরোধ ফিল্টার করতে সুরক্ষা চালু করুন।</string>
     <string name="nav_enable_label">DNS অনুরোধ ফিল্টার করুন</string>
     <string name="nav_session_title">এই সেশন</string>

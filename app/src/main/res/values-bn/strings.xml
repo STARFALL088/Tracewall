@@ -4,6 +4,7 @@
     <string name="tagline">এই ডিভাইসেই ডিএনএস ফিল্টারিং। কোনো অ্যাকাউন্ট নেই, কোনো সার্ভার নেই।</string>
     <string name="protection">সুরক্ষা</string>
     <string name="status_on">সুরক্ষা চালু আছে</string>
+    <string name="status_starting">সুরক্ষা চালু হচ্ছে…</string>
     <string name="status_off">সুরক্ষা বন্ধ আছে</string>
     <string name="detail">প্রশ্ন: %1$d  ·  ব্লক: %2$d  ·  নিয়ম: %3$d</string>
     <string name="recent">সাম্প্রতিক প্রশ্ন</string>

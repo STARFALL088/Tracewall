@@ -4,6 +4,7 @@
     <string name="tagline">DNS filtering on this device. No account, no server.</string>
     <string name="protection">Protection</string>
     <string name="status_on">Protection is on</string>
+    <string name="status_starting">Starting protection…</string>
     <string name="status_off">Protection is off</string>
     <string name="detail">Queries: %1$d  ·  Blocked: %2$d  ·  Rules: %3$d</string>
     <string name="recent">Recent queries</string>

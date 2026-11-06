@@ -79,8 +79,15 @@ public final class DomainPattern {
             if (!legal) return null;
         }
         // Label alignment: every label must be non-empty and <= 63 chars.
-        for (String label : body.split("\\.", -1)) {
-            if (label.isEmpty() || label.length() > 63) return null;
+        // Manual scan: compiling a regex per host is the single most expensive
+        // operation when parsing a 100k-line list.
+        int labelStart = 0;
+        for (int i = 0; i <= body.length(); i++) {
+            if (i == body.length() || body.charAt(i) == '.') {
+                int labelLength = i - labelStart;
+                if (labelLength == 0 || labelLength > 63) return null;
+                labelStart = i + 1;
+            }
         }
         return wild
                 ? new DomainPattern(Kind.WILDCARD, text, "." + body)

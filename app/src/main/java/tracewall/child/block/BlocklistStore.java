@@ -4,11 +4,15 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +20,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import tracewall.blocklist.ScheduledProfile;
 import tracewall.data.LocalRuleEdits;
 import tracewall.data.RulesJson;
@@ -57,11 +65,34 @@ public final class BlocklistStore {
         return INSTANCE;
     }
 
-    private Context app;
+    private volatile Context app;
     private Set<String> lastCategories = Collections.emptySet();
     private volatile PolicyEngine engine = new PolicyEngine(null, null, null);
     private volatile String summary = "not loaded";
     private boolean policyLoaded;
+
+    /** Parsed lists survive reloads; only a changed downloaded file is re-parsed. */
+    private final Map<String, CachedCategory> categoryCache = new HashMap<>();
+    private final ExecutorService reloader = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "tracewall-rules");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final AtomicBoolean reloadQueued = new AtomicBoolean();
+
+    private static final class CachedCategory {
+        final String stamp;
+        final DomainSet set;
+        final int malformed;
+        final int duplicates;
+
+        CachedCategory(String stamp, DomainSet set, int malformed, int duplicates) {
+            this.stamp = stamp;
+            this.set = set;
+            this.malformed = malformed;
+            this.duplicates = duplicates;
+        }
+    }
 
     private BlocklistStore() {}
 
@@ -111,18 +142,19 @@ public final class BlocklistStore {
         int malformed = 0;
         int duplicates = 0;
         // Preload every referenced list once. Activating a schedule never reads disk.
+        // Parsed categories are cached so later reloads (a rule edit, a parent
+        // push, a list refresh) do not re-parse what has not changed.
         for (String c : needed) {
-            String text = readCategory(app, c);
-            if (text == null) {
+            CachedCategory parsed = category(app, c);
+            if (parsed == null) {
                 Log.w(TAG, "missing category asset: " + c);
                 continue;
             }
-            HostListParser.Result r = HostListParser.parse(text);
-            allCategories.put(c, r.set());
-            if (activeCategories.contains(c)) perCategory.put(c, r.set());
-            if (remoteCats != null && remoteCats.contains(c)) managedCategories.put(c, r.set());
-            malformed += r.malformed();
-            duplicates += r.duplicates();
+            allCategories.put(c, parsed.set);
+            if (activeCategories.contains(c)) perCategory.put(c, parsed.set);
+            if (remoteCats != null && remoteCats.contains(c)) managedCategories.put(c, parsed.set);
+            malformed += parsed.malformed;
+            duplicates += parsed.duplicates;
         }
         Set<String> remoteAllow = sp.getStringSet(KEY_REMOTE_ALLOW, Collections.emptySet());
         Set<Integer> remoteUids = parseUids(sp.getStringSet(KEY_REMOTE_BLOCKED_UIDS, Collections.emptySet()));
@@ -147,11 +179,46 @@ public final class BlocklistStore {
             " malformed, " +
             duplicates +
             " dupes)";
-        Log.i(TAG, "policy loaded in " + (android.os.SystemClock.elapsedRealtime() - started) + " ms: " + summary);
+        Log.i(TAG, "policy loaded in " + (android.os.SystemClock.elapsedRealtime() - started)
+            + " ms on " + Thread.currentThread().getName() + ": " + summary);
     }
 
     public synchronized void reload() {
         if (app != null) load(app, lastCategories);
+    }
+
+    /**
+     * Warm the policy off the main thread. Called once at process start so the
+     * first paint, the Firebase rules callback and the VPN toggle never pay the
+     * list-parsing cost on the UI thread.
+     */
+    public void preload(Context ctx) {
+        if (ctx != null) app = ctx.getApplicationContext();
+        synchronized (this) {
+            if (app == null || policyLoaded) return;
+        }
+        reloadAsync();
+    }
+
+    /**
+     * Coalesced background reload. A burst of parent rule writes collapses into
+     * one parse; the packet path keeps using the previous engine until the new
+     * one is swapped in atomically.
+     */
+    public void reloadAsync() {
+        if (!reloadQueued.compareAndSet(false, true)) return;
+        try {
+            reloader.execute(() -> {
+                reloadQueued.set(false);
+                try {
+                    reload();
+                } catch (RuntimeException e) {
+                    Log.e(TAG, "Background rule reload failed", e);
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            reloadQueued.set(false);
+        }
     }
 
     /** Permanent exception. False rejects unsupported query names/limits without crashing legacy callers. */
@@ -225,8 +292,31 @@ public final class BlocklistStore {
         Set<String> blockedUidStrings,
         Set<String> categories
     ) {
+        if (persistRemoteRules(ctx, allow, blockedUidStrings, categories)) reload();
+    }
+
+    /**
+     * Firebase listener variant. Persisting is cheap; parsing is not, so the
+     * rebuilt engine is swapped in on the rules thread instead of the thread
+     * that delivered the snapshot (usually the main thread).
+     */
+    public void applyRemoteRulesAsync(
+        Context ctx,
+        Set<String> allow,
+        Set<String> blockedUidStrings,
+        Set<String> categories
+    ) {
+        if (persistRemoteRules(ctx, allow, blockedUidStrings, categories)) reloadAsync();
+    }
+
+    private boolean persistRemoteRules(
+        Context ctx,
+        Set<String> allow,
+        Set<String> blockedUidStrings,
+        Set<String> categories
+    ) {
         if (ctx != null) app = ctx.getApplicationContext();
-        if (app == null) return;
+        if (app == null) return false;
         SharedPreferences.Editor edit = prefs(app)
             .edit()
             .putStringSet(
@@ -245,7 +335,6 @@ public final class BlocklistStore {
             edit.remove(KEY_REMOTE_CATEGORIES);
         }
         edit.apply();
-        reload();
         Log.i(
             TAG,
             "remote rules applied: " +
@@ -255,6 +344,7 @@ public final class BlocklistStore {
                 " blocked uids, categories=" +
                 (categories != null ? categories : "default")
         );
+        return true;
     }
 
     /** The per-app undo: mirrors blockApp, same rule set, no restart either. */
@@ -360,17 +450,41 @@ public final class BlocklistStore {
         reload();
     }
 
-    private static String readCategory(Context ctx, String category) {
+    /**
+     * Read and parse one category, reusing an identical earlier parse. The
+     * downloaded file is validated in the same pass that builds its patterns,
+     * so an accepted refresh is never parsed twice.
+     */
+    private CachedCategory category(Context ctx, String category) {
         if (!tracewall.data.RulesJson.CATEGORIES.contains(category)) return null;
-        java.io.File downloaded = new java.io.File(ctx.getFilesDir(), "lists/" + category + ".txt");
+        File downloaded = new File(ctx.getFilesDir(), "lists/" + category + ".txt");
+        CachedCategory cached = categoryCache.get(category);
         if (downloaded.isFile()) {
-            try (java.io.InputStream input = new java.io.FileInputStream(downloaded)) {
-                String text = tracewall.data.ListData.utf8(tracewall.data.ListData.read(input, tracewall.data.ListData.MAX_BYTES));
-                tracewall.data.ListData.validate(text, 100);
-                return text;
-            } catch (IOException | IllegalArgumentException e) { Log.w(TAG, "Invalid downloaded list; using asset", e); }
+            String stamp = "file:" + downloaded.lastModified() + ":" + downloaded.length();
+            if (cached != null && stamp.equals(cached.stamp)) return cached;
+            try (InputStream input = new FileInputStream(downloaded)) {
+                String text = tracewall.data.ListData.utf8(
+                    tracewall.data.ListData.read(input, tracewall.data.ListData.MAX_BYTES)
+                );
+                HostListParser.Result result = HostListParser.parse(text);
+                if (result.malformed() == 0 && result.entriesParsed() >= 100) {
+                    return cache(category, stamp, result);
+                }
+                Log.w(TAG, "Short or malformed downloaded list; using asset: " + category);
+            } catch (IOException | IllegalArgumentException e) {
+                Log.w(TAG, "Invalid downloaded list; using asset: " + category, e);
+            }
         }
-        return readAsset(ctx, "categories/" + category + ".txt");
+        if (cached != null && "asset".equals(cached.stamp)) return cached;
+        String text = readAsset(ctx, "categories/" + category + ".txt");
+        if (text == null) return null;
+        return cache(category, "asset", HostListParser.parse(text));
+    }
+
+    private CachedCategory cache(String category, String stamp, HostListParser.Result result) {
+        CachedCategory entry = new CachedCategory(stamp, result.set(), result.malformed(), result.duplicates());
+        categoryCache.put(category, entry);
+        return entry;
     }
 
     private static String readAsset(Context ctx, String path) {

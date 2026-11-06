@@ -660,14 +660,16 @@ public class MainActivity extends AppCompatActivity {
         updateDeviceCode();
         updateAccountStatus();
         boolean on = DnsVpnService.isRunning();
+        boolean starting = !on && DnsVpnService.isStarting();
         updatingToggle = true;
-        if (home.toggle.isChecked() != on) home.toggle.setChecked(on);
+        if (home.toggle.isChecked() != (on || starting)) home.toggle.setChecked(on || starting);
         updatingToggle = false;
 
         protect.updateSchedule.setText(BlocklistStore.isEnabled(this) ? R.string.update_scheduled : R.string.update_not_scheduled);
         renderUpdateResult();
-        home.status.setText(on ? R.string.status_on : R.string.status_off);
-        home.detail.setText(on ? R.string.nav_protection_hint_on : R.string.nav_protection_hint_off);
+        home.status.setText(on ? R.string.status_on : starting ? R.string.status_starting : R.string.status_off);
+        home.detail.setText(on ? R.string.nav_protection_hint_on
+            : starting ? R.string.nav_protection_hint_starting : R.string.nav_protection_hint_off);
         home.protectionIcon.setImageResource(on ? tracewall.auth.R.drawable.ic_tw_shield
             : tracewall.auth.R.drawable.ic_tw_shield_outline);
 

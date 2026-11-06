@@ -1,10 +1,9 @@
 package tracewall.blocklist;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 /**
  * Parser for the "hosts file" blocklist format used by Firebog, hagezi, and
@@ -24,10 +23,18 @@ import java.util.regex.Pattern;
  *
  * Rejects and counts, rather than silently dropping, so the app can show the
  * user "parsed 148,203 of 148,310 lines, 107 malformed" instead of lying.
+ *
+ * The hot path is deliberately allocation-light: lists contain hundreds of
+ * thousands of lines and this runs on a phone. Each host is parsed once into a
+ * {@link DomainPattern} and deduplicated by its normalized text, rather than
+ * being validated as a string and then parsed a second time.
  */
 public final class HostListParser {
 
-    private static final Pattern WS = Pattern.compile("\\s+");
+    private static final int PARSED = 1;
+    private static final int DUPLICATE = 2;
+    private static final int MALFORMED = 3;
+    private static final int SKIPPED = 4;
 
     private HostListParser() { }
 
@@ -63,45 +70,96 @@ public final class HostListParser {
         int parsed = 0;
         int malformed = 0;
         int duplicates = 0;
-        // text is the dedup key; DomainSet re-splits into exact/wildcard halves.
-        Set<String> seen = new HashSet<>(1 << 16);
+        // One parse per host; the normalized text is the dedup key.
+        Map<String, DomainPattern> seen = new HashMap<>(1 << 16);
 
-        for (String rawLine : text.split("\n", -1)) {
+        int length = text.length();
+        int at = 0;
+        while (at <= length) {
+            int eol = text.indexOf('\n', at);
+            if (eol < 0) eol = length;
+            String line = text.substring(at, eol).trim();
+            at = eol + 1;
             lines++;
-            String line = rawLine.trim();
             if (line.isEmpty()) continue;
             if (line.startsWith("#") || line.startsWith("!") || line.startsWith("[")) continue;
 
             int comment = line.indexOf('#');
             if (comment >= 0) line = line.substring(0, comment).trim();
-            String[] tokens = WS.split(line);
-            int firstHost = looksLikeAddress(tokens[0]) ? 1 : 0;
-            if (firstHost == tokens.length) { malformed++; continue; }
-            // Hosts files can list multiple aliases on one line. Bare format is one domain.
-            int end = firstHost == 0 ? 1 : tokens.length;
-            for (int i = firstHost; i < end; i++) {
-                String host = tokens[i];
-                if (host.equals("localhost") || host.equals("localhost.localdomain")
-                        || host.equals("ip6-localhost") || host.equals("ip6-loopback")) continue;
-                DomainPattern pattern = host.indexOf('.') < 0 || looksLikeAddress(host)
-                    ? null : DomainPattern.parse(host);
-                if (pattern == null) { malformed++; continue; }
-                if (!seen.add(pattern.text())) { duplicates++; continue; }
-                parsed++;
+            if (line.isEmpty()) continue;
+
+            int end = line.length();
+            int cursor = 0;
+            while (cursor < end && !isSpace(line.charAt(cursor))) cursor++;
+            String first = line.substring(0, cursor);
+
+            if (!looksLikeAddress(first)) {
+                // Bare format: exactly one domain, regardless of later whitespace.
+                int kind = add(seen, first);
+                if (kind == PARSED) parsed++;
+                else if (kind == DUPLICATE) duplicates++;
+                else if (kind == MALFORMED) malformed++;
+                continue;
             }
+
+            // Hosts format: one address followed by zero or more aliases.
+            int hosts = 0;
+            while (true) {
+                while (cursor < end && isSpace(line.charAt(cursor))) cursor++;
+                int start = cursor;
+                while (cursor < end && !isSpace(line.charAt(cursor))) cursor++;
+                if (cursor == start) break;
+                hosts++;
+                int kind = add(seen, line.substring(start, cursor));
+                if (kind == PARSED) parsed++;
+                else if (kind == DUPLICATE) duplicates++;
+                else if (kind == MALFORMED) malformed++;
+            }
+            if (hosts == 0) malformed++;
         }
 
         List<DomainPattern> list = new ArrayList<>(seen.size());
-        for (String s : seen) {
-            DomainPattern p = DomainPattern.parse(s);
-            if (p != null) list.add(p);
-        }
+        list.addAll(seen.values());
         return new Result(new DomainSet(list), lines, parsed, malformed, duplicates);
     }
 
-    private static boolean looksLikeAddress(String token) {
-        return token.indexOf(':') >= 0 || IPV4.matcher(token).matches();
+    /** @return one of PARSED/DUPLICATE/MALFORMED/SKIPPED. */
+    private static int add(Map<String, DomainPattern> seen, String host) {
+        if (host.equals("localhost") || host.equals("localhost.localdomain")
+                || host.equals("ip6-localhost") || host.equals("ip6-loopback")) return SKIPPED;
+        DomainPattern pattern = host.indexOf('.') < 0 || looksLikeAddress(host)
+                ? null : DomainPattern.parse(host);
+        if (pattern == null) return MALFORMED;
+        if (seen.containsKey(pattern.text())) return DUPLICATE;
+        seen.put(pattern.text(), pattern);
+        return PARSED;
     }
 
-    private static final Pattern IPV4 = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
+    private static boolean isSpace(char c) {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\f' || Character.isWhitespace(c);
+    }
+
+    /**
+     * True for an IPv4 address or anything containing a colon (IPv6). Manual
+     * rather than a regular expression because this runs once per token.
+     */
+    private static boolean looksLikeAddress(String token) {
+        if (token.indexOf(':') >= 0) return true;
+        int dots = 0;
+        int digits = 0;
+        for (int i = 0; i < token.length(); i++) {
+            char c = token.charAt(i);
+            if (c == '.') {
+                if (digits == 0) return false;
+                dots++;
+                digits = 0;
+            } else if (c >= '0' && c <= '9') {
+                digits++;
+                if (digits > 3) return false;
+            } else {
+                return false;
+            }
+        }
+        return dots == 3 && digits > 0;
+    }
 }

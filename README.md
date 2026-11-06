@@ -514,7 +514,7 @@ with both JDK 27 and Gradle 9, and both failures are opaque.
 # Install child on a connected device / emulator
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-# Regenerate the malware blocklist from abuse.ch URLhaus
+# Regenerate the malware blocklist from the URLhaus filter mirror
 ./scripts/fetch-malware-list.sh
 ```
 
@@ -637,7 +637,7 @@ Device and production limitations are also detailed in the report.
 
 | File           | Entries | Source URL                                                                                                        | License                                                                    |
 | -------------- | ------: | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `malware.txt`  |    ~420 | [abuse.ch URLhaus](https://urlhaus.abuse.ch/downloads/hostfile/) (existing snapshot)                              | CC0; existing data, not refreshed by this script                           |
+| `malware.txt`  |  ~1,945 | [urlhaus-filter](https://gitlab.com/malware-filter/urlhaus-filter), generated from abuse.ch URLhaus              | GPL-3.0 filter; URLhaus data CC0; refreshed by this script                 |
 | `adult.txt`    |  60,020 | [Block List Project porn hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt)         | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
 | `gambling.txt` |  15,020 | [Block List Project gambling hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt) | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
 | `ads.txt`      |  20,049 | [Block List Project ads hosts](https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt)           | [Unlicense](https://github.com/blocklistproject/Lists/blob/master/LICENSE) |
@@ -658,7 +658,7 @@ baseline rather than the oversized full Block List Project downloads:
 | adult    | [Tiuxo porn](https://raw.githubusercontent.com/tiuxo/hosts/master/porn)                                        | Tiuxo, [CC BY 4.0](https://github.com/tiuxo/hosts/blob/master/LICENSE); normalized and merged     |
 | ads      | [Tiuxo ads](https://raw.githubusercontent.com/tiuxo/hosts/master/ads)                                          | Tiuxo, CC BY 4.0; normalized and merged                                                           |
 | gambling | [hostsVN Gambling VN](https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts-VN) | BigDargon, [MIT](https://github.com/bigdargon/hostsVN/blob/master/LICENSE); normalized and merged |
-| malware  | [URLhaus hostfile](https://urlhaus.abuse.ch/downloads/hostfile/)                                               | abuse.ch URLhaus, CC0; availability subject to upstream access policy                             |
+| malware  | [urlhaus-filter hosts](https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt)               | urlhaus-filter, GPL-3.0; URLhaus data CC0; maintained mirror of the retired abuse.ch hostfile     |
 
 Refresh uses `HttpURLConnection` off the main thread, HTTPS-only redirects (up
 to three), 15-second connection / 20-second read timeouts, strict UTF-8, a 5 MB

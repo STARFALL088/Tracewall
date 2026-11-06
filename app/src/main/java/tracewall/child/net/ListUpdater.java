@@ -22,7 +22,9 @@ public final class ListUpdater {
         SOURCES.put("adult", "https://raw.githubusercontent.com/tiuxo/hosts/master/porn");
         SOURCES.put("gambling", "https://raw.githubusercontent.com/bigdargon/hostsVN/master/extensions/gambling/hosts-VN");
         SOURCES.put("ads", "https://raw.githubusercontent.com/tiuxo/hosts/master/ads");
-        SOURCES.put("malware", "https://urlhaus.abuse.ch/downloads/hostfile/");
+        // abuse.ch retired the direct hostfile endpoint (HTTP 410). This
+        // maintained mirror still publishes the same URLhaus data hourly.
+        SOURCES.put("malware", "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt");
     }
     public interface Listener {
         void progress(int completed, int total);
@@ -31,7 +33,8 @@ public final class ListUpdater {
     public static final class Result {
         public final int updated, failed, added;
         Result(int updated, int failed, int added) { this.updated = updated; this.failed = failed; this.added = added; }
-        public boolean success() { return failed == 0; }
+        /** A partial refresh still replaced at least one list; only a total failure retries. */
+        public boolean success() { return updated > 0; }
     }
     private ListUpdater() {}
     public static SharedPreferences prefs(Context context) {
@@ -64,7 +67,7 @@ public final class ListUpdater {
                     File destination = new File(directory, entry.getKey() + ".txt");
                     String previous = destination.isFile() ? read(new FileInputStream(destination)) : bundled;
                     String license = entry.getKey().equals("gambling") ? "hostsVN, BigDargon, MIT; see lists-licenses.txt"
-                        : entry.getKey().equals("malware") ? "abuse.ch URLhaus, CC0"
+                        : entry.getKey().equals("malware") ? "urlhaus-filter, GPL-3.0; URLhaus data, CC0; see lists-licenses.txt"
                         : "Tiuxo hosts, CC BY 4.0; https://github.com/tiuxo/hosts/blob/master/LICENSE";
                     String merged = ListData.merge(bundled, raw, entry.getValue() + "; " + license);
                     int delta = ListData.added(previous, merged);
@@ -88,7 +91,11 @@ public final class ListUpdater {
             SharedPreferences.Editor editor = prefs(context).edit()
                 .putLong("attempt_ms", System.currentTimeMillis()).putInt("updated", updated)
                 .putInt("failed", failed).putInt("added", added);
-            if (failed == 0) editor.putLong("success_ms", System.currentTimeMillis());
+            // A refresh where at least one list was replaced is a success even
+            // if another source is down; otherwise one dead feed would pin the
+            // UI to "Last successful update: Never" forever. The updated/failed
+            // counts still make a partial refresh visible.
+            if (updated > 0) editor.putLong("success_ms", System.currentTimeMillis());
             editor.apply();
             return new Result(updated, failed, added);
         }
