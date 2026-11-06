@@ -283,10 +283,72 @@ production/device requirements are stated separately.
   compatibility. Compiled manifests confirm non-exported account activities
   and no SMS/contacts/phone-number reading permissions. CI now runs auth unit,
   real-SDK demo-emulator and lint tasks and retains their reports.
-- Setup guide: `docs/authentication.md`. Both generated app symbol tables lack
-  `default_web_client_id`; Google console/OAuth configuration is still required.
-  No production providers, billing, rules or accounts were changed. No real
-  Google chooser, email action, SMS delivery, reCAPTCHA or Play Integrity success
-  is claimed. ADB has no attached device; new auth APKs are built, not installed.
+- Setup guide: `docs/authentication.md`. At this checkpoint both generated app
+  symbol tables lacked `default_web_client_id`, so Google console/OAuth setup was
+  still required. This is superseded by the Google sign-in removal below. No
+  production providers, billing, rules or accounts were changed. No real Google
+  chooser, email action, SMS delivery, reCAPTCHA or Play Integrity success is claimed.
+  ADB had no attached device; new auth APKs were built, not installed.
   Earlier physical pairing/round-trip and privacy/diagnostics/feed tasks remain
   separate pending work; no app data, protection PIN or managed policy was reset.
+
+### Google sign-in removal (2026-11-06)
+
+- Removed the nonfunctional Google sign-in/link button and its Credential Manager,
+  Google ID token, OAuth client lookup and lifecycle code. Email/password, phone OTP,
+  guest and local entry remain available.
+- Removed the direct Credential Manager and Google ID dependency declarations. Firebase
+  Auth still supplies its own transitive support libraries. Existing sessions are not
+  signed out or replaced; the immutable identity safeguards remain.
+- Updated English/Bengali resources, tests and authentication documentation. A source
+  contract now prevents the Google control, implementation symbols or direct dependency
+  declarations from being reintroduced accidentally.
+- Verification: 188 core and 66 auth JVM tests passed, as did all 21 Python contracts.
+  Both debug APKs built, and Auth, Child and Parent lint completed with zero errors.
+  No Firebase Console setting, production account, app data or signing configuration
+  was changed.
+
+### On-device audit fixes — startup, refresh and pairing errors (2026-11-07)
+
+- Reproduced three child ANRs (30 s cold starts) and traced them to the Firebase
+  rules callback calling `BlocklistStore.applyRemoteRules` synchronously on the
+  main thread. The same load also delayed the tunnel: `establish()` ran only
+  after all four categories were parsed, so the UI reported "Protection is off"
+  for roughly 25 s while the service was already starting.
+- The hosts parser now makes one pass per line and one parse per host, with
+  manual token/label scanning instead of a regex per host. Parsed categories are
+  cached in memory and reloads reuse any list whose downloaded file has not
+  changed. A cold 101,514-rule load dropped from 30 s to 9.2 s on the phone and
+  now runs on a `tracewall-rules` thread.
+- `TracewallApp` preloads the policy on a background thread and applies parent
+  snapshots through a coalesced background reload. The main thread now only
+  writes preferences; it never waits for the shared policy lock.
+- `DnsVpnService` establishes the tunnel first and loads the policy afterwards.
+  Queries queue unanswered until the engine is ready, so no request bypasses the
+  filter. A live `starting` state and bilingual "Starting protection…" copy
+  replace the false "off" state until the tunnel is actually running.
+- Replaced the retired abuse.ch hostfile endpoint (HTTP 410) with the maintained
+  `urlhaus-filter` hosts mirror. A refresh that replaces at least one list now
+  records a success, so one dead source cannot pin the UI to "Never"; the
+  updated/failed counts still show a partial refresh.
+- Tightened `PairingCode.validChildUid` to the 20–128 character Firebase UID
+  shape and added invalid-UID, not-found, permission and network outcomes to
+  `FirebaseParent.verifyAccess`. The pairing screen now says the UID is
+  incomplete or that no pairing matched instead of blaming connectivity.
+- Verification: 206 JVM/Robolectric tests pass (189 core, 11 child, 6 parent);
+  both debug APKs built. Data-preserving installs matched the local SHA-256
+  values. On the SM-A127F: cold start 4.1 s with zero new ANRs, cold policy load
+  9.2 s on `tracewall-rules`, warm tunnel 71 ms, cold tunnel 6.7 s with the
+  starting state visible, `doubleclick.net` → 127.0.0.1 while `example.com`
+  resolved normally, full 4/4 list refresh with 1,598 rules added, invalid UID
+  rejected locally, and a well-formed unknown UID reported as not found.
+- Phone OTP was retried after the project's SMS region policy was updated to
+  allow Bangladesh (`BD`). The request now fails later with error 17499
+  `BILLING_NOT_ENABLED`: the project has no billing account
+  (`billingEnabled: false`). No SMS was sent. Enabling billing is a project-owner
+  decision, so phone login remains unverified; it is no longer a region-policy
+  problem.
+- Still pending: phone OTP delivery (billing disabled), parent dashboard/remote
+  rules/history/revocation (no child paired; PIN unknown), PIN-gated child
+  actions, per-app enforcement attribution and boot/always-on behavior. No parent
+  PIN was guessed or reset.

@@ -5,14 +5,14 @@ The detailed week mapping below is preserved from the supplied root-level syllab
 
 | Task / syllabus area | Implementation | Status |
 | --- | --- | --- |
-| A — Firebase pairing and security | Scoped RTDB + Firestore permissions, expiring one-use QR/manual pairing, PIN-gated revocation | DONE — JVM, emulator rules, both APK builds |
-| B — Rule data and parsing | Larger licensed hosts lists, parser robustness, load timing | DONE — JVM tests and both APK builds |
+| A — Firebase pairing and security | Scoped RTDB + Firestore permissions, expiring one-use QR/manual pairing, PIN-gated revocation, actionable pairing errors | DONE — JVM, emulator rules, both APK builds; invalid-UID and not-found errors checked on device |
+| B — Rule data and parsing | Larger licensed hosts lists, single-pass parser, background load with cached categories | DONE — JVM tests, both APK builds; 101,514 rules parsed off the main thread in 9.2 s on device |
 | C — Week 8: implicit intents | PIN-gated CSV sharing, VPN settings and resolution | DONE — JVM tests and both APK builds |
 | D — Week 11: HTTP + JSON | HTTPS list updates, validated JSON import/export | DONE — JVM tests and both APK builds |
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | DONE — JVM, emulator rules, both APK builds; install device check pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | DONE — JVM + both APK builds; rotation device check blocked (AVD disk space) |
-| H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 98 JVM tests and both APK builds pass |
+| H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 206 JVM/Robolectric tests and both APK builds pass |
 
 Existing components: VPN Service and sockets; Room with a private ContentProvider;
 Activities and RecyclerViews; boot receiver; bilingual resources; local parent PIN.
@@ -77,7 +77,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 |---|---|---|
 | OOP, packages, interfaces, exceptions | `blocklist/` module | DONE |
 | Multithreading, synchronization | `HistoryWriter` thread, `QueryLog` (synchronized), DNS worker pool | DONE |
-| Unit testing (pure JVM) | `blocklist/src/test` | DONE — 98 passing tests |
+| Unit testing (pure JVM) | `blocklist/src/test` | DONE — 189 passing tests; 206 including app/parent Robolectric suites |
 | Git history | `git log` | DONE: keep committing small changes |
 
 ## Week 13 demo checklist
@@ -95,8 +95,15 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 
 Implementation for tasks A–H builds. Runtime checks remain in [REPORT.md](REPORT.md):
 rotation and scroll restoration, sharing/document-picker permissions, settings fallback,
-live HTTP updates/atomic interruption, WorkManager scheduling/retry, actual install vs
-update broadcasts, and real Firebase pairing/rules/history/revocation across two devices.
-ADB found no attached device; the read-only API 37 AVD could not start because the host
-had only 1.4 GB free disk space. No production rules were deployed or credentials changed.
+WorkManager scheduling/retry, actual install vs update broadcasts, and real Firebase
+pairing/rules/history/revocation across two devices.
+
+On-device audit (Samsung SM-A127F, Android 13) confirmed cold start without ANR, a
+71 ms warm tunnel start (9.2 s cold parse on a background thread), working DNS
+filtering, and a full 4/4 list refresh after the dead malware endpoint was replaced.
+Phone OTP still cannot complete: the SMS region policy now allows Bangladesh, but
+the Firebase project has billing disabled, so the SDK returns error 17499
+`BILLING_NOT_ENABLED` and no SMS is sent. Parent dashboard/remote rules, PIN-gated
+actions and per-app enforcement remain unverified because no child is paired. No
+production rules were deployed, no billing was enabled and no credentials changed.
 XML parsing remains optional and is not claimed as implemented.
