@@ -8,7 +8,6 @@ final class AuthUiState {
     final boolean hasUser;
     final boolean anonymous;
     final boolean emailLinked;
-    final boolean googleLinked;
     final boolean phoneLinked;
     final boolean hasEmail;
     final boolean emailVerified;
@@ -27,7 +26,7 @@ final class AuthUiState {
     final boolean autoFinish;
 
     AuthUiState(boolean configured, boolean identityMismatch, boolean boundIdentity, boolean hasUser, boolean anonymous,
-                boolean emailLinked, boolean googleLinked, boolean phoneLinked,
+                boolean emailLinked, boolean phoneLinked,
                 boolean hasEmail, boolean emailVerified, String email, boolean busy,
                 boolean phoneActive, boolean awaitingCode, boolean canResend,
                 boolean canCancelPhone, long cooldownSeconds, boolean consent, String phone,
@@ -38,7 +37,6 @@ final class AuthUiState {
         this.hasUser = hasUser;
         this.anonymous = anonymous;
         this.emailLinked = emailLinked;
-        this.googleLinked = googleLinked;
         this.phoneLinked = phoneLinked;
         this.hasEmail = hasEmail;
         this.emailVerified = emailVerified;

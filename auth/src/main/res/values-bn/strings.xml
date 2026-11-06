@@ -30,13 +30,10 @@
     <string name="auth_refresh_email">ইমেইল যাচাই পরীক্ষা করুন</string>
     <string name="auth_email_verified">ইমেইল যাচাইকৃত</string>
     <string name="auth_email_unverified">ইমেইল এখনো যাচাই হয়নি</string>
-    <string name="auth_google_sign_in">Google দিয়ে সাইন ইন</string>
-    <string name="auth_google_link">Google অ্যাকাউন্ট সংযুক্ত করুন</string>
-    <string name="auth_google_connected">Google সংযুক্ত আছে</string>
     <string name="auth_phone_section">ফোন যাচাই</string>
     <string name="auth_phone_label">দেশের কোডসহ ফোন নম্বর</string>
     <string name="auth_phone_hint">+দেশেরকোড ও নম্বর, স্পেস ছাড়া</string>
-    <string name="auth_phone_security">নম্বর অন্যকে দেওয়া বা হস্তান্তর করা যায়। অ্যাকাউন্টের নিরাপত্তা বাড়াতে ইমেইল বা Google-ও সংযুক্ত করুন।</string>
+    <string name="auth_phone_security">নম্বর অন্যকে দেওয়া বা হস্তান্তর করা যায়। অ্যাকাউন্টের নিরাপত্তা বাড়াতে ইমেইল/পাসওয়ার্ডও সংযুক্ত করুন।</string>
     <string name="auth_phone_consent">আমি যাচাইকরণ SMS পেতে সম্মত; SMS ও ডেটা খরচ হতে পারে। Google পরিষেবাগুলোতে (Firebase-সহ) স্প্যাম ও অপব্যবহার ঠেকাতে আমার ফোন নম্বর Google-এ পাঠানো ও সংরক্ষণ করা হবে।</string>
     <string name="auth_send_code">যাচাইকরণ কোড পাঠান</string>
     <string name="auth_link_phone">ফোন নম্বর সংযুক্ত করুন</string>
@@ -68,9 +65,6 @@
     <string name="auth_code_sent">যাচাই শুরু হয়েছে। SMS কোড লিখুন বা স্বয়ংক্রিয় যাচাইয়ের জন্য অপেক্ষা করুন।</string>
     <string name="auth_phone_timeout">স্বয়ংক্রিয় যাচাই বন্ধ হয়েছে। পাওয়া কোড লিখতে পারেন, অপেক্ষার সময় শেষে আবার SMS পাঠাতে পারেন, অথবা বাতিল করে নতুনভাবে শুরু করতে পারেন।</string>
     <string name="auth_phone_cancelled">ফোন যাচাই বাতিল হয়েছে। SMS-এর জন্য অপেক্ষার সময় এখনো প্রযোজ্য।</string>
-    <string name="auth_google_cancelled">Google সাইন ইন বাতিল হয়েছে। আবার চেষ্টা করতে বোতাম চাপুন।</string>
-    <string name="auth_google_no_account">Google পরিচয় পাওয়া যায়নি। নির্বাচন পর্দায় Google অ্যাকাউন্ট যোগ বা নির্বাচন করুন, অথবা ইমেইল/ফোন ব্যবহার করুন।</string>
-    <string name="auth_google_unavailable">এই ডিভাইসে Google সাইন ইন পাওয়া যাচ্ছে না। Google Play services ও Credential Manager পরীক্ষা করুন, অথবা ইমেইল/ফোন ব্যবহার করুন।</string>
 
     <string name="auth_error_email">একটি সঠিক ইমেইল ঠিকানা লিখুন।</string>
     <string name="auth_error_password_empty">পাসওয়ার্ড লিখুন। স্পেস বাদ দেওয়া হয় না।</string>
@@ -83,7 +77,7 @@
     <string name="auth_error_collision">এই ঠিকানা বা পরিচয় ইতিমধ্যে কোনো অ্যাকাউন্টে আছে, সম্ভবত অন্য সাইন ইন পদ্ধতিতে। মূল পদ্ধতিটি চেষ্টা করুন। অ্যাকাউন্ট স্বয়ংক্রিয়ভাবে একত্র করা হয় না।</string>
     <string name="auth_error_provider_disabled">এই Firebase প্রকল্পে এই সাইন ইন পদ্ধতি চালু নেই। অ্যাপ প্রশাসককে এটি চালু করতে বলুন। স্থানীয়ভাবে এগিয়ে যেতে পারেন।</string>
     <string name="auth_error_setup">প্রমাণীকরণ সেটআপ অসম্পূর্ণ। অ্যাপের Firebase কনফিগারেশন, চালু পদ্ধতি, সাইনিং ফিঙ্গারপ্রিন্ট ও অ্যাপ যাচাই পরীক্ষা করুন। স্থানীয়ভাবে এগিয়ে যেতে পারেন।</string>
-    <string name="auth_error_google_setup">Google সেটআপ দরকার: ব্যবহারকারী অ্যাপকে Web OAuth ক্লায়েন্টের জন্য default_web_client_id তৈরি করতে হবে। Firebase-এ Google চালু করে সেই অ্যাপের কনফিগারেশন হালনাগাদ করুন। এই লাইব্রেরিতে কোনো ক্লায়েন্ট আইডি রাখা নেই।</string>
+
     <string name="auth_error_network">প্রমাণীকরণ সেবায় পৌঁছানো যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন, অথবা সাইন ইন করা না থাকলে স্থানীয়ভাবে এগিয়ে যান।</string>
     <string name="auth_error_rate_limit">অতিরিক্ত অনুরোধ হয়েছে বা SMS সীমা শেষ। আবার চেষ্টা করার আগে অপেক্ষা করুন। বারবার অনুরোধ করে এই সীমা এড়ানো যায় না।</string>
     <string name="auth_error_weak_password">এই পাসওয়ার্ড প্রকল্পের নীতি পূরণ করে না। অন্তত ৮টি অক্ষর ও নীতির অন্য শর্তগুলো মেনে পাসওয়ার্ড দিন।</string>

@@ -107,18 +107,10 @@
                 android:textAppearance="@style/TracewallAuthSection" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/auth_google"
-                style="@style/TracewallAuthAction"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/auth_google_sign_in" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/auth_select_email"
                 style="@style/TracewallAuthAction.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
                 android:text="@string/auth_method_email" />
 
             <com.google.android.material.button.MaterialButton

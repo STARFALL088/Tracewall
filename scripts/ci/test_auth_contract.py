@@ -70,6 +70,19 @@ class AuthIntegrationContractTest(unittest.TestCase):
                 self.assertEqual(re.findall(r"%\d*\$?[sdf]", "".join(english.itertext())),
                                  re.findall(r"%\d*\$?[sdf]", "".join(bengali.itertext())), key)
 
+    def test_google_login_is_not_exposed_or_directly_declared(self):
+        layout = ET.parse(ROOT / "auth/src/main/res/layout/activity_tracewall_auth.xml").getroot()
+        ids = {node.get(ANDROID + "id") for node in layout.iter()}
+        self.assertNotIn("@+id/auth_google", ids)
+
+        gradle = (ROOT / "auth/build.gradle.kts").read_text(encoding="utf-8")
+        for dependency in ("androidx.credentials", "identity.googleid"):
+            self.assertNotIn(dependency, gradle)
+
+        model = (ROOT / "auth/src/main/java/tracewall/auth/AuthViewModel.java").read_text(encoding="utf-8")
+        for symbol in ("GetSignInWithGoogleOption", "GoogleIdTokenCredential", "GoogleAuthProvider"):
+            self.assertNotIn(symbol, model)
+
     def test_consumer_account_resources_have_bengali_and_placeholder_parity(self):
         for module in ("app", "parent"):
             documents = []

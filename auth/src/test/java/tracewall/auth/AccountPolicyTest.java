@@ -12,15 +12,14 @@ public class AccountPolicyTest {
         assertEquals(AccountPolicy.Action.CREATE_EMAIL, AccountPolicy.action(null, NONE, AccountPolicy.EMAIL, true));
     }
 
-    @Test public void signedOutGoogleAndPhoneNeverCreateEmail() {
-        for (String provider : new String[] { AccountPolicy.GOOGLE, AccountPolicy.PHONE }) {
-            assertEquals(AccountPolicy.Action.SIGN_IN, AccountPolicy.action(null, NONE, provider, true));
-        }
+    @Test public void signedOutPhoneNeverCreatesEmail() {
+        assertEquals(AccountPolicy.Action.SIGN_IN,
+                AccountPolicy.action(null, NONE, AccountPolicy.PHONE, true));
     }
 
     @Test public void everyExistingUidLinksRegardlessOfInitialEmailChoice() {
         for (String uid : new String[] { "synthetic-guest-uid", "synthetic-registered-uid" }) {
-            for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.GOOGLE, AccountPolicy.PHONE }) {
+            for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.PHONE }) {
                 assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, provider, false));
                 assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, provider, true));
             }
@@ -28,7 +27,7 @@ public class AccountPolicyTest {
     }
 
     @Test public void alreadyLinkedProviderIsNotReplaced() {
-        for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.GOOGLE, AccountPolicy.PHONE }) {
+        for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.PHONE }) {
             assertEquals(AccountPolicy.Action.ALREADY_CONNECTED,
                     AccountPolicy.action("synthetic-uid", Set.of(provider), provider, false));
         }
@@ -36,10 +35,10 @@ public class AccountPolicyTest {
 
     @Test public void differentProviderCanLinkWithoutChangingExistingProvider() {
         assertEquals(AccountPolicy.Action.LINK,
-                AccountPolicy.action("synthetic-uid", Set.of(AccountPolicy.EMAIL), AccountPolicy.GOOGLE, false));
+                AccountPolicy.action("synthetic-uid", Set.of(AccountPolicy.EMAIL), AccountPolicy.PHONE, false));
     }
 
-    @Test public void chooserOrPhoneCallbackCannotAdoptAnUnexpectedIdentity() {
+    @Test public void phoneCallbackCannotAdoptAnUnexpectedIdentity() {
         assertTrue(AccountPolicy.sameIdentity(null, null));
         assertTrue(AccountPolicy.sameIdentity("old", "old"));
         assertFalse(AccountPolicy.sameIdentity(null, "new"));

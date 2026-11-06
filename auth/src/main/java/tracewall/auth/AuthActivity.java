@@ -41,7 +41,6 @@ public final class AuthActivity extends AppCompatActivity {
     private CheckBox consent;
     private RadioGroup emailModes;
     private String role;
-    private long googleRequestToken;
     private boolean rendering;
     private boolean initialPhoneRendered;
     private boolean hadPhoneSession;
@@ -102,10 +101,6 @@ public final class AuthActivity extends AppCompatActivity {
         findViewById(R.id.auth_reset).setOnClickListener(ignored -> model.resetPassword(text(email)));
         findViewById(R.id.auth_verify_email).setOnClickListener(ignored -> model.verifyEmail(false));
         findViewById(R.id.auth_refresh_email).setOnClickListener(ignored -> model.verifyEmail(true));
-        findViewById(R.id.auth_google).setOnClickListener(ignored -> {
-            clearSecrets();
-            googleRequestToken = model.google(this);
-        });
         findViewById(R.id.auth_phone_send).setOnClickListener(ignored -> {
             clearSecrets();
             model.startPhone(this, text(phone));
@@ -204,10 +199,6 @@ public final class AuthActivity extends AppCompatActivity {
         enabled(R.id.auth_verify_email, editable);
         enabled(R.id.auth_refresh_email, editable);
 
-        Button googleButton = findViewById(R.id.auth_google);
-        googleButton.setText(state.googleLinked ? R.string.auth_google_connected
-                : state.hasUser ? R.string.auth_google_link : R.string.auth_google_sign_in);
-        googleButton.setEnabled(editable && !state.googleLinked);
         Button phoneButton = findViewById(R.id.auth_phone_send);
         phoneButton.setText(state.phoneLinked ? R.string.auth_phone_connected
                 : state.hasUser ? R.string.auth_link_phone : R.string.auth_send_code);
@@ -283,7 +274,7 @@ public final class AuthActivity extends AppCompatActivity {
         if (selectedMethod != METHOD_PICKER && state != null && !state.busy && !state.phoneActive) {
             selectMethod(METHOD_PICKER);
         } else {
-            // Existing leave guards still cancel cancellable phone/chooser work, or block Firebase work.
+            // Existing leave guards still cancel cancellable phone work, or block Firebase work.
             leave(false);
         }
     }
@@ -309,8 +300,6 @@ public final class AuthActivity extends AppCompatActivity {
         clearSecrets();
         if (model != null) {
             model.onHostStopped();
-            // Do NOT cancel on an ordinary stop: the credential/reCAPTCHA UI itself may stop us.
-            if (isChangingConfigurations() || isFinishing()) model.cancelGoogle(googleRequestToken);
         }
         super.onStop();
     }
@@ -323,7 +312,6 @@ public final class AuthActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
-        if (model != null) model.cancelGoogle(googleRequestToken);
         clearSecrets();
         super.onDestroy();
     }

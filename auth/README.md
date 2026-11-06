@@ -1,8 +1,11 @@
 # Shared Tracewall authentication (`:auth`)
 
 Java 17 Android library, min SDK 24 / compile SDK 34, namespace `tracewall.auth`.
-It uses Firebase BoM **33.1.0**, AndroidX Credential Manager **1.3.0**, and Google ID
-**1.1.1**. It does not apply the Google Services plugin or contain Firebase configuration.
+It uses Firebase BoM **33.1.0**. It does not apply the Google Services plugin or
+contain Firebase configuration. Supported remote methods are email/password and
+phone OTP; Google sign-in is intentionally not exposed or implemented. The module
+does not directly declare Google ID or Credential Manager dependencies; Firebase
+Auth still brings its own transitive authentication support libraries.
 
 ## Caller contract
 
@@ -76,12 +79,6 @@ identifier; a password-provider password is not a Google account password. Reset
 avoids exposing whether an email address has an account. Verification email, verification
 refresh, and email/password reauthentication are explicit actions.
 
-Google uses the asynchronous, user-initiated `GetSignInWithGoogleOption` Credential Manager
-flow, not deprecated GoogleSignInClient. The Web OAuth client ID is resolved dynamically
-from the consuming app's generated `default_web_client_id`; missing configuration yields
-a localized setup error. Rotation cancels the chooser, detaches its context wrapper from
-the old Activity, and allows an explicit retry without automatically opening another chooser.
-
 Phone verification requires unchecked-by-default SMS/privacy/charges consent, E.164 syntax,
 and exactly six ASCII code digits. No SMS/phone permissions are requested. Firebase handles
 app verification/automatic retrieval. The model owns verification IDs and force-resend tokens
@@ -104,12 +101,10 @@ resource keys and format placeholders.
 1. Register **both** actual Android application IDs in the intended Firebase project.
    Each application owns its Google Services configuration/plugin; obtain configuration
    through the administrator's normal process, never put private server keys in the app.
-2. Enable Email/Password, Google, Phone, and Anonymous providers as desired in Firebase
+2. Enable Email/Password, Phone, and Anonymous providers as desired in Firebase
    Authentication. A provider not enabled fails safely with a localized explanation.
 3. Add each app's actual debug/release signing **SHA-1 and SHA-256** fingerprints as
-   required for Google sign-in and Phone app verification. Update the consuming app's
-   Google Services configuration after enabling Google so `default_web_client_id` is
-   generated for the **Web OAuth client**, not the Android OAuth client.
+   required for Phone app verification.
 4. Configure SMS regions, quotas/billing, and Play Integrity/reCAPTCHA requirements for
    the project. Do not disable app verification in production. For runtime QA, use only
    administrator-approved Firebase test numbers in a nonproduction project. Automated tests
@@ -120,10 +115,8 @@ resource keys and format placeholders.
 Official implementation references:
 
 - https://firebase.google.com/docs/auth/android/password-auth
-- https://firebase.google.com/docs/auth/android/google-signin
 - https://firebase.google.com/docs/auth/android/phone-auth
 - https://firebase.google.com/docs/auth/android/account-linking
-- https://developer.android.com/identity/sign-in/credential-manager-siwg
 
 ## Tests and remaining verification
 

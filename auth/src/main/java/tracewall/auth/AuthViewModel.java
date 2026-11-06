@@ -2,32 +2,17 @@ package tracewall.auth;
 
 import android.app.Activity;
 import android.app.Application;
-import android.content.MutableContextWrapper;
-import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
-import androidx.credentials.Credential;
-import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.exceptions.GetCredentialCancellationException;
-import androidx.credentials.exceptions.GetCredentialException;
-import androidx.credentials.exceptions.GetCredentialProviderConfigurationException;
-import androidx.credentials.exceptions.GetCredentialUnsupportedException;
-import androidx.credentials.exceptions.NoCredentialException;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.google.android.gms.tasks.Task;
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.FirebaseException;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
@@ -37,13 +22,11 @@ import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.auth.UserInfo;
 
-import java.lang.ref.WeakReference;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
@@ -55,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * Phone verification IDs/resend tokens live ONLY in this model's memory.
  */
 public final class AuthViewModel extends AndroidViewModel {
-    private enum Work { NONE, FIREBASE, GOOGLE, PHONE_REQUEST }
+    private enum Work { NONE, FIREBASE, PHONE_REQUEST }
 
     private final MutableLiveData<AuthUiState> states = new MutableLiveData<>();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -64,7 +47,6 @@ public final class AuthViewModel extends AndroidViewModel {
     private final PhoneFlowGuard phoneFlow = new PhoneFlowGuard();
     private final FirebaseAuth.AuthStateListener authListener = ignored -> onAuthStateChanged();
     private FirebaseAuth auth;
-    private CredentialManager credentialManager;
     private Work workType = Work.NONE;
     private long workToken;
     private int message;
@@ -78,11 +60,6 @@ public final class AuthViewModel extends AndroidViewModel {
     private long successSequence;
     private String successfulUid;
     private boolean autoFinish;
-
-    private long googleToken;
-    private CancellationSignal googleCancellation;
-    // The wrapper is detached from its Activity on completion, cancellation or destruction.
-    private WeakReference<MutableContextWrapper> googleContext;
 
     private boolean consent;
     private String phone = "";
@@ -121,12 +98,6 @@ public final class AuthViewModel extends AndroidViewModel {
             auth = null;
             launchedWithoutUser = true;
             message = R.string.auth_error_setup;
-        }
-        try {
-            credentialManager = CredentialManager.create(application);
-        } catch (RuntimeException unavailable) {
-            // Email, phone and local mode do not depend on Credential Manager availability.
-            credentialManager = null;
         }
         publish();
     }
@@ -359,91 +330,6 @@ public final class AuthViewModel extends AndroidViewModel {
         }
     }
 
-    // The optional OAuth string is generated in the consuming app, not this library.
-    @android.annotation.SuppressLint("DiscouragedApi")
-    long google(Activity activity) {
-        if (!available()) return 0;
-        if (providers(user()).contains(AccountPolicy.GOOGLE)) { show(R.string.auth_already_connected); return 0; }
-        if (credentialManager == null) { show(R.string.auth_google_unavailable); return 0; }
-        // Resource belongs to the consuming application, not this library. Never hardcode a client ID.
-        int resource = activity.getResources().getIdentifier("default_web_client_id", "string", activity.getPackageName());
-        String clientId = resource == 0 ? "" : activity.getString(resource);
-        if (clientId.isEmpty() || !clientId.equals(clientId.trim())
-                || !clientId.endsWith(".apps.googleusercontent.com")) {
-            show(R.string.auth_error_google_setup);
-            return 0;
-        }
-        String expectedUid = uid();
-        long token = begin(Work.GOOGLE);
-        if (token == 0) return 0;
-        googleToken = token;
-        googleCancellation = new CancellationSignal();
-        MutableContextWrapper context = new MutableContextWrapper(activity);
-        googleContext = new WeakReference<>(context);
-        try {
-            // A dedicated user-initiated button includes authorized AND new Google accounts.
-            GetSignInWithGoogleOption option = new GetSignInWithGoogleOption.Builder(clientId).build();
-            GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(option).build();
-            credentialManager.getCredentialAsync(context, request, googleCancellation, main,
-                    new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-                        @Override public void onResult(GetCredentialResponse response) {
-                            if (cleared || !work.owns(token) || googleToken != token) return;
-                            releaseGoogleUi();
-                            try {
-                                Credential credential = response.getCredential();
-                                if (!(credential instanceof CustomCredential)
-                                        || !GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
-                                    finishWork(token);
-                                    show(R.string.auth_google_unavailable);
-                                    return;
-                                }
-                                GoogleIdTokenCredential google = GoogleIdTokenCredential.createFrom(credential.getData());
-                                useCredential(GoogleAuthProvider.getCredential(google.getIdToken(), null),
-                                        AccountPolicy.GOOGLE, expectedUid, token, 0);
-                            } catch (Exception invalidResponse) {
-                                finishWork(token);
-                                show(R.string.auth_error_credentials);
-                            }
-                        }
-
-                        @Override public void onError(@NonNull GetCredentialException error) {
-                            if (cleared || !work.owns(token) || googleToken != token) return;
-                            releaseGoogleUi();
-                            finishWork(token);
-                            int text = error instanceof GetCredentialCancellationException ? R.string.auth_google_cancelled
-                                    : error instanceof NoCredentialException ? R.string.auth_google_no_account
-                                    : error instanceof GetCredentialProviderConfigurationException
-                                    || error instanceof GetCredentialUnsupportedException ? R.string.auth_google_unavailable
-                                    : R.string.auth_error_generic;
-                            show(text);
-                        }
-                    });
-        } catch (RuntimeException unavailable) {
-            releaseGoogleUi();
-            finishWork(token);
-            show(R.string.auth_google_unavailable);
-        }
-        return token;
-    }
-
-    void cancelGoogle(long token) {
-        if (token == 0 || token != googleToken || workType != Work.GOOGLE || !work.owns(token)) return;
-        CancellationSignal cancellation = googleCancellation;
-        // Invalidate ownership BEFORE cancelling: even a synchronous completion cannot use old credentials.
-        finishWork(token);
-        releaseGoogleUi();
-        if (cancellation != null) cancellation.cancel();
-        show(R.string.auth_google_cancelled);
-    }
-
-    private void releaseGoogleUi() {
-        MutableContextWrapper context = googleContext == null ? null : googleContext.get();
-        if (context != null) context.setBaseContext(getApplication());
-        googleContext = null;
-        googleCancellation = null;
-        googleToken = 0;
-    }
-
     void startPhone(Activity activity, String rawPhone) {
         if (!available()) return;
         if (!consent) { show(R.string.auth_error_consent); return; }
@@ -641,9 +527,8 @@ public final class AuthViewModel extends AndroidViewModel {
         }
     }
 
-    /** Firebase tasks cannot be cancelled safely; chooser/phone sessions can be invalidated. */
+    /** Firebase tasks cannot be cancelled safely; phone sessions can be invalidated. */
     boolean mayLeave() {
-        if (workType == Work.GOOGLE) cancelGoogle(googleToken);
         if (workType == Work.PHONE_REQUEST || (!work.busy() && phoneFlow.active())) cancelPhone();
         if (work.busy()) { show(R.string.auth_wait_to_leave); return false; }
         return true;
@@ -667,7 +552,7 @@ public final class AuthViewModel extends AndroidViewModel {
         boolean mismatch = !AccountPolicy.currentMatchesBound(boundUid, uid());
         boolean successful = !mismatch && current != null && current.getUid().equals(successfulUid);
         states.setValue(new AuthUiState(auth != null, mismatch, boundUid != null, current != null, current != null && current.isAnonymous(),
-                connected.contains(AccountPolicy.EMAIL), connected.contains(AccountPolicy.GOOGLE), connected.contains(AccountPolicy.PHONE),
+                connected.contains(AccountPolicy.EMAIL), connected.contains(AccountPolicy.PHONE),
                 emailPresent, current != null && current.isEmailVerified(), emailPresent ? current.getEmail() : "",
                 work.busy(), phoneFlow.active(), verificationId != null,
                 phoneFlow.active() && resendToken != null && remaining == 0 && !work.busy(),
@@ -680,9 +565,6 @@ public final class AuthViewModel extends AndroidViewModel {
         cleared = true;
         if (auth != null) auth.removeAuthStateListener(authListener);
         handler.removeCallbacksAndMessages(null);
-        CancellationSignal cancellation = googleCancellation;
-        releaseGoogleUi();
-        if (cancellation != null) cancellation.cancel();
         clearPhone();
         super.onCleared();
     }

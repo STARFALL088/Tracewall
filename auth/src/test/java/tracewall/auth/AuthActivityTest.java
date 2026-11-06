@@ -91,10 +91,9 @@ public class AuthActivityTest {
         idle();
     }
 
-    @Test public void initialScreenHasEveryProviderAndUncheckedSmsConsent() {
+    @Test public void initialScreenHasSupportedProvidersAndUncheckedSmsConsent() {
         launch(AuthActivity.ROLE_PARENT, null);
         assertNotNull(activity.findViewById(R.id.auth_email_submit));
-        assertNotNull(activity.findViewById(R.id.auth_google));
         assertNotNull(activity.findViewById(R.id.auth_phone_send));
         assertEquals(View.VISIBLE, activity.findViewById(R.id.auth_method_picker).getVisibility());
         assertEquals(View.GONE, activity.findViewById(R.id.auth_email_form).getVisibility());
@@ -150,15 +149,6 @@ public class AuthActivityTest {
         assertNull(auth.getCurrentUser());
     }
 
-    @Test public void unconfiguredGoogleFailsClearlyWithoutAuthenticating() {
-        launch(AuthActivity.ROLE_PARENT, null);
-        activity.findViewById(R.id.auth_google).performClick();
-        idle();
-        assertTrue(message().equals(activity.getString(R.string.auth_error_google_setup))
-            || message().equals(activity.getString(R.string.auth_google_unavailable)));
-        assertTrue(activity.findViewById(R.id.auth_google).isEnabled());
-        assertNull(auth.getCurrentUser());
-    }
 
     @Test public void localEntryDoesNotCreateAnAnonymousUserOrClaimSuccess() {
         launch(AuthActivity.ROLE_CHILD, null);
@@ -383,7 +373,7 @@ public class AuthActivityTest {
     private void renderEmailAccount(boolean verified, boolean mismatch) {
         // Renderer contract only, not a fabricated FirebaseUser or successful authentication response.
         AuthUiState state = new AuthUiState(true, mismatch, true, true, false,
-            true, false, false, true, verified, "unit@example.invalid", false,
+            true, false, true, verified, "unit@example.invalid", false,
             false, false, false, false, 0L, false, "", false, 0, 0L, false);
         ReflectionHelpers.callInstanceMethod(activity, "render",
             ReflectionHelpers.ClassParameter.from(AuthUiState.class, state));
@@ -395,7 +385,6 @@ public class AuthActivityTest {
         launch(AuthActivity.ROLE_CHILD, null);
         assertEquals(activity.getString(R.string.auth_error_setup), message());
         assertTrue(activity.findViewById(R.id.auth_local).isEnabled());
-        assertFalse(activity.findViewById(R.id.auth_google).isEnabled());
         choosePhone();
         assertEquals(View.VISIBLE, activity.findViewById(R.id.auth_phone_form).getVisibility());
         assertFalse(input(R.id.auth_phone).isEnabled());
