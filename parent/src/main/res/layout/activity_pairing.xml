@@ -1,91 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:orientation="vertical"
-    android:padding="32dp">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="32dp"
-        android:text="@string/pairing_body"
-        android:textSize="14sp" />
-
-    <TextView android:id="@+id/accountStatus" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/account_local" />
-    <Button android:id="@+id/accountButton" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/account_open" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="@string/pairing_hint">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/childUidInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textNoSuggestions"
-            android:maxLines="1" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <EditText android:id="@+id/pairingCodeInput"
-        android:saveEnabled="false"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:hint="@string/pairing_code_hint" android:inputType="textCapCharacters"
-        android:maxLength="8" android:maxLines="1" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/pairing_existing_hint" />
-    <EditText android:id="@+id/deviceName" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:hint="@string/device_name_hint" android:inputType="textCapWords" android:maxLength="80"
-        android:maxLines="1" android:importantForAutofill="no" />
-    <Button android:id="@+id/savedDevices" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/device_saved" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/connectButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:text="@string/pairing_connect" />
-
-        <Button
-            android:id="@+id/scanButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/pairing_scan" />
-
-    </LinearLayout>
-
-    <ProgressBar
-        android:id="@+id/progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
-
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/tw_background" android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/pairingToolbar"
+        style="@style/Widget.Tracewall.Toolbar"
+        android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+        app:title="@string/app_name" app:navigationIcon="@drawable/ic_tw_arrow_back"
+        app:navigationContentDescription="@string/apps_back" />
+    <androidx.core.widget.NestedScrollView android:id="@+id/pairingScroll"
+        android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="20dp" android:focusableInTouchMode="true">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="24dp" android:background="@drawable/tw_hero_panel">
+                <ImageView android:layout_width="36dp" android:layout_height="36dp"
+                    android:src="@drawable/ic_tw_family" app:tint="@color/tw_on_hero" android:importantForAccessibility="no" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:text="@string/pairing_title"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Parent.Hero" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/pairing_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Parent.HeroBody" />
+            </LinearLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="28dp" android:text="@string/parent_account_title"
+                android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+            <TextView android:id="@+id/accountStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:text="@string/account_local"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body" android:accessibilityLiveRegion="polite" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/accountButton"
+                style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:text="@string/parent_account_button" app:icon="@drawable/ic_tw_account" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/scanButton"
+                style="@style/Widget.Tracewall.Parent.Button"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:text="@string/pairing_scan" app:icon="@drawable/ic_tw_search" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:text="@string/parent_pairing_scan_hint"
+                android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="28dp" android:text="@string/parent_pairing_manual"
+                android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+            <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:hint="@string/pairing_hint">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/childUidInput"
+                    style="@style/Widget.Tracewall.Input" android:background="@null"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:inputType="textNoSuggestions" android:maxLines="1" android:importantForAutofill="no" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:hint="@string/pairing_code_hint">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/pairingCodeInput"
+                    style="@style/Widget.Tracewall.Input" android:background="@null"
+                    android:saveEnabled="false" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:inputType="textCapCharacters|textNoSuggestions" android:maxLength="8" android:maxLines="1"
+                    android:importantForAutofill="no" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:text="@string/pairing_existing_hint"
+                android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:hint="@string/device_name_hint">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/deviceName"
+                    style="@style/Widget.Tracewall.Input" android:background="@null"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:inputType="textCapWords" android:maxLength="80" android:maxLines="1" android:importantForAutofill="no" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/connectButton"
+                style="@style/Widget.Tracewall.Parent.Button"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="@string/pairing_connect" />
+            <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/progress"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:indeterminate="true" android:visibility="gone" />
+            <TextView android:id="@+id/pairingStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                android:accessibilityLiveRegion="polite" android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/savedDevices"
+                style="@style/Widget.Tracewall.Parent.Button.Text"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="@string/device_saved" app:icon="@drawable/ic_tw_family" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>
-</ScrollView>

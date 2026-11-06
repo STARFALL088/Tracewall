@@ -1,7 +1,6 @@
 package tracewall.child.ui;
 
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -62,17 +61,17 @@ public final class QueryAdapter extends RecyclerView.Adapter<QueryAdapter.Holder
         QueryLog.Entry e = items.get(position);
         boolean blocked = e.blocked;
 
-        h.b.verdict.setText(blocked ? R.string.verdict_block : R.string.verdict_allow);
+        h.b.verdict.setText(blocked ? R.string.detail_verdict_blocked : R.string.detail_verdict_allowed);
         h.b.verdict.setTextColor(h.b.getRoot().getContext().getColor(
-                blocked ? R.color.tracewall_block : R.color.tracewall_allow));
+                blocked ? tracewall.auth.R.color.tw_danger : tracewall.auth.R.color.tw_success));
 
         h.b.host.setText(e.host);
         h.b.meta.setText(e.blocked
-                ? h.b.getRoot().getContext().getString(R.string.meta_blocked,
-                        DnsMessage.typeName(e.type), labels.label(e.uid),
+                ? h.b.getRoot().getContext().getString(R.string.detail_query_meta_blocked,
+                        labels.label(e.uid), DnsMessage.typeName(e.type),
                         e.latencyMs, e.policy)
-                : h.b.getRoot().getContext().getString(R.string.meta,
-                        DnsMessage.typeName(e.type), labels.label(e.uid), e.latencyMs));
+                : h.b.getRoot().getContext().getString(R.string.detail_query_meta,
+                        labels.label(e.uid), DnsMessage.typeName(e.type), e.latencyMs));
 
         h.b.getRoot().setOnLongClickListener(v -> {
             if (onRow == null) return false;

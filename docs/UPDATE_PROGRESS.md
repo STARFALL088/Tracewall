@@ -1,7 +1,8 @@
-# Post-v1.1.0 update ledger
+# Post-v2.1.0 update ledger
 
-Baseline: annotated tag `v1.1.0`, commit `93defce`. Work branch:
-`updates/post-v1.1.0`. Existing historical tags and `main` are preserved.
+Baseline: annotated tag `v2.1.0` (formerly `v1.1.0`), commit `93defce`.
+The work branch retains its original name, `updates/post-v1.1.0`; release tags
+were normalized for v2.2.0 without changing commit history.
 Each completed implementation is tested and committed separately, then pushed.
 
 ## Acceptance checklist

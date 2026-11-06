@@ -12,8 +12,8 @@ android {
         applicationId = "tracewall.parent"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 4
+        versionName = "2.2.0"
     }
 
     buildTypes {
@@ -31,6 +31,8 @@ android {
         viewBinding = true
     }
 
+    testOptions { unitTests.isIncludeAndroidResources = true }
+
     packaging {
         resources.excludes += setOf("META-INF/*.kotlin_module")
     }
@@ -43,6 +45,8 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 
     // ZXing embedded scanner: scan the child's QR code during pairing.
     // Brings in zxing:core transitively and declares CAMERA in its manifest.
@@ -54,4 +58,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-firestore")
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    maxHeapSize = "512m"
+    maxParallelForks = 1
 }

@@ -2,29 +2,45 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:background="@drawable/tw_panel"
     android:orientation="vertical"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp">
+    android:padding="16dp">
+
     <TextView
         android:id="@+id/historyRowHost"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
+        android:breakStrategy="simple"
+        android:textAppearance="@style/TextAppearance.Tracewall.Body"
+        android:textDirection="ltr"
         android:textStyle="bold" />
+
     <TextView
         android:id="@+id/historyRowVerdict"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="13sp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/tw_status_badge"
+        android:paddingStart="8dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="4dp"
+        android:textAppearance="@style/TextAppearance.Tracewall.Caption"
         android:textStyle="bold" />
+
     <TextView
         android:id="@+id/historyRowMeta"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="12sp" />
+        android:layout_marginTop="8dp"
+        android:breakStrategy="simple"
+        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+
     <TextView
         android:id="@+id/historyRowTime"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="12sp" />
+        android:layout_marginTop="6dp"
+        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
 </LinearLayout>

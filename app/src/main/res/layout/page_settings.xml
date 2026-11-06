@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:clipToPadding="false" android:paddingStart="20dp" android:paddingEnd="20dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="24dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/tw_panel" android:padding="20dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_account_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_account_body" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+            <TextView android:id="@+id/settingsAccountStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/account_local" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/accountButton" style="@style/Widget.Tracewall.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_account_action" app:icon="@drawable/ic_tw_account" />
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/nav_device_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_always_body" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/makePermanent" style="@style/Widget.Tracewall.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/nav_always_on" app:icon="@drawable/ic_tw_shield" />
+        <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="24dp" android:background="@color/tw_border" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/nav_data_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_backup_body" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/openBackup" style="@style/Widget.Tracewall.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/nav_backup_action" app:icon="@drawable/ic_tw_download" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/clearHistory" style="@style/Widget.Tracewall.Button.Text" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_clear_history" android:textColor="@color/tw_danger" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/nav_clear_help" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/tw_inset_panel" android:layout_marginTop="24dp" android:padding="20dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_about_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_about_body" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

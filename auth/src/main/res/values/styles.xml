@@ -1,9 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="TracewallAuthTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="TracewallAuthTheme" parent="Theme.Tracewall.Base">
         <item name="android:windowActionModeOverlay">true</item>
     </style>
-    <style name="TracewallAuthSection" parent="TextAppearance.MaterialComponents.Subtitle1">
-        <item name="android:textStyle">bold</item>
+    <style name="TracewallAuthSection" parent="TextAppearance.Tracewall.Section" />
+    <style name="TracewallAuthHint" parent="TextAppearance.Tracewall.Caption">
+        <item name="android:textColor">@color/tw_muted</item>
+    </style>
+    <!-- Minimum touch height, not a fixed height: translated/large text may wrap. -->
+    <style name="TracewallAuthAction" parent="Widget.Tracewall.Button">
+        <item name="android:singleLine">false</item>
+        <item name="android:ellipsize">none</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    <style name="TracewallAuthAction.Outlined" parent="Widget.Tracewall.Button.Outlined">
+        <item name="android:singleLine">false</item>
+        <item name="android:ellipsize">none</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    <style name="TracewallAuthAction.Text" parent="Widget.Tracewall.Button.Text">
+        <item name="android:singleLine">false</item>
+        <item name="android:ellipsize">none</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
     </style>
 </resources>

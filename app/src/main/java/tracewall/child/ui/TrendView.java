@@ -8,13 +8,14 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import androidx.annotation.Nullable;
+import tracewall.child.R;
 
 /**
  * A stacked bar chart of the last N minutes, drawn on a Canvas.
  *
  * The Week 9 "custom view" item, and the honest way to show "what did this
  * phone try to reach in the last hour" without pulling in a chart library for
- * fourteen purple bars. Grey = allowed, red = blocked, newest on the right.
+ * another dependency. Teal = allowed, rose = blocked, newest on the right.
  */
 public final class TrendView extends View {
 
@@ -31,9 +32,9 @@ public final class TrendView extends View {
 
     public TrendView(Context c, @Nullable AttributeSet attrs) {
         super(c, attrs);
-        allowedPaint.setColor(0xFF9AA0A6);
-        blockedPaint.setColor(0xFFC0392B);
-        baselinePaint.setColor(0x33808080);
+        allowedPaint.setColor(c.getColor(R.color.tracewall_allow));
+        blockedPaint.setColor(c.getColor(R.color.tracewall_block));
+        baselinePaint.setColor(c.getColor(tracewall.auth.R.color.tw_border));
         baselinePaint.setStrokeWidth(1f);
     }
 
@@ -45,8 +46,12 @@ public final class TrendView extends View {
         this.allowed = allowedCounts == null ? new int[0] : allowedCounts;
         this.blocked = blockedCounts == null ? new int[0] : blockedCounts;
         int m = 1;
-        for (int v : allowed) m = Math.max(m, v);
-        for (int v : blocked) m = Math.max(m, v);
+        // Scale the complete stack, not each series; mixed bars must fit the view.
+        for (int i = 0; i < Math.max(allowed.length, blocked.length); i++) {
+            int a = i < allowed.length ? allowed[i] : 0;
+            int b = i < blocked.length ? blocked[i] : 0;
+            m = Math.max(m, a + b);
+        }
         this.max = m;
         invalidate();
     }
@@ -80,8 +85,7 @@ public final class TrendView extends View {
             float blockH = h * b / (float) max;
             float allowH = totalH - blockH;
 
-            // Allowed sits under blocked so the red always touches the top,
-            // which is what the eye is looking for.
+            // Keep the stacked series in the same order as the legend.
             if (allowH > 0) {
                 bar.set(x, bottom - blockH - allowH, x + barW, bottom - blockH);
                 canvas.drawRoundRect(bar, 2f, 2f, allowedPaint);

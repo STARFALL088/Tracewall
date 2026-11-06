@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rulesnav_title">Local protection</string>
+    <string name="rulesnav_domains">Domains</string>
+    <string name="rulesnav_schedules">Schedules</string>
+    <string name="rulesnav_backups">Backups</string>
+    <string name="rulesnav_domains_intro">Block a domain or make an exception on this device. Every saved change needs the parent PIN.</string>
+    <string name="rulesnav_schedules_intro">Add extra app or category blocks at set times each week. Base and parent rules stay in place.</string>
+    <string name="rulesnav_backups_intro">Save a copy of your local rules or replace them with a JSON backup.</string>
+    <string name="rulesnav_refresh">Refresh</string>
+    <string name="rulesnav_ready">Saved rules are up to date.</string>
+    <string name="rulesnav_clear_domain">Clear domain</string>
+    <string name="rulesnav_clear_duration">Clear duration</string>
+    <string name="rulesnav_block_domain">Block this domain</string>
+    <string name="rulesnav_allow_domain">Always allow this domain</string>
+    <string name="rulesnav_temporary_heading">Temporary exception</string>
+    <string name="rulesnav_duration">Duration in minutes</string>
+    <string name="rulesnav_duration_help">1–10,080 minutes. Only used for a temporary allow.</string>
+    <string name="rulesnav_saved_domains">Saved domain rules</string>
+    <string name="rulesnav_saved_domains_help">Choose a list to review or remove an entry. Removal also needs the parent PIN.</string>
+    <string name="rulesnav_denies_count">Blocked domains (%1$d)</string>
+    <string name="rulesnav_allows_count">Always allowed (%1$d)</string>
+    <string name="rulesnav_timed_count">Temporary allows (%1$d)</string>
+    <string name="rulesnav_show_domain_details">How domain rules work</string>
+    <string name="rulesnav_hide_domain_details">Hide domain rule details</string>
+    <string name="rulesnav_schedules_title">Weekly schedules</string>
+    <string name="rulesnav_saved_schedules">Saved schedules</string>
+    <string name="rulesnav_profiles_empty">No schedules yet. Start a profile below to add weekly blocks.</string>
+    <string name="rulesnav_schedule_editor_intro">Changes stay in this draft until you save. Saving or deleting needs the parent PIN.</string>
+    <string name="rulesnav_profile_name">Schedule name</string>
+    <string name="rulesnav_profile_name_hint">e.g. Homework time</string>
+    <string name="rulesnav_when_heading">When it runs</string>
+    <string name="rulesnav_days_help">Selected days are when the schedule starts. An overnight interval continues into the next day.</string>
+    <string name="rulesnav_blocks_heading">What it blocks</string>
+    <string name="rulesnav_categories_help">Add blocks during this interval. Choose at least one category or an app UID.</string>
+    <string name="rulesnav_uids_heading">Advanced: app UIDs</string>
+    <string name="rulesnav_show_schedule_details">How schedules follow the clock</string>
+    <string name="rulesnav_hide_schedule_details">Hide schedule details</string>
+    <string name="rulesnav_export_heading">Save a backup</string>
+    <string name="rulesnav_export_help">Save the shared JSON file outside this app. Android can clear the temporary app copy.</string>
+    <string name="rulesnav_import_heading">Restore a backup</string>
+    <string name="rulesnav_import_help">Import replaces all local rules. The parent PIN and a replacement confirmation are required.</string>
+    <string name="rulesnav_backup_details">Backup contents and safety</string>
+    <string name="rulesnav_scope_heading">Only this device</string>
+    <string name="rulesnav_expanded">Expanded</string>
+    <string name="rulesnav_collapsed">Collapsed</string>
+</resources>

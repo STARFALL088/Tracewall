@@ -1,56 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/auth_scroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="@color/tw_background"
+    android:fillViewport="true"
+    android:importantForAutofill="noExcludeDescendants">
 
-    <LinearLayout
+    <!-- Keep one readable column on tablets without imposing a minimum split-screen width. -->
+    <tracewall.auth.MaxWidthLinearLayout
+        android:id="@+id/auth_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:focusableInTouchMode="true"
+        app:tracewallMaxWidth="600dp"
         android:orientation="vertical"
         android:padding="20dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/auth_back"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minHeight="48dp"
-            android:text="@string/auth_back" />
-
-        <TextView
-            android:id="@+id/auth_title"
+            style="@style/TracewallAuthAction.Text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/auth_title_initial"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5" />
+            android:gravity="start|center_vertical"
+            android:text="@string/auth_back"
+            app:icon="@drawable/ic_tw_arrow_back"
+            app:iconGravity="start" />
 
-        <TextView
-            android:id="@+id/auth_role"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textAppearance="@style/TracewallAuthSection" />
+            android:background="@drawable/tw_hero_panel"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/auth_role"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Tracewall.Caption"
+                android:textColor="@color/tw_hero_muted" />
+
+            <TextView
+                android:id="@+id/auth_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_title_initial"
+                android:textAppearance="@style/TextAppearance.Tracewall.Title"
+                android:textColor="@color/tw_on_hero" />
+
+            <TextView
+                android:id="@+id/auth_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/auth_intro"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                android:textColor="@color/tw_on_hero" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/auth_role_warning" />
-
-        <TextView
-            android:id="@+id/auth_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/auth_intro" />
+            android:layout_marginTop="16dp"
+            android:text="@string/auth_role_warning"
+            android:textAppearance="@style/TracewallAuthHint" />
 
         <ProgressBar
             android:id="@+id/auth_progress"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:contentDescription="@string/auth_working"
             android:indeterminate="true"
             android:visibility="gone" />
@@ -59,244 +84,416 @@
             android:id="@+id/auth_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:accessibilityLiveRegion="polite"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/auth_email_section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/auth_email_section"
-            android:textAppearance="@style/TracewallAuthSection" />
-
-        <RadioGroup
-            android:id="@+id/auth_email_modes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:checkedButton="@id/auth_mode_sign_in"
-            android:orientation="vertical"
-            android:saveEnabled="false">
-            <RadioButton
-                android:id="@+id/auth_mode_sign_in"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:saveEnabled="false"
-                android:text="@string/auth_sign_in" />
-            <RadioButton
-                android:id="@+id/auth_mode_create"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:saveEnabled="false"
-                android:text="@string/auth_create_account" />
-        </RadioGroup>
-
-        <androidx.appcompat.widget.AppCompatEditText
-            android:id="@+id/auth_email"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/auth_email_hint"
-            android:imeOptions="actionNext"
-            android:inputType="textEmailAddress"
-            android:minHeight="56dp"
-            android:saveEnabled="false"
-            android:singleLine="true" />
-
-        <androidx.appcompat.widget.AppCompatEditText
-            android:id="@+id/auth_password"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/auth_password_hint"
-            android:imeOptions="actionDone"
-            android:inputType="textPassword"
-            android:minHeight="56dp"
-            android:saveEnabled="false"
-            android:singleLine="true" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_password_help" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_email_submit"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_sign_in" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_reauthenticate"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_reauthenticate_email"
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_reset"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_reset_password" />
-
-        <TextView
-            android:id="@+id/auth_email_verification"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_verify_email"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_verify_email"
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_refresh_email"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_refresh_email"
-            android:visibility="gone" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_google"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/auth_google_sign_in" />
-
-        <TextView
-            android:id="@+id/auth_phone_section"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/auth_phone_section"
-            android:textAppearance="@style/TracewallAuthSection" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/auth_phone_security" />
-
-        <androidx.appcompat.widget.AppCompatEditText
-            android:id="@+id/auth_phone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/auth_phone_hint"
-            android:importantForAutofill="no"
-            android:inputType="phone"
-            android:minHeight="56dp"
-            android:saveEnabled="false"
-            android:singleLine="true" />
-
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/auth_sms_consent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:checked="false"
-            android:minHeight="48dp"
-            android:saveEnabled="false"
-            android:text="@string/auth_phone_consent" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_phone_send"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_send_code" />
-
-        <TextView
-            android:id="@+id/auth_cooldown"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:background="@drawable/tw_info_panel"
+            android:padding="16dp"
+            android:textAppearance="@style/TextAppearance.Tracewall.Body"
             android:visibility="gone" />
 
         <LinearLayout
-            android:id="@+id/auth_code_group"
+            android:id="@+id/auth_method_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:layout_marginTop="24dp"
+            android:orientation="vertical">
 
-            <androidx.appcompat.widget.AppCompatEditText
-                android:id="@+id/auth_code"
+            <TextView
+                android:id="@+id/auth_method_heading"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/auth_code_hint"
-                android:imeOptions="actionDone"
+                android:layout_marginBottom="12dp"
+                android:text="@string/auth_method_choose"
+                android:textAppearance="@style/TracewallAuthSection" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_google"
+                style="@style/TracewallAuthAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_google_sign_in" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_select_email"
+                style="@style/TracewallAuthAction.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_method_email" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_select_phone"
+                style="@style/TracewallAuthAction.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_method_phone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/auth_email_form"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/tw_panel"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/auth_email_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_email_section"
+                android:textAppearance="@style/TracewallAuthSection" />
+
+            <TextView
+                android:id="@+id/auth_email_connection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/tw_status_badge"
+                android:padding="12dp"
+                android:text="@string/auth_email_connected"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                android:visibility="gone" />
+
+            <RadioGroup
+                android:id="@+id/auth_email_modes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:checkedButton="@id/auth_mode_sign_in"
+                android:orientation="vertical"
+                android:saveEnabled="false">
+                <RadioButton
+                    android:id="@+id/auth_mode_sign_in"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:saveEnabled="false"
+                    android:text="@string/auth_sign_in"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <RadioButton
+                    android:id="@+id/auth_mode_create"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:saveEnabled="false"
+                    android:text="@string/auth_create_account"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:labelFor="@id/auth_email"
+                android:text="@string/auth_email_hint"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/auth_email"
+                style="@style/Widget.Tracewall.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:hint="@string/auth_email_example"
+                android:imeOptions="actionNext"
                 android:importantForAutofill="no"
-                android:inputType="numberPassword"
+                android:inputType="textEmailAddress"
                 android:minHeight="56dp"
                 android:saveEnabled="false"
                 android:singleLine="true" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/auth_code_submit"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/auth_confirm_code" />
+                android:layout_marginTop="16dp"
+                android:labelFor="@id/auth_password"
+                android:text="@string/auth_password_hint"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/auth_password"
+                style="@style/Widget.Tracewall.Input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="textPassword"
+                android:minHeight="56dp"
+                android:saveEnabled="false"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/auth_password_help"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_email_sign_in_help"
+                android:textAppearance="@style/TracewallAuthHint" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_email_submit"
+                style="@style/TracewallAuthAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/auth_sign_in" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_reauthenticate"
+                style="@style/TracewallAuthAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/auth_reauthenticate_email"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_reset"
+                style="@style/TracewallAuthAction.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_reset_password" />
+
+            <LinearLayout
+                android:id="@+id/auth_email_verification_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/tw_inset_panel"
+                android:orientation="vertical"
+                android:padding="12dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/auth_email_verification"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/auth_verify_email"
+                    style="@style/TracewallAuthAction.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/auth_verify_email"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/auth_refresh_email"
+                    style="@style/TracewallAuthAction.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/auth_refresh_email"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_resend"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
+            android:id="@+id/auth_phone_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/auth_resend_code"
-            android:visibility="gone" />
+            android:layout_marginTop="24dp"
+            android:background="@drawable/tw_panel"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:visibility="gone">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/auth_phone_cancel"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auth_change_phone"
-            android:visibility="gone" />
+            <TextView
+                android:id="@+id/auth_phone_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_phone_section"
+                android:textAppearance="@style/TracewallAuthSection" />
+
+            <TextView
+                android:id="@+id/auth_phone_connection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/tw_status_badge"
+                android:padding="12dp"
+                android:text="@string/auth_phone_connected"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/auth_phone_security"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_phone_security"
+                android:textAppearance="@style/TracewallAuthHint" />
+
+            <LinearLayout
+                android:id="@+id/auth_phone_entry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/auth_phone"
+                    android:text="@string/auth_phone_label"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/auth_phone"
+                    style="@style/Widget.Tracewall.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:hint="@string/auth_phone_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="phone"
+                    android:minHeight="56dp"
+                    android:saveEnabled="false"
+                    android:singleLine="true" />
+            </LinearLayout>
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/auth_sms_consent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:checked="false"
+                android:minHeight="48dp"
+                android:saveEnabled="false"
+                android:text="@string/auth_phone_consent"
+                android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_phone_send"
+                style="@style/TracewallAuthAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/auth_send_code" />
+
+            <LinearLayout
+                android:id="@+id/auth_code_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:labelFor="@id/auth_code"
+                    android:text="@string/auth_code_hint"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+
+                <androidx.appcompat.widget.AppCompatEditText
+                    android:id="@+id/auth_code"
+                    style="@style/Widget.Tracewall.Input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="numberPassword"
+                    android:minHeight="56dp"
+                    android:saveEnabled="false"
+                    android:singleLine="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/auth_code_submit"
+                    style="@style/TracewallAuthAction"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/auth_confirm_code" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/auth_cooldown"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:textAppearance="@style/TracewallAuthHint"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_resend"
+                style="@style/TracewallAuthAction.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/auth_resend_code"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/auth_phone_cancel"
+                style="@style/TracewallAuthAction.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_change_phone"
+                android:visibility="gone" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/auth_initial_options"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:orientation="vertical">
+            android:background="@drawable/tw_inset_panel"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/auth_options_heading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/auth_other_options"
+                android:textAppearance="@style/TracewallAuthSection" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/auth_guest"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                style="@style/TracewallAuthAction.Outlined"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:text="@string/auth_guest" />
+
             <TextView
                 android:id="@+id/auth_guest_help"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/auth_guest_help" />
+                android:layout_marginTop="4dp"
+                android:text="@string/auth_guest_help"
+                android:textAppearance="@style/TracewallAuthHint" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/auth_local"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
+                style="@style/TracewallAuthAction.Text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:text="@string/auth_local" />
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/auth_local_help" />
+                android:text="@string/auth_local_help"
+                android:textAppearance="@style/TracewallAuthHint" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/auth_identity_lock_notice"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/tw_info_panel"
+            android:padding="16dp"
             android:text="@string/auth_identity_lock_notice"
+            android:textAppearance="@style/TracewallAuthHint"
             android:visibility="gone" />
-    </LinearLayout>
+    </tracewall.auth.MaxWidthLinearLayout>
 </ScrollView>

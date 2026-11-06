@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 27+ can draw dark navigation icons over the light surface. -->
+    <color name="tw_navigation_bar">@color/tw_surface</color>
+</resources>

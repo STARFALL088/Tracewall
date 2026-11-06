@@ -3,10 +3,14 @@ package tracewall.child.ui;
 import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -15,6 +19,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.File;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -57,6 +62,8 @@ public class HistoryActivity extends AppCompatActivity {
     private Future<?> job;
     private int generation;
     private boolean busy, resumed;
+    private MenuItem refreshAction, exportAction;
+    private int loadFailureMessage;
     private String appSearch = "";
     private HistoryFilter filter;
     private HistoryFilter.Preset preset = HistoryFilter.Preset.LAST_24_HOURS;
@@ -95,16 +102,34 @@ public class HistoryActivity extends AppCompatActivity {
             displayedDirection = state.getBoolean("newer", false) ? HistoryQuery.Direction.NEWER : HistoryQuery.Direction.OLDER;
             pendingScroll = state.getParcelable("scroll");
         }
-        ui.historyBack.setOnClickListener(v -> finish());
+        ui.historyBack.setNavigationOnClickListener(v -> finish());
+        refreshAction = ui.historyBack.getMenu().add(Menu.NONE, 1, 0, R.string.detail_history_refresh);
+        refreshAction.setIcon(tracewall.auth.R.drawable.ic_tw_refresh).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+        refreshAction.setOnMenuItemClickListener(item -> { refreshSelection(); return true; });
+        exportAction = ui.historyBack.getMenu().add(Menu.NONE, 2, 1, R.string.detail_history_export);
+        exportAction.setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+        exportAction.setOnMenuItemClickListener(item -> {
+            PinGate.require(this, this::export);
+            return true;
+        });
+        ui.historyBack.getMenu().add(Menu.NONE, 3, 2, R.string.detail_history_about)
+            .setOnMenuItemClickListener(item -> {
+                new MaterialAlertDialogBuilder(this).setTitle(R.string.detail_history_about)
+                    .setMessage(R.string.detail_history_about_body)
+                    .setPositiveButton(android.R.string.ok, null).show();
+                return true;
+            });
         ui.historyFilters.setOnClickListener(v -> showFilters());
-        ui.historyRefresh.setOnClickListener(v -> refreshSelection());
+        ui.historyEmptyAction.setOnClickListener(v -> {
+            if (loadFailureMessage != 0 && loadFailureMessage != R.string.history_too_many_apps) refreshSelection();
+            else showFilters();
+        });
         ui.historyPrevious.setOnClickListener(v -> {
             if (page != null && !page.rows.isEmpty()) load(HistoryReader.cursor(page.rows.get(0)), HistoryQuery.Direction.NEWER, false);
         });
         ui.historyNext.setOnClickListener(v -> {
             if (page != null && !page.rows.isEmpty()) load(HistoryReader.cursor(page.rows.get(page.rows.size() - 1)), HistoryQuery.Direction.OLDER, false);
         });
-        ui.historyExport.setOnClickListener(v -> PinGate.require(this, this::export));
         selectionLabel();
         load(displayedAnchor, displayedDirection, snapshotId < 0);
     }
@@ -118,6 +143,7 @@ public class HistoryActivity extends AppCompatActivity {
         pendingScroll = null;
         page = null;
         adapter.submitList(new ArrayList<>());
+        ui.historySummaryBar.setExpanded(true, false);
         selectionLabel();
         load(null, HistoryQuery.Direction.OLDER, true);
     }
@@ -127,6 +153,7 @@ public class HistoryActivity extends AppCompatActivity {
         HistoryFilter selection = filter;
         String search = appSearch;
         long frozen = snapshotId;
+        loadFailureMessage = 0;
         setBusy(true);
         ui.historyStatus.setText(R.string.history_loading);
         submit(() -> {
@@ -144,14 +171,15 @@ public class HistoryActivity extends AppCompatActivity {
                     displayedDirection = direction;
                     page = result;
                     adapter.submitList(rows, () -> {
+                        if (stale(ticket)) return;
                         if (pendingScroll != null && !rows.isEmpty()) {
                             ui.historyList.getLayoutManager().onRestoreInstanceState(pendingScroll);
                             pendingScroll = null;
                         } else ui.historyList.scrollToPosition(0);
                     });
-                    ui.historyStats.setText(getString(R.string.history_stats, result.stats.total,
+                    ui.historyStats.setText(getString(R.string.detail_history_stats, result.stats.total,
                         result.stats.blocked, result.stats.averageLatencyMs));
-                    ui.historyStatus.setText(rows.isEmpty() ? R.string.history_empty : R.string.history_snapshot_note);
+                    ui.historyStatus.setText(R.string.detail_history_snapshot_note);
                     setBusy(false);
                 });
             } catch (CancellationException ignored) { /* A newer request or destruction owns the UI. */ }
@@ -168,16 +196,43 @@ public class HistoryActivity extends AppCompatActivity {
 
     private boolean stale(int ticket) { return ticket != generation || isFinishing() || isDestroyed(); }
     private void failed(int ticket, int message) {
-        runOnUiThread(() -> { if (!stale(ticket)) { ui.historyStatus.setText(message); setBusy(false); } });
+        runOnUiThread(() -> {
+            if (!stale(ticket)) {
+                loadFailureMessage = message;
+                ui.historyStatus.setText(message);
+                setBusy(false);
+            }
+        });
     }
     private void setBusy(boolean value) {
         busy = value;
         ui.historyProgress.setVisibility(value ? View.VISIBLE : View.GONE);
         ui.historyFilters.setEnabled(!value);
-        ui.historyRefresh.setEnabled(!value);
+        refreshAction.setEnabled(!value);
         ui.historyPrevious.setEnabled(!value && page != null && page.hasNewer);
         ui.historyNext.setEnabled(!value && page != null && page.hasOlder);
-        ui.historyExport.setEnabled(!value && page != null && page.stats.total > 0);
+        exportAction.setEnabled(!value && page != null && page.stats.total > 0);
+        ui.historyStats.setVisibility(page != null && page.stats.total > 0 ? View.VISIBLE : View.GONE);
+        renderListState();
+    }
+
+    private void renderListState() {
+        boolean hasRows = page != null && !page.rows.isEmpty();
+        ui.historyList.setVisibility(hasRows ? View.VISIBLE : View.GONE);
+        ui.historyPages.setVisibility(hasRows ? View.VISIBLE : View.GONE);
+        ui.historyEmpty.setVisibility(hasRows ? View.GONE : View.VISIBLE);
+        if (hasRows) return;
+        boolean hasSearch = !filter.domain.isEmpty() || !appSearch.isEmpty()
+                || filter.verdict != HistoryFilter.Verdict.ALL;
+        ui.historyEmptyTitle.setText(busy ? R.string.detail_history_loading_title
+                : loadFailureMessage != 0 ? R.string.detail_history_error_title
+                : hasSearch ? R.string.detail_history_no_results_title : R.string.detail_history_empty_title);
+        ui.historyEmptyMessage.setText(busy ? R.string.detail_history_loading_body
+                : loadFailureMessage != 0 ? loadFailureMessage
+                : hasSearch ? R.string.detail_history_no_results_body : R.string.detail_history_empty_body);
+        ui.historyEmptyAction.setVisibility(busy ? View.GONE : View.VISIBLE);
+        ui.historyEmptyAction.setText(loadFailureMessage != 0 && loadFailureMessage != R.string.history_too_many_apps
+                ? R.string.detail_retry : R.string.detail_history_change_filters);
     }
 
     private void export() {
@@ -239,18 +294,28 @@ public class HistoryActivity extends AppCompatActivity {
     }
 
     private void selectionLabel() {
-        ui.historySelection.setText(getString(R.string.history_selection,
+        String range = preset == HistoryFilter.Preset.CUSTOM
+                ? getString(R.string.detail_history_custom_selection,
+                    DateFormat.getDateInstance().format(new Date(customStart)),
+                    DateFormat.getDateInstance().format(new Date(customEnd)))
+                : getString(RANGES[preset.ordinal()]);
+        ui.historySelection.setText(getString(R.string.detail_history_selection,
+                range, getString(VERDICTS[filter.verdict.ordinal()])));
+        ui.historyFilters.setText(!filter.domain.isEmpty() || !appSearch.isEmpty()
+                || filter.verdict != HistoryFilter.Verdict.ALL || preset != HistoryFilter.Preset.LAST_24_HOURS
+                ? R.string.detail_history_edit_filters : R.string.history_filters);
+        ui.historyFilters.setContentDescription(getString(R.string.detail_history_search_selection,
+            range, getString(VERDICTS[filter.verdict.ordinal()]),
             filter.domain.isEmpty() ? getString(R.string.history_any_domain) : filter.domain,
-            appSearch.isEmpty() ? getString(R.string.history_any_app) : appSearch,
-            getString(VERDICTS[filter.verdict.ordinal()]), getString(RANGES[preset.ordinal()])));
+            appSearch.isEmpty() ? getString(R.string.history_any_app) : appSearch));
     }
 
     private void showFilters() {
         DialogHistoryFilterBinding b = DialogHistoryFilterBinding.inflate(getLayoutInflater());
         b.historyDomain.setText(filter.domain);
         b.historyApp.setText(appSearch);
-        b.historyVerdictFilter.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names(VERDICTS)));
-        b.historyRange.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names(RANGES)));
+        b.historyVerdictFilter.setAdapter(choices(VERDICTS));
+        b.historyRange.setAdapter(choices(RANGES));
         b.historyVerdictFilter.setSelection(filter.verdict.ordinal());
         b.historyRange.setSelection(preset.ordinal());
         long[] days = {customStart, customEnd};
@@ -267,29 +332,65 @@ public class HistoryActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) { dates.run(); }
             public void onNothingSelected(AdapterView<?> parent) {}
         });
-        AlertDialog dialog = new AlertDialog.Builder(this).setTitle(R.string.history_filters).setView(b.getRoot())
-            .setPositiveButton(R.string.history_apply, null).setNegativeButton(android.R.string.cancel, null).create();
-        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            try {
-                HistoryFilter.exactUid(b.historyApp.getText().toString());
-                HistoryFilter.Preset choice = HistoryFilter.Preset.values()[b.historyRange.getSelectedItemPosition()];
-                HistoryFilter.Range range = HistoryFilter.range(choice, System.currentTimeMillis(), TimeZone.getDefault(), days[0], days[1]);
-                filter = new HistoryFilter(b.historyDomain.getText().toString(), HistoryFilter.Verdict.values()[
-                    b.historyVerdictFilter.getSelectedItemPosition()], range, null);
-                appSearch = b.historyApp.getText().toString().trim();
-                preset = choice;
-                customStart = days[0]; customEnd = days[1];
-                snapshotId = -1; displayedAnchor = null; displayedDirection = HistoryQuery.Direction.OLDER;
-                pendingScroll = null; page = null;
-                adapter.submitList(new ArrayList<>());
-                selectionLabel(); dialog.dismiss();
-                load(null, HistoryQuery.Direction.OLDER, true);
-            } catch (IllegalArgumentException error) {
-                b.historyFilterError.setText(R.string.history_filter_invalid);
-                b.historyFilterError.setVisibility(View.VISIBLE);
-            }
-        }));
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this).setTitle(R.string.history_filters).setView(b.getRoot())
+            .setPositiveButton(R.string.history_apply, null).setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.detail_history_reset_filters, null).create();
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                b.historyDomain.setText("");
+                b.historyApp.setText("");
+                b.historyVerdictFilter.setSelection(HistoryFilter.Verdict.ALL.ordinal());
+                b.historyRange.setSelection(HistoryFilter.Preset.LAST_24_HOURS.ordinal());
+                b.historyFilterError.setVisibility(View.GONE);
+            });
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                try {
+                    HistoryFilter.exactUid(b.historyApp.getText().toString());
+                    HistoryFilter.Preset choice = HistoryFilter.Preset.values()[b.historyRange.getSelectedItemPosition()];
+                    HistoryFilter.Range range = HistoryFilter.range(choice, System.currentTimeMillis(), TimeZone.getDefault(), days[0], days[1]);
+                    filter = new HistoryFilter(b.historyDomain.getText().toString(), HistoryFilter.Verdict.values()[
+                        b.historyVerdictFilter.getSelectedItemPosition()], range, null);
+                    appSearch = b.historyApp.getText().toString().trim();
+                    preset = choice;
+                    customStart = days[0]; customEnd = days[1];
+                    snapshotId = -1; displayedAnchor = null; displayedDirection = HistoryQuery.Direction.OLDER;
+                    pendingScroll = null; page = null;
+                    adapter.submitList(new ArrayList<>());
+                    ui.historySummaryBar.setExpanded(true, false);
+                    selectionLabel(); dialog.dismiss();
+                    load(null, HistoryQuery.Direction.OLDER, true);
+                } catch (IllegalArgumentException error) {
+                    b.historyFilterError.setText(R.string.history_filter_invalid);
+                    b.historyFilterError.setVisibility(View.VISIBLE);
+                    b.historyFilterScroll.post(() -> b.historyFilterScroll.smoothScrollTo(0, b.historyFilterError.getBottom()));
+                }
+            });
+        });
         dialog.show();
+        if (dialog.getWindow() != null) dialog.getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+    }
+
+    /** Allow Bengali labels and large text to wrap instead of clipping inside a spinner. */
+    private ArrayAdapter<String> choices(int[] resources) {
+        return new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, names(resources)) {
+            @NonNull @Override public View getView(int position, View recycled, @NonNull ViewGroup parent) {
+                return readableChoice(super.getView(position, recycled, parent));
+            }
+            @Override public View getDropDownView(int position, View recycled, @NonNull ViewGroup parent) {
+                return readableChoice(super.getDropDownView(position, recycled, parent));
+            }
+        };
+    }
+    private View readableChoice(View view) {
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            text.setSingleLine(false);
+            text.setMaxLines(Integer.MAX_VALUE);
+            text.setTextAppearance(tracewall.auth.R.style.TextAppearance_Tracewall_Body);
+            text.setMinHeight((int) (56 * getResources().getDisplayMetrics().density));
+        }
+        return view;
     }
     private String[] names(int[] resources) {
         String[] names = new String[resources.length];
@@ -327,9 +428,10 @@ public class HistoryActivity extends AppCompatActivity {
         @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
             Row row = getItem(position); QueryRecord r = row.record;
             holder.b.historyRowHost.setText(r.host);
-            holder.b.historyRowVerdict.setText(r.blocked ? R.string.verdict_block : R.string.verdict_allow);
-            holder.b.historyRowVerdict.setTextColor(getColor(r.blocked ? R.color.tracewall_block : R.color.tracewall_allow));
-            holder.b.historyRowMeta.setText(getString(R.string.history_row_meta, DnsMessage.typeName(r.type), row.app,
+            holder.b.historyRowVerdict.setText(r.blocked ? R.string.detail_verdict_blocked : R.string.detail_verdict_allowed);
+            holder.b.historyRowVerdict.setTextColor(getColor(r.blocked
+                    ? tracewall.auth.R.color.tw_danger : tracewall.auth.R.color.tw_success));
+            holder.b.historyRowMeta.setText(getString(R.string.detail_history_row_meta, DnsMessage.typeName(r.type), row.app,
                 r.uid, r.latencyMs, r.policy, r.resolver));
             holder.b.historyRowTime.setText(DateFormat.getDateTimeInstance().format(new Date(r.timeMs)));
         }

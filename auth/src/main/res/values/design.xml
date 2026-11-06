@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- A shared visual language for both apps and the account flow. -->
+    <color name="tw_background">#F2F6FA</color>
+    <color name="tw_surface">#FFFFFF</color>
+    <color name="tw_surface_variant">#E8EFF5</color>
+    <color name="tw_text">#182C40</color>
+    <color name="tw_muted">#52677A</color>
+    <color name="tw_primary">#244C87</color>
+    <color name="tw_on_primary">#FFFFFF</color>
+    <color name="tw_primary_soft">#E1ECFA</color>
+    <color name="tw_border">#D7E1EB</color>
+    <color name="tw_success">#166B62</color>
+    <color name="tw_danger">#B23849</color>
+    <color name="tw_warning">#805600</color>
+    <color name="tw_hero">#17375B</color>
+    <color name="tw_on_hero">#FFFFFF</color>
+    <color name="tw_hero_muted">#C3D8EF</color>
+    <!-- API 24-26 cannot request dark navigation icons, so their fallback stays dark. -->
+    <color name="tw_navigation_bar">@color/tw_hero</color>
+    <style name="Theme.Tracewall.Base" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tw_primary</item>
+        <item name="colorOnPrimary">@color/tw_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tw_primary_soft</item>
+        <item name="colorOnPrimaryContainer">@color/tw_text</item>
+        <item name="colorSecondary">@color/tw_success</item>
+        <item name="colorOnSecondary">@color/tw_on_primary</item>
+        <item name="colorSecondaryContainer">@color/tw_primary_soft</item>
+        <item name="colorOnSecondaryContainer">@color/tw_primary</item>
+        <item name="colorSurface">@color/tw_surface</item>
+        <item name="colorOnSurface">@color/tw_text</item>
+        <item name="colorSurfaceVariant">@color/tw_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/tw_muted</item>
+        <item name="colorOutline">@color/tw_border</item>
+        <item name="colorError">@color/tw_danger</item>
+        <item name="android:colorBackground">@color/tw_background</item>
+        <item name="android:windowBackground">@color/tw_background</item>
+        <item name="android:statusBarColor">@color/tw_background</item>
+        <item name="android:navigationBarColor">@color/tw_navigation_bar</item>
+        <item name="android:windowLightStatusBar">@bool/tw_light_system_bars</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">@bool/tw_light_system_bars</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColorPrimary">@color/tw_text</item>
+        <item name="android:textColorSecondary">@color/tw_muted</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="materialButtonStyle">@style/Widget.Tracewall.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.Tracewall.Button.Outlined</item>
+
+        <item name="editTextStyle">@style/Widget.Tracewall.Input</item>
+        <item name="toolbarStyle">@style/Widget.Tracewall.Toolbar</item>
+    </style>
+    <bool name="tw_light_system_bars">true</bool>
+    <style name="TextAppearance.Tracewall.Title" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">30sp</item>
+        <item name="android:textColor">@color/tw_text</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Section" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/tw_text</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/tw_text</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Caption" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/tw_muted</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Nav" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+    <style name="Widget.Tracewall.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+    <style name="Widget.Tracewall.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeColor">@color/tw_border</item>
+    </style>
+    <style name="Widget.Tracewall.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">15sp</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+    <style name="Widget.Tracewall.Input" parent="Widget.AppCompat.EditText">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:padding">14dp</item>
+        <item name="android:background">@drawable/tw_input_background</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/tw_text</item>
+        <item name="android:textColorHint">@color/tw_muted</item>
+        <item name="android:backgroundTint">@null</item>
+    </style>
+    <style name="Widget.Tracewall.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/tw_background</item>
+        <item name="titleTextColor">@color/tw_text</item>
+        <item name="subtitleTextColor">@color/tw_muted</item>
+        <item name="titleTextAppearance">@style/TextAppearance.Tracewall.Section</item>
+    </style>
+</resources>

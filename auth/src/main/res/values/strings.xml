@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="auth_title_initial">Sign in to Tracewall</string>
-    <string name="auth_title_upgrade">Link or upgrade this account</string>
+    <string name="auth_title_upgrade">Your Tracewall account</string>
     <string name="auth_back">Back</string>
     <string name="auth_role_child">Protected Child device</string>
     <string name="auth_role_parent">Parent device</string>
-    <string name="auth_role_warning">Use a separate Parent account and one account per protected Child device. An account cannot parent itself. Do not sign in to the Parent app with the Child’s account.</string>
-    <string name="auth_intro">Sign in for cloud features, continue as a guest, or use this app locally without authentication. Gmail addresses work with email/password too; that password is separate from your Google password.</string>
-    <string name="auth_status_guest">This device has a guest identity. Linking a new provider upgrades this same account and keeps its device data. Do not use credentials already attached to another account.</string>
-    <string name="auth_status_account">You are signed in. New providers are linked to this same identity, not used to switch accounts. Connected providers cannot be replaced here.</string>
+    <string name="auth_role_warning">Keep Parent and Child accounts separate. Use one account per protected Child device.</string>
+    <string name="auth_intro">Sign in for pairing and cloud features. Guest and local modes are also available.</string>
+    <string name="auth_status_guest">Link a sign-in method to keep this guest identity and its device data. Use credentials not linked to another account.</string>
+    <string name="auth_status_account">Add a sign-in method to this account, or review the methods already connected.</string>
+    <string name="auth_method_choose">Choose a sign-in method</string>
+    <string name="auth_method_email">Email</string>
+    <string name="auth_method_phone">Phone</string>
+    <string name="auth_other_methods">Other sign-in methods</string>
+    <string name="auth_other_options">Other ways to continue</string>
     <string name="auth_email_section">Email and password</string>
-    <string name="auth_email_hint">Email address (including Gmail)</string>
+    <string name="auth_email_hint">Email address</string>
+    <string name="auth_email_example">you@example.com</string>
     <string name="auth_password_hint">Password</string>
     <string name="auth_password_help">Use at least 8 characters when creating or linking. Spaces are part of your password; they are never removed.</string>
+    <string name="auth_email_sign_in_help">Gmail addresses work here too. Use your Tracewall password, not your Google password.</string>
+    <string name="auth_reauthenticate_help">Enter the password already linked to this account to confirm it.</string>
     <string name="auth_sign_in">Sign in</string>
     <string name="auth_create_account">Create account</string>
     <string name="auth_link_email">Link email/password</string>
@@ -26,8 +34,9 @@
     <string name="auth_google_link">Link Google account</string>
     <string name="auth_google_connected">Google connected</string>
     <string name="auth_phone_section">Phone verification</string>
-    <string name="auth_phone_hint">Phone in E.164 format (+countrycode…)</string>
-    <string name="auth_phone_security">Phone-only sign-in is less secure: numbers can be reassigned or transferred. Consider linking email or Google as well.</string>
+    <string name="auth_phone_label">Phone number with country code</string>
+    <string name="auth_phone_hint">+countrycode and number, no spaces</string>
+    <string name="auth_phone_security">Numbers can be reassigned or transferred. Link email or Google too for stronger account security.</string>
     <string name="auth_phone_consent">I agree to receive verification SMS messages; SMS and data charges may apply. My phone number is sent to and stored by Google for spam and abuse prevention across Google services, including Firebase.</string>
     <string name="auth_send_code">Send verification code</string>
     <string name="auth_link_phone">Link phone number</string>
@@ -41,11 +50,11 @@
     </plurals>
     <string name="auth_change_phone">Cancel phone verification</string>
     <string name="auth_guest">Continue as guest</string>
-    <string name="auth_guest_help">A guest uses a Firebase account and needs internet. Link it later to keep this identity across reinstalls.</string>
+    <string name="auth_guest_help">Creates a guest account online. Link a sign-in method later to keep it across reinstalls.</string>
     <string name="auth_local">Continue locally</string>
-    <string name="auth_local_help">Local mode does not sign in or create an account. Pairing and cloud features need authentication.</string>
-    <string name="auth_identity_lock_notice">Sign-out and account switching are unavailable in this release on both Parent and Child devices. They require a separate safe migration design for offline cloud queues and local device profiles. Linking keeps the same account.</string>
-    <string name="auth_bound_recovery">This installation is bound to its original account. Recover that same account using a linked sign-in method, or continue locally. A new account or guest identity cannot replace it.</string>
+    <string name="auth_local_help">No sign-in or new account. Pairing and cloud features stay unavailable.</string>
+    <string name="auth_identity_lock_notice">This screen keeps the same device identity. Signing out, switching accounts and replacing connected methods are unavailable.</string>
+    <string name="auth_bound_recovery">Recover this installation’s original account with a linked sign-in method. A new account or guest cannot replace it; local mode remains available.</string>
     <string name="auth_error_bound_existing">The current account does not match this installation’s bound identity. Authentication changes are blocked; this existing session was not switched or signed out. Continue locally and recover the original account through a safe recovery process.</string>
     <string name="auth_error_bound_candidate">The selected account does not match this installation’s bound identity. Only that new sign-in was rolled back to the previous signed-out state. Recover the original account or continue locally. No migration or guest fallback was performed.</string>
     <string name="auth_working">Please wait…</string>

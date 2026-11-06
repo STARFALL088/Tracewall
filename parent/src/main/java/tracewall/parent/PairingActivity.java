@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import com.journeyapps.barcodescanner.ScanContract;
@@ -30,6 +31,7 @@ public class PairingActivity extends AppCompatActivity {
 
     private ActivityPairingBinding ui;
     private boolean openingDashboard;
+    private boolean pairingBusy;
     private static final String ACCOUNT_PREFS = "tracewall.account.ui";
     private static final String ACCOUNT_CHOICE = "account_choice_made";
 
@@ -49,6 +51,10 @@ public class PairingActivity extends AppCompatActivity {
 
         ui = ActivityPairingBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
+        ui.pairingToolbar.setNavigationOnClickListener(v -> leavePairing());
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override public void handleOnBackPressed() { leavePairing(); }
+        });
 
         ui.connectButton.setOnClickListener(v -> attemptPairing());
         ui.scanButton.setOnClickListener(v -> { if (requireAccount()) launchScanner(); });
@@ -67,6 +73,15 @@ public class PairingActivity extends AppCompatActivity {
     }
 
     @Override protected void onResume() { super.onResume(); updateAccountStatus(); }
+
+    private void leavePairing() {
+        // Do not abandon a distributed registration between cloud commit and local selection.
+        if (pairingBusy) return;
+        String saved = prefs().getString(KEY_CHILD_UID, null);
+        if (getIntent().getBooleanExtra("add_device", false) && FirebaseParent.get().uid() != null
+                && tracewall.security.PairingCode.validChildUid(saved)) openDashboard();
+        else finish();
+    }
 
     private void updateAccountStatus() {
         com.google.firebase.auth.FirebaseUser user = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
@@ -121,17 +136,28 @@ public class PairingActivity extends AppCompatActivity {
         try { ParentDevices.all(this).put(childUid, name.isEmpty() ? getString(R.string.device_default_name) : name); }
         catch (IllegalArgumentException invalid) { ui.deviceName.setError(getString(R.string.device_name_invalid)); return; }
         setBusy(true);
+        android.content.Context app = getApplicationContext();
         Runnable connected = () -> {
+            try { ParentDevices.remember(app, childUid, name); }
+            catch (IllegalArgumentException invalid) {
+                if (!isFinishing() && !isDestroyed()) {
+                    setBusy(false);
+                    ui.deviceName.setError(getString(R.string.device_name_invalid));
+                }
+                return;
+            }
             if (isFinishing() || isDestroyed()) return;
-            try { ParentDevices.remember(this, childUid, name); openDashboard(); }
-            catch (IllegalArgumentException invalid) { setBusy(false); ui.deviceName.setError(getString(R.string.device_name_invalid)); }
+            openDashboard();
         };
         java.util.function.Consumer<FirebaseParent.PairingFailure> failed = failure -> {
             if (isFinishing() || isDestroyed()) return;
             setBusy(false);
-            Toast.makeText(this, failure == FirebaseParent.PairingFailure.CHILD_RESET_REQUIRED
+            int message = failure == FirebaseParent.PairingFailure.CHILD_RESET_REQUIRED
                 ? R.string.pairing_partial_reset : failure == FirebaseParent.PairingFailure.SAME_IDENTITY
-                    ? R.string.account_same_child : R.string.pairing_retry, Toast.LENGTH_LONG).show();
+                    ? R.string.account_same_child : R.string.pairing_retry;
+            ui.pairingStatus.setText(message);
+            ui.pairingStatus.setVisibility(View.VISIBLE);
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         };
 
         if (pairing == null) FirebaseParent.get().verifyAccess(childUid, connected,
@@ -139,10 +165,16 @@ public class PairingActivity extends AppCompatActivity {
         else FirebaseParent.get().registerAsParent(childUid, pairing.code, connected, failed);
     }
     private void setBusy(boolean busy) {
+        pairingBusy = busy;
+        ui.pairingToolbar.setNavigationIcon(busy ? null
+            : androidx.appcompat.content.res.AppCompatResources.getDrawable(
+                this, tracewall.auth.R.drawable.ic_tw_arrow_back));
         ui.accountButton.setEnabled(!busy);
         ui.connectButton.setEnabled(!busy); ui.scanButton.setEnabled(!busy); ui.savedDevices.setEnabled(!busy);
         ui.childUidInput.setEnabled(!busy); ui.pairingCodeInput.setEnabled(!busy); ui.deviceName.setEnabled(!busy);
         ui.progress.setVisibility(busy ? View.VISIBLE : View.GONE);
+        ui.pairingStatus.setVisibility(busy ? View.VISIBLE : View.GONE);
+        if (busy) ui.pairingStatus.setText(R.string.parent_pairing_busy);
     }
 
     private void launchScanner() {

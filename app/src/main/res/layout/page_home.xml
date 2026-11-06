@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controls" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true" android:clipToPadding="false" android:paddingStart="20dp" android:paddingEnd="20dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="24dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
+            android:background="@drawable/tw_hero_panel" android:padding="24dp">
+            <ImageView android:id="@+id/protectionIcon" android:layout_width="48dp" android:layout_height="48dp"
+                android:src="@drawable/ic_tw_shield" app:tint="@color/tw_on_hero" android:importantForAccessibility="no" android:contentDescription="@null" />
+            <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="@string/status_off" android:textColor="@color/tw_on_hero" android:textSize="27sp" android:fontFamily="sans-serif-medium" />
+            <TextView android:id="@+id/detail" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:text="@string/nav_protection_hint_off" android:textSize="15sp" android:textColor="@color/tw_hero_muted" />
+            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/toggle" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:minHeight="56dp" android:saveEnabled="false" android:text="@string/nav_enable_label"
+                android:textSize="16sp" android:textColor="@color/tw_on_hero" android:paddingEnd="2dp" />
+        </LinearLayout>
+        <TextView android:id="@+id/privateDnsWarning" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:background="@drawable/tw_info_panel" android:padding="16dp"
+            android:text="@string/private_dns_warning" android:textColor="@color/tw_warning" android:textSize="14sp" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/privateDnsSettings" style="@style/Widget.Tracewall.Button.Text"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_private_dns_action" android:visibility="gone" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
+            android:text="@string/nav_session_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="14dp" android:baselineAligned="false">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingEnd="8dp">
+                <TextView android:id="@+id/statQueries" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="27sp" android:fontFamily="sans-serif-medium" android:textColor="@color/tw_text"
+                    android:maxLines="1" app:autoSizeTextType="uniform" app:autoSizeMinTextSize="16sp" app:autoSizeMaxTextSize="27sp" app:autoSizeStepGranularity="1sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_stat_requests" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingEnd="8dp">
+                <TextView android:id="@+id/statBlocked" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="27sp" android:fontFamily="sans-serif-medium" android:textColor="@color/tw_danger"
+                    android:maxLines="1" app:autoSizeTextType="uniform" app:autoSizeMinTextSize="16sp" app:autoSizeMaxTextSize="27sp" app:autoSizeStepGranularity="1sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_stat_blocked" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:id="@+id/statRules" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="27sp" android:fontFamily="sans-serif-medium" android:textColor="@color/tw_text"
+                    android:maxLines="1" app:autoSizeTextType="uniform" app:autoSizeMinTextSize="16sp" app:autoSizeMaxTextSize="27sp" app:autoSizeStepGranularity="1sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_stat_rules" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:text="@string/nav_session_help" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/tw_panel"
+            android:layout_marginTop="24dp" android:padding="20dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_traffic_title"
+                android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/nav_traffic_range" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            <tracewall.child.ui.TrendView android:id="@+id/trend" android:layout_width="match_parent" android:layout_height="96dp"
+                android:layout_marginTop="20dp" android:importantForAccessibility="yes" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/nav_legend_allowed" android:textColor="@color/tw_success" android:textSize="13sp" />
+                <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/nav_legend_blocked" android:textColor="@color/tw_danger" android:textSize="13sp" android:gravity="end" />
+            </LinearLayout>
+            <TextView android:id="@+id/trendEmpty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+                android:text="@string/nav_traffic_empty" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/homeActivity" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="@string/nav_view_activity" app:icon="@drawable/ic_tw_activity" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/homeProtection" style="@style/Widget.Tracewall.Button.Outlined"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_manage_protection" app:icon="@drawable/ic_tw_shield" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:text="@string/nav_how_title"
+            android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_how_body" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+    </LinearLayout>
+</ScrollView>

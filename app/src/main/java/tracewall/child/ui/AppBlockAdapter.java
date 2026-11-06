@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import tracewall.child.R;
 import tracewall.child.databinding.ItemAppBinding;
 
 /**
@@ -71,6 +72,14 @@ public final class AppBlockAdapter extends RecyclerView.Adapter<AppBlockAdapter.
         return n;
     }
 
+    public int appCount() { return all.size(); }
+
+    /** Android may assign one UID to several packages; show one consistent rule. */
+    public void setBlocked(int uid, boolean blocked) {
+        for (App app : all) if (app.uid == uid) app.blocked = blocked;
+        notifyDataSetChanged();
+    }
+
     private void apply() {
         shown.clear();
         for (App a : all) {
@@ -94,6 +103,8 @@ public final class AppBlockAdapter extends RecyclerView.Adapter<AppBlockAdapter.
         App a = shown.get(position);
         h.b.appLabel.setText(a.label);
         h.b.appPkg.setText(a.pkg);
+        h.b.appSwitch.setContentDescription(h.b.getRoot().getContext()
+                .getString(R.string.detail_apps_switch_description, a.label));
         // Detach the old listener before setting the checked state: a recycled
         // switch would otherwise re-fire the change while scrolling.
         h.b.appSwitch.setOnCheckedChangeListener(null);

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rulesnav_title">স্থানীয় সুরক্ষা</string>
+    <string name="rulesnav_domains">ডোমেইন</string>
+    <string name="rulesnav_schedules">সময়সূচি</string>
+    <string name="rulesnav_backups">ব্যাকআপ</string>
+    <string name="rulesnav_domains_intro">এই ডিভাইসে কোনো ডোমেইন বন্ধ করুন বা ব্যতিক্রম হিসেবে অনুমতি দিন। প্রতিটি পরিবর্তন সংরক্ষণে অভিভাবকের পিন লাগবে।</string>
+    <string name="rulesnav_schedules_intro">সপ্তাহের নির্দিষ্ট সময়ে অতিরিক্ত অ্যাপ বা বিভাগ বন্ধ রাখুন। মূল ও অভিভাবকের নিয়ম বহাল থাকবে।</string>
+    <string name="rulesnav_backups_intro">স্থানীয় নিয়মের একটি কপি রাখুন বা JSON ব্যাকআপ দিয়ে সেগুলো প্রতিস্থাপন করুন।</string>
+    <string name="rulesnav_refresh">রিফ্রেশ</string>
+    <string name="rulesnav_ready">সংরক্ষিত নিয়ম হালনাগাদ আছে।</string>
+    <string name="rulesnav_clear_domain">ডোমেইনের ঘর খালি করুন</string>
+    <string name="rulesnav_clear_duration">মেয়াদের ঘর খালি করুন</string>
+    <string name="rulesnav_block_domain">এই ডোমেইন বন্ধ করুন</string>
+    <string name="rulesnav_allow_domain">এই ডোমেইনকে সবসময় অনুমতি দিন</string>
+    <string name="rulesnav_temporary_heading">সাময়িক ব্যতিক্রম</string>
+    <string name="rulesnav_duration">মেয়াদ মিনিটে</string>
+    <string name="rulesnav_duration_help">১–১০,০৮০ মিনিট। শুধু সাময়িক অনুমতির জন্য ব্যবহৃত হবে।</string>
+    <string name="rulesnav_saved_domains">সংরক্ষিত ডোমেইন নিয়ম</string>
+    <string name="rulesnav_saved_domains_help">এন্ট্রি দেখতে বা সরাতে একটি তালিকা বাছুন। সরাতেও অভিভাবকের পিন লাগবে।</string>
+    <string name="rulesnav_denies_count">বন্ধ ডোমেইন (%1$d)</string>
+    <string name="rulesnav_allows_count">সবসময় অনুমতি আছে (%1$d)</string>
+    <string name="rulesnav_timed_count">সাময়িক অনুমতি (%1$d)</string>
+    <string name="rulesnav_show_domain_details">ডোমেইন নিয়ম যেভাবে কাজ করে</string>
+    <string name="rulesnav_hide_domain_details">ডোমেইন নিয়মের বিস্তারিত লুকান</string>
+    <string name="rulesnav_schedules_title">সাপ্তাহিক সময়সূচি</string>
+    <string name="rulesnav_saved_schedules">সংরক্ষিত সময়সূচি</string>
+    <string name="rulesnav_profiles_empty">এখনও কোনো সময়সূচি নেই। সাপ্তাহিক বাধা যোগ করতে নিচে একটি প্রোফাইল শুরু করুন।</string>
+    <string name="rulesnav_schedule_editor_intro">সংরক্ষণ না করা পর্যন্ত পরিবর্তন এই খসড়াতেই থাকবে। সংরক্ষণ বা মুছতে অভিভাবকের পিন লাগবে।</string>
+    <string name="rulesnav_profile_name">সময়সূচির নাম</string>
+    <string name="rulesnav_profile_name_hint">যেমন: পড়াশোনার সময়</string>
+    <string name="rulesnav_when_heading">কখন চলবে</string>
+    <string name="rulesnav_days_help">বাছা দিনগুলোতে সময়সূচি শুরু হবে। রাত পেরোনো সময়সূচি পরের দিন পর্যন্ত চলবে।</string>
+    <string name="rulesnav_blocks_heading">যা বন্ধ রাখবে</string>
+    <string name="rulesnav_categories_help">এই সময়ে অতিরিক্ত বাধা যোগ করুন। অন্তত একটি বিভাগ বা অ্যাপ UID বাছুন।</string>
+    <string name="rulesnav_uids_heading">অভিজ্ঞদের জন্য: অ্যাপ UID</string>
+    <string name="rulesnav_show_schedule_details">সময়সূচি যেভাবে ঘড়ি অনুসরণ করে</string>
+    <string name="rulesnav_hide_schedule_details">সময়সূচির বিস্তারিত লুকান</string>
+    <string name="rulesnav_export_heading">ব্যাকআপ রাখুন</string>
+    <string name="rulesnav_export_help">শেয়ার করা JSON ফাইল অ্যাপের বাইরে সংরক্ষণ করুন। Android অ্যাপের সাময়িক কপি মুছে দিতে পারে।</string>
+    <string name="rulesnav_import_heading">ব্যাকআপ থেকে ফেরান</string>
+    <string name="rulesnav_import_help">আমদানি সব স্থানীয় নিয়ম প্রতিস্থাপন করে। অভিভাবকের পিন ও প্রতিস্থাপনের নিশ্চিতকরণ লাগবে।</string>
+    <string name="rulesnav_backup_details">ব্যাকআপের বিষয়বস্তু ও নিরাপত্তা</string>
+    <string name="rulesnav_scope_heading">শুধু এই ডিভাইসে</string>
+    <string name="rulesnav_expanded">বিস্তারিত খোলা আছে</string>
+    <string name="rulesnav_collapsed">বিস্তারিত লুকানো আছে</string>
+</resources>

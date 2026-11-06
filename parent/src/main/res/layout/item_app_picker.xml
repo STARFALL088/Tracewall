@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
-    android:minHeight="64dp" android:padding="8dp" android:background="?attr/selectableItemBackground"
+    android:layout_marginBottom="12dp" android:minHeight="80dp" android:padding="16dp"
+    android:background="@drawable/tw_panel" android:foreground="?attr/selectableItemBackground"
     android:focusable="true" android:clickable="true">
     <TextView android:id="@+id/appName" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:textSize="17sp" android:textStyle="bold" android:maxLines="2" android:ellipsize="end" />
-    <TextView android:id="@+id/appDetails" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" />
+        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+    <TextView android:id="@+id/appDetails" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+    <TextView android:id="@+id/appRuleState" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+    <TextView android:id="@+id/appAction" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:textAppearance="@style/TextAppearance.Tracewall.Caption"
+        android:textColor="@color/tw_primary" android:fontFamily="sans-serif-medium" />
 </LinearLayout>

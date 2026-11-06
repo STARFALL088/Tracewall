@@ -3,14 +3,22 @@ package tracewall.child.ui;
 import android.app.TimePickerDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.tabs.TabLayout;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,8 +43,18 @@ import tracewall.data.RulesJson;
 
 /** Local DNS editor. Every durable mutation and backup passes PinGate, not merely screen entry. */
 public final class RulesActivity extends AppCompatActivity {
+    /** Navigation only. Opening a destination never authorizes a saved change. */
+    public static final String EXTRA_PAGE = "rules_page";
+    public static final int PAGE_DOMAINS = 0;
+    public static final int PAGE_SCHEDULES = 1;
+    public static final int PAGE_BACKUP = 2;
+    private static final String STATE_PAGE = "rules_active_page";
+    private static final String STATE_SCROLLS = "rules_page_scrolls";
     private static final ExecutorService IO = tracewall.net.BoundedWorkPool.create("tracewall-rules-ui", 1, 16);
     private ActivityRulesBinding ui;
+    private ScrollView[] pages;
+    private final int[] scrollPositions = new int[3];
+    private int selectedPage = -1;
     private RulesJson snapshot;
     private CheckBox[] days;
     private Map<String, CheckBox> categoryChecks;
@@ -53,6 +71,7 @@ public final class RulesActivity extends AppCompatActivity {
                 PinGate.require(this, () -> new AlertDialog.Builder(this)
                         .setTitle(R.string.rules9_import).setMessage(R.string.rules9_import_confirm)
                         .setPositiveButton(android.R.string.ok, (d, w) -> {
+                            if (saving || !alive()) return;
                             operation++;
                             setSaving(true);
                             RulesTransfer.importRules(this, uri,
@@ -66,9 +85,15 @@ public final class RulesActivity extends AppCompatActivity {
         super.onCreate(state);
         ui = ActivityRulesBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
-        for (android.view.View heading : new android.view.View[] {ui.rulesTitle, ui.domainsHeading,
-                ui.profilesHeading, ui.profileHeading, ui.backupHeading})
-            androidx.core.view.ViewCompat.setAccessibilityHeading(heading, true);
+        pages = new ScrollView[] {ui.rulesScroll, ui.schedulesScroll, ui.backupScroll};
+        for (View heading : new View[] {ui.rulesTitle, ui.domainsHeading, ui.temporaryHeading,
+                ui.savedDomainsHeading, ui.profilesHeading, ui.savedSchedulesHeading, ui.profileHeading,
+                ui.whenHeading, ui.blocksHeading, ui.uidsHeading, ui.backupHeading, ui.exportHeading,
+                ui.importHeading, ui.backupDetailsHeading, ui.scopeHeading})
+            ViewCompat.setAccessibilityHeading(heading, true);
+        ViewCompat.setAccessibilityPaneTitle(ui.rulesScroll, getString(R.string.rulesnav_domains));
+        ViewCompat.setAccessibilityPaneTitle(ui.schedulesScroll, getString(R.string.rulesnav_schedules));
+        ViewCompat.setAccessibilityPaneTitle(ui.backupScroll, getString(R.string.rulesnav_backups));
         days = new CheckBox[] {ui.dayMonday, ui.dayTuesday, ui.dayWednesday, ui.dayThursday,
                 ui.dayFriday, ui.daySaturday, ui.daySunday};
         categoryChecks = new LinkedHashMap<>();
@@ -76,7 +101,12 @@ public final class RulesActivity extends AppCompatActivity {
         categoryChecks.put("adult", ui.profileAdult);
         categoryChecks.put("gambling", ui.profileGambling);
         categoryChecks.put("malware", ui.profileMalware);
-        ui.rulesBack.setOnClickListener(v -> finish());
+        ui.rulesBack.setNavigationOnClickListener(v -> finish());
+        ui.rulesTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override public void onTabSelected(TabLayout.Tab tab) { showPage(tab.getPosition()); }
+            @Override public void onTabUnselected(TabLayout.Tab tab) {}
+            @Override public void onTabReselected(TabLayout.Tab tab) {}
+        });
         ui.refreshRules.setOnClickListener(v -> refresh());
         ui.addDeny.setOnClickListener(v -> addDomain(false, false));
         ui.addTimed.setOnClickListener(v -> addDomain(true, false));
@@ -84,13 +114,15 @@ public final class RulesActivity extends AppCompatActivity {
         ui.showDenies.setOnClickListener(v -> showPatterns(0));
         ui.showAllows.setOnClickListener(v -> showPatterns(1));
         ui.showTimed.setOnClickListener(v -> showPatterns(2));
-        ui.newProfile.setOnClickListener(v -> newProfile());
+        ui.newProfile.setOnClickListener(v -> { newProfile(); scrollToEditor(); });
         ui.profileStart.setOnClickListener(v -> chooseTime(true));
         ui.profileEnd.setOnClickListener(v -> chooseTime(false));
         ui.saveProfile.setOnClickListener(v -> saveProfile());
         ui.deleteProfile.setOnClickListener(v -> deleteProfile());
         ui.exportRules.setOnClickListener(v -> PinGate.require(this, () -> RulesTransfer.exportRules(this)));
         ui.importRules.setOnClickListener(v -> PinGate.require(this, this::chooseImport));
+        ui.domainHelpToggle.setOnClickListener(v -> setDomainHelp(ui.domainHelp.getVisibility() != View.VISIBLE));
+        ui.scheduleHelpToggle.setOnClickListener(v -> setScheduleHelp(ui.scheduleHelp.getVisibility() != View.VISIBLE));
         if (state == null) {
             ui.ruleMinutes.setText(java.text.NumberFormat.getIntegerInstance().format(15));
             newProfile();
@@ -98,25 +130,105 @@ public final class RulesActivity extends AppCompatActivity {
             editingName = state.getString("profile_original");
             startMinute = state.getInt("profile_start", startMinute);
             endMinute = state.getInt("profile_end", endMinute);
-            int scroll = state.getInt("rules_scroll", 0);
-            ui.rulesScroll.post(() -> ui.rulesScroll.scrollTo(0, scroll));
+            int[] restoredScrolls = state.getIntArray(STATE_SCROLLS);
+            if (restoredScrolls != null && restoredScrolls.length == scrollPositions.length)
+                System.arraycopy(restoredScrolls, 0, scrollPositions, 0, scrollPositions.length);
             editorHeading();
         }
+        setDomainHelp(state != null && state.getBoolean("rules_domain_help"));
+        setScheduleHelp(state != null && state.getBoolean("rules_schedule_help"));
+        selectPage(state == null ? getIntent().getIntExtra(EXTRA_PAGE, PAGE_DOMAINS)
+                : state.getInt(STATE_PAGE, PAGE_DOMAINS));
         PinGate.ensureSet(this);
     }
 
     @Override protected void onResume() { super.onResume(); refresh(); }
 
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        selectPage(intent.getIntExtra(EXTRA_PAGE, PAGE_DOMAINS));
+    }
+
+    @Override protected void onRestoreInstanceState(Bundle state) {
+        super.onRestoreInstanceState(state);
+        // Restore hierarchy drafts first, then page/scroll state. Hidden pages stay inflated.
+        editorHeading();
+        selectPage(state.getInt(STATE_PAGE, PAGE_DOMAINS));
+        restoreScroll(selectedPage);
+    }
+
     @Override protected void onSaveInstanceState(Bundle state) {
         state.putString("profile_original", editingName);
         state.putInt("profile_start", startMinute);
         state.putInt("profile_end", endMinute);
-        state.putInt("rules_scroll", ui.rulesScroll.getScrollY());
+        scrollPositions[selectedPage] = pages[selectedPage].getScrollY();
+        state.putInt(STATE_PAGE, selectedPage);
+        state.putIntArray(STATE_SCROLLS, scrollPositions.clone());
+        state.putBoolean("rules_domain_help", ui.domainHelp.getVisibility() == View.VISIBLE);
+        state.putBoolean("rules_schedule_help", ui.scheduleHelp.getVisibility() == View.VISIBLE);
         // Stable XML IDs let Android restore text and all checkbox drafts, without saving rules.
         super.onSaveInstanceState(state);
     }
 
     private boolean alive() { return !isFinishing() && !isDestroyed(); }
+
+    private void selectPage(int requested) {
+        int page = requested >= PAGE_DOMAINS && requested <= PAGE_BACKUP ? requested : PAGE_DOMAINS;
+        TabLayout.Tab tab = ui.rulesTabs.getTabAt(page);
+        if (tab != null && !tab.isSelected()) tab.select();
+        else if (selectedPage != page) showPage(page);
+    }
+
+    private void showPage(int page) {
+        if (page < PAGE_DOMAINS || page > PAGE_BACKUP) return;
+        if (selectedPage >= PAGE_DOMAINS && selectedPage != page) {
+            scrollPositions[selectedPage] = pages[selectedPage].getScrollY();
+            View focused = getCurrentFocus();
+            if (focused != null) {
+                focused.clearFocus();
+                InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+                if (keyboard != null) keyboard.hideSoftInputFromWindow(focused.getWindowToken(), 0);
+            }
+        }
+        selectedPage = page;
+        for (int i = 0; i < pages.length; i++) pages[i].setVisibility(i == page ? View.VISIBLE : View.GONE);
+        int title = page == PAGE_DOMAINS ? R.string.rulesnav_domains
+                : page == PAGE_SCHEDULES ? R.string.rulesnav_schedules : R.string.rulesnav_backups;
+        setTitle(title);
+        restoreScroll(page);
+    }
+
+    private void restoreScroll(int page) {
+        // A hidden ScrollView has not been measured; restore it only after it becomes visible.
+        pages[page].post(() -> {
+            if (alive() && selectedPage == page) pages[page].scrollTo(0, scrollPositions[page]);
+        });
+    }
+
+    private void setDomainHelp(boolean expanded) {
+        ui.domainHelp.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        ui.domainHelpToggle.setText(expanded ? R.string.rulesnav_hide_domain_details : R.string.rulesnav_show_domain_details);
+        ViewCompat.setStateDescription(ui.domainHelpToggle, getString(expanded ? R.string.rulesnav_expanded : R.string.rulesnav_collapsed));
+    }
+
+    private void setScheduleHelp(boolean expanded) {
+        ui.scheduleHelp.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        ui.scheduleHelpToggle.setText(expanded ? R.string.rulesnav_hide_schedule_details : R.string.rulesnav_show_schedule_details);
+        ViewCompat.setStateDescription(ui.scheduleHelpToggle, getString(expanded ? R.string.rulesnav_expanded : R.string.rulesnav_collapsed));
+    }
+
+    private void scrollToEditor() {
+        selectPage(PAGE_SCHEDULES);
+        ui.schedulesScroll.post(() -> {
+            if (!alive() || selectedPage != PAGE_SCHEDULES) return;
+            Rect bounds = new Rect();
+            ui.profileHeading.getDrawingRect(bounds);
+            ui.schedulesContent.offsetDescendantRectToMyCoords(ui.profileHeading, bounds);
+            scrollPositions[PAGE_SCHEDULES] = bounds.top;
+            ui.schedulesScroll.smoothScrollTo(0, bounds.top);
+        });
+    }
 
     private void refresh() {
         if (saving || reading) return;
@@ -132,7 +244,7 @@ public final class RulesActivity extends AppCompatActivity {
                     if (saving || ticket != operation) { if (!saving) refresh(); return; }
                     snapshot = saved;
                     renderSnapshot();
-                    ui.rulesStatus.setText(R.string.rules9_ready);
+                    ui.rulesStatus.setText(R.string.rulesnav_ready);
                 });
             } catch (RuntimeException e) {
                 runOnUiThread(() -> {
@@ -181,7 +293,8 @@ public final class RulesActivity extends AppCompatActivity {
                 ui.newProfile, ui.refreshRules, ui.importRules, ui.exportRules, ui.showDenies, ui.showAllows,
                 ui.showTimed, ui.profileStart, ui.profileEnd})
             button.setEnabled(!value);
-        for (android.view.View field : new android.view.View[] {ui.rulePattern, ui.ruleMinutes, ui.profileName,
+        for (android.view.View field : new android.view.View[] {ui.rulePatternLayout, ui.ruleMinutesLayout,
+                ui.rulePattern, ui.ruleMinutes, ui.profileName,
                 ui.profileUids, ui.profileEnabled}) field.setEnabled(!value);
         for (CheckBox day : days) day.setEnabled(!value);
         for (CheckBox category : categoryChecks.values()) category.setEnabled(!value);
@@ -243,20 +356,28 @@ public final class RulesActivity extends AppCompatActivity {
     }
 
     private void renderSnapshot() {
-        ui.showDenies.setText(getString(R.string.rules9_denies_count, snapshot.deny.size()));
-        ui.showAllows.setText(getString(R.string.rules9_allows_count, snapshot.allow.size()));
-        ui.showTimed.setText(getString(R.string.rules9_timed_count, snapshot.temporaryAllows.size()));
+        ui.showDenies.setText(getString(R.string.rulesnav_denies_count, snapshot.deny.size()));
+        ui.showAllows.setText(getString(R.string.rulesnav_allows_count, snapshot.allow.size()));
+        ui.showTimed.setText(getString(R.string.rulesnav_timed_count, snapshot.temporaryAllows.size()));
         ui.profileList.removeAllViews();
+        ui.profilesEmpty.setVisibility(snapshot.profiles.isEmpty() ? View.VISIBLE : View.GONE);
         long now = System.currentTimeMillis();
         for (ScheduledProfile profile : snapshot.profiles) {
             int status = !profile.schedule.enabled ? R.string.rules9_disabled
                     : profile.schedule.isActive(now, TimeZone.getDefault()) ? R.string.rules9_active : R.string.rules9_inactive;
             List<String> selected = new ArrayList<>();
             for (int i = 0; i < days.length; i++) if ((profile.schedule.days & (1 << i)) != 0) selected.add(days[i].getText().toString());
-            Button edit = new Button(this);
+            MaterialButton edit = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
             edit.setAllCaps(false);
             edit.setEnabled(!saving);
-            edit.setMinHeight(Math.round(48 * getResources().getDisplayMetrics().density));
+            edit.setGravity(android.view.Gravity.START | android.view.Gravity.CENTER_VERTICAL);
+            edit.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+            edit.setIconResource(tracewall.auth.R.drawable.ic_tw_schedule);
+            int gap = Math.round(8 * getResources().getDisplayMetrics().density);
+            LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            row.topMargin = gap;
+            edit.setLayoutParams(row);
             edit.setText(getString(R.string.rules9_profile_row, profile.name, android.text.TextUtils.join(", ", selected),
                     time(profile.schedule.startMinute), time(profile.schedule.endMinute), getString(status),
                     profile.categories.size(), profile.blockedUids.size()));
@@ -287,7 +408,7 @@ public final class RulesActivity extends AppCompatActivity {
         ui.profileUids.setText(android.text.TextUtils.join(", ", uids));
         startMinute = profile.schedule.startMinute; endMinute = profile.schedule.endMinute;
         editorHeading();
-        ui.rulesScroll.post(() -> ui.rulesScroll.smoothScrollTo(0, ui.profileHeading.getTop()));
+        scrollToEditor();
     }
 
     private void editorHeading() {

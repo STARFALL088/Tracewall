@@ -1,193 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingStart="16dp"
-    android:paddingTop="20dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="8dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/tw_background"
+    android:focusableInTouchMode="true">
 
-    <ScrollView android:id="@+id/controls" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="2">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="30sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tagline"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/tagline"
-        android:textSize="13sp" />
-
-    <TextView android:id="@+id/accountStatus" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="8dp"
-        android:text="@string/account_local" android:textSize="12sp" />
-    <Button android:id="@+id/accountButton" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/account_open" />
-
-    <!-- Shown only when Private DNS / DoH is active and may bypass the filter. -->
-    <TextView
-        android:id="@+id/privateDnsWarning"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="#FFF3CD"
-        android:padding="8dp"
-        android:text="@string/private_dns_warning"
-        android:textColor="#664D03"
-        android:textSize="12sp"
-        android:visibility="gone" />
-
-    <!-- Tapping copies the full UID to the clipboard for pairing with the parent app. -->
-    <TextView
-        android:id="@+id/deviceCode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:background="?attr/selectableItemBackground"
-        android:textSize="11sp"
-        android:visibility="gone" />
-
-    <Button android:id="@+id/manageParents"
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar"
         android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/revoke_parent" />
-    <Button android:id="@+id/shareAppNames" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/inventory_off" />
+        android:minHeight="56dp" app:title="@string/app_name" app:subtitle="@string/nav_device_context"
+        app:logo="@drawable/ic_tw_shield" app:titleMarginStart="12dp" />
+    <TextView android:id="@+id/pageTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:paddingStart="20dp" android:paddingEnd="20dp" android:paddingTop="12dp"
+        android:text="@string/nav_home_title" android:textAppearance="@style/TextAppearance.Tracewall.Title"
+        android:accessibilityHeading="true" />
+    <TextView android:id="@+id/pageSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:paddingStart="20dp" android:paddingEnd="20dp" android:paddingTop="6dp" android:paddingBottom="20dp"
+        android:text="@string/nav_home_subtitle" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/toggle"
-        android:saveEnabled="false"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:text="@string/protection"
-        android:textSize="18sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button android:id="@+id/makePermanent"
-            android:layout_width="0dp" android:layout_weight="1"
-            android:layout_height="wrap_content" android:text="@string/make_permanent" />
-        <Button android:id="@+id/manageAllows"
-            android:layout_width="0dp" android:layout_weight="1"
-            android:layout_height="wrap_content" android:text="@string/manage_allows" />
-    </LinearLayout>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-        <Button android:id="@+id/exportRules" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/export_rules" />
-        <Button android:id="@+id/importRules" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/import_rules" />
-        <Button android:id="@+id/updateLists" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="@string/update_lists" />
-    </LinearLayout>
-    <TextView android:id="@+id/updateSchedule" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" />
-    <TextView android:id="@+id/updateResult" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:text="@string/update_never" />
-    <Button android:id="@+id/openHistory" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/history_open" />
-    <Button android:id="@+id/openRules" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="@string/rules9_title" />
-
-    <TextView
-        android:id="@+id/status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/status_off"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textSize="12sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/last_minutes"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/actionApps"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="6dp"
-            android:text="@string/action_apps"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/copyCsv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="6dp"
-            android:text="@string/history_quick_export"
-            android:textSize="13sp" />
-
-        <TextView
-            android:id="@+id/clearHistory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:paddingStart="10dp"
-            android:paddingTop="6dp"
-            android:paddingEnd="4dp"
-            android:paddingBottom="6dp"
-            android:text="@string/action_clear_history"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <tracewall.child.ui.TrendView
-        android:id="@+id/trend"
-        android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:layout_marginTop="6dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/recent"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <EditText android:id="@+id/queryFilter" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:hint="@string/query_filter" android:inputType="text" android:maxLines="1" android:singleLine="true" android:importantForAutofill="no" />
-    </LinearLayout>
-    </ScrollView>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="4dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:scrollbars="vertical" />
-
+    <!-- Each top-level destination owns its own content and scroll position. -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <include android:id="@+id/homePage" layout="@layout/page_home"
+            android:layout_width="match_parent" android:layout_height="match_parent" />
+        <include android:id="@+id/activityPage" layout="@layout/page_activity"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+        <include android:id="@+id/protectPage" layout="@layout/page_protect"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+        <include android:id="@+id/familyPage" layout="@layout/page_family"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+        <include android:id="@+id/settingsPage" layout="@layout/page_settings"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+    </FrameLayout>
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/tw_border" />
+    <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/navigation"
+        android:layout_width="match_parent" android:layout_height="80dp" android:minHeight="80dp"
+        android:background="@color/tw_surface" app:elevation="0dp" app:menu="@menu/main_navigation"
+        app:labelVisibilityMode="labeled" app:itemHorizontalTranslationEnabled="false"
+        app:itemIconTint="@color/tw_nav_color" app:itemTextColor="@color/tw_nav_color"
+        app:itemTextAppearanceActive="@style/TextAppearance.Tracewall.Nav"
+        app:itemTextAppearanceInactive="@style/TextAppearance.Tracewall.Nav" />
 </LinearLayout>

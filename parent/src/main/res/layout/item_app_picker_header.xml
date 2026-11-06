@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:paddingBottom="16dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/parent_open_apps" android:accessibilityHeading="true"
+        android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+    <TextView android:id="@+id/appsDevice" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:text="@string/apps_scope_note"
+        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+    <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/appsProgress"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="20dp" android:indeterminate="true" />
+    <TextView android:id="@+id/appsStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite"
+        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/appsRetry"
+        style="@style/Widget.Tracewall.Parent.Button.Text"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/parent_refresh" app:icon="@drawable/ic_tw_refresh" />
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:hint="@string/apps_search"
+        app:startIconDrawable="@drawable/ic_tw_search" app:endIconMode="clear_text">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/appsSearch"
+            style="@style/Widget.Tracewall.Input" android:background="@null"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:inputType="text" android:maxLines="1" android:maxLength="200"
+            android:importantForAutofill="no" android:saveEnabled="false" />
+    </com.google.android.material.textfield.TextInputLayout>
+    <LinearLayout android:id="@+id/appsEmpty" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="20dp" android:background="@drawable/tw_inset_panel"
+        android:orientation="vertical" android:padding="20dp">
+        <TextView android:id="@+id/appsEmptyTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/parent_apps_loading_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+        <TextView android:id="@+id/appsEmptyBody" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/parent_apps_loading"
+            android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+    </LinearLayout>
+</LinearLayout>

@@ -7,9 +7,12 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +36,8 @@ public class AppBlockActivity extends AppCompatActivity {
     private android.os.Parcelable pendingScroll;
     private ActivityAppBlockBinding ui;
     private AppBlockAdapter adapter;
+    private Thread appScan;
+    private boolean loading = true, loadFailed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,24 +46,32 @@ public class AppBlockActivity extends AppCompatActivity {
         android.util.Log.d(TAG, "AppBlockActivity.onCreate");
         ui = ActivityAppBlockBinding.inflate(getLayoutInflater());
         setContentView(ui.getRoot());
+        ui.appsToolbar.setNavigationOnClickListener(v -> finish());
 
         adapter = new AppBlockAdapter((app, block) -> {
-            if (block) BlocklistStore.get().blockApp(this, app.uid);
+            if (block) {
+                BlocklistStore.get().blockApp(this, app.uid);
+                adapter.setBlocked(app.uid, BlocklistStore.get().isAppBlocked(app.uid));
+            }
             else {
-                app.blocked = true;
-                adapter.notifyDataSetChanged();
+                // Keep every package sharing this UID blocked until the PIN succeeds.
+                adapter.setBlocked(app.uid, true);
                 PinGate.require(this, () -> {
                     BlocklistStore.get().unblockApp(this, app.uid);
-                    app.blocked = BlocklistStore.get().isAppBlocked(app.uid);
-                    adapter.notifyDataSetChanged();
-                    renderCount();
+                    adapter.setBlocked(app.uid, BlocklistStore.get().isAppBlocked(app.uid));
                 });
             }
-            renderCount();
         });
         ui.list.setLayoutManager(new LinearLayoutManager(this));
         ui.list.setAdapter(adapter);
-        adapter.setStateRestorationPolicy(androidx.recyclerview.widget.RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY);
+        adapter.setStateRestorationPolicy(RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY);
+        adapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override public void onChanged() { renderState(); }
+        });
+        ui.appsStateAction.setOnClickListener(v -> {
+            if (loadFailed) loadApps();
+            else ui.filter.setText("");
+        });
 
         ui.filter.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
@@ -66,6 +79,13 @@ public class AppBlockActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) {
                 adapter.setFilter(s.toString());
             }
+        });
+        ui.filter.setOnEditorActionListener((view, action, event) -> {
+            if (action != EditorInfo.IME_ACTION_SEARCH) return false;
+            InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (keyboard != null) keyboard.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            view.clearFocus();
+            return true;
         });
 
         if (savedInstanceState != null) {
@@ -101,8 +121,9 @@ public class AppBlockActivity extends AppCompatActivity {
         android.util.Log.d(TAG, "AppBlockActivity.onRestart");
     }
     @Override protected void onDestroy() {
-        // App-scan completion checks isDestroyed before touching these views.
+        // PackageManager itself may finish later; no callback can outlive this screen.
         android.util.Log.d(TAG, "AppBlockActivity.onDestroy");
+        if (appScan != null) appScan.interrupt();
         super.onDestroy();
     }
     @Override protected void onSaveInstanceState(Bundle state) {
@@ -112,40 +133,70 @@ public class AppBlockActivity extends AppCompatActivity {
     }
 
     private void loadApps() {
-        new Thread(() -> {
-            PackageManager pm = getPackageManager();
-            List<AppBlockAdapter.App> apps = new ArrayList<>();
-            for (PackageInfo pi : pm.getInstalledPackages(0)) {
-                ApplicationInfo ai = pi.applicationInfo;
-                if (ai == null || ai.uid < 10000) continue;
-                boolean system = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
-                        && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0;
-                if (system) continue;
-                apps.add(new AppBlockAdapter.App(
-                        String.valueOf(ai.loadLabel(pm)),
-                        pi.packageName,
-                        ai.uid,
-                        BlocklistStore.get().isAppBlocked(ai.uid)));
-            }
-            Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
-            runOnUiThread(() -> {
-                if (isDestroyed()) return;
-                adapter.submit(apps);
-                if (pendingScroll != null && adapter.getItemCount() > 0) {
-                    ui.list.getLayoutManager().onRestoreInstanceState(pendingScroll);
-                    pendingScroll = null;
+        loading = true;
+        loadFailed = false;
+        renderState();
+        appScan = new Thread(() -> {
+            try {
+                PackageManager pm = getPackageManager();
+                List<AppBlockAdapter.App> apps = new ArrayList<>();
+                for (PackageInfo pi : pm.getInstalledPackages(0)) {
+                    if (Thread.currentThread().isInterrupted()) return;
+                    ApplicationInfo ai = pi.applicationInfo;
+                    if (ai == null || ai.uid < 10000) continue;
+                    boolean system = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0
+                            && (ai.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0;
+                    if (system) continue;
+                    apps.add(new AppBlockAdapter.App(
+                            String.valueOf(ai.loadLabel(pm)),
+                            pi.packageName,
+                            ai.uid,
+                            BlocklistStore.get().isAppBlocked(ai.uid)));
                 }
-                renderCount();
-                boolean none = apps.isEmpty();
-                ui.empty.setVisibility(none ? View.VISIBLE : View.GONE);
-                ui.list.setVisibility(none ? View.GONE : View.VISIBLE);
-                ui.filter.setEnabled(!none);
-            });
-        }, "tracewall-apps").start();
+                Collections.sort(apps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+                if (Thread.currentThread().isInterrupted()) return;
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    loading = false;
+                    adapter.submit(apps);
+                });
+            } catch (RuntimeException error) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    loading = false;
+                    loadFailed = true;
+                    renderState();
+                });
+            }
+        }, "tracewall-apps");
+        appScan.start();
     }
 
-    /** The subtitle line, so the current block count is visible at a glance. */
-    private void renderCount() {
-        ui.appsCount.setText(getString(R.string.apps_count, adapter.blockedCount()));
+    /** Filtering and a truly empty inventory are different, recoverable states. */
+    private void renderState() {
+        ui.appsCount.setText(loading ? getString(R.string.detail_apps_loading)
+                : loadFailed ? getString(R.string.detail_apps_error_title)
+                : getString(R.string.detail_apps_count, adapter.appCount(), adapter.blockedCount()));
+        ui.appsProgress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        ui.filter.setEnabled(!loading && !loadFailed && adapter.appCount() > 0);
+        boolean hasRows = !loading && !loadFailed && adapter.getItemCount() > 0;
+        ui.list.setVisibility(hasRows ? View.VISIBLE : View.GONE);
+        ui.appsState.setVisibility(hasRows ? View.GONE : View.VISIBLE);
+        if (hasRows) {
+            if (pendingScroll != null) {
+                ui.list.getLayoutManager().onRestoreInstanceState(pendingScroll);
+                pendingScroll = null;
+            }
+            return;
+        }
+        boolean noMatches = !loading && !loadFailed && adapter.appCount() > 0;
+        ui.appsStateTitle.setText(loading ? R.string.detail_apps_loading_title
+                : loadFailed ? R.string.detail_apps_error_title
+                : noMatches ? R.string.detail_apps_no_results_title : R.string.detail_apps_empty_title);
+        ui.empty.setText(loading ? R.string.detail_apps_loading_body
+                : loadFailed ? R.string.detail_apps_error_body
+                : noMatches ? R.string.detail_apps_no_results_body : R.string.detail_apps_empty_body);
+        ui.appsStateAction.setVisibility(loadFailed || noMatches ? View.VISIBLE : View.GONE);
+        ui.appsStateAction.setText(loadFailed ? R.string.detail_retry : R.string.detail_apps_clear_search);
     }
 }

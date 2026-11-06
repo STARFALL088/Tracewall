@@ -1,102 +1,686 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
-    <!-- The application theme has no ActionBar. Keep an explicit, fixed Back control. -->
-    <Button android:id="@+id/rules_back" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:minHeight="48dp" android:text="@string/rules9_back" android:textAllCaps="false" />
-    <ScrollView android:id="@+id/rules_scroll" android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:fillViewport="true">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:padding="16dp">
-            <TextView android:id="@+id/rules_title" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_title" android:textSize="24sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_intro" android:textSize="16sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_precedence" android:textSize="16sp" android:paddingTop="12dp" />
-            <TextView android:id="@+id/rules_status" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_loading" android:textSize="16sp" android:accessibilityLiveRegion="polite" android:paddingTop="12dp" />
-            <Button android:id="@+id/refresh_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_refresh" android:textAllCaps="false" />
-            <TextView android:id="@+id/domains_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_domains" android:textSize="20sp" android:paddingTop="16dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_pattern" android:textSize="16sp" />
-            <EditText android:id="@+id/rule_pattern" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:inputType="textUri" android:maxLength="255" android:hint="@string/rules9_pattern_hint"
-                android:importantForAutofill="no" android:textSize="16sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_pattern_help" android:textSize="16sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_minutes" android:labelFor="@id/rule_minutes" android:textSize="16sp" android:paddingTop="12dp" />
-            <EditText android:id="@+id/rule_minutes" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:inputType="number" android:maxLength="5" android:importantForAutofill="no" android:textSize="16sp" />
-            <Button android:id="@+id/add_deny" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_add_deny" android:textAllCaps="false" />
-            <Button android:id="@+id/add_timed" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_add_timed" android:textAllCaps="false" />
-            <Button android:id="@+id/add_permanent" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_add_permanent" android:textAllCaps="false" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_expiry_help" android:textSize="16sp" />
-            <Button android:id="@+id/show_denies" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_denies" android:textAllCaps="false" />
-            <Button android:id="@+id/show_allows" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_allows" android:textAllCaps="false" />
-            <Button android:id="@+id/show_timed" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_timed" android:textAllCaps="false" />
-            <TextView android:id="@+id/profiles_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_profiles" android:textSize="20sp" android:paddingTop="16dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_schedule_help" android:textSize="16sp" />
-            <LinearLayout android:id="@+id/profile_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
-            <Button android:id="@+id/new_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_new_profile" android:textAllCaps="false" />
-            <TextView android:id="@+id/profile_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_new_heading" android:textSize="20sp" android:paddingTop="12dp" />
-            <EditText android:id="@+id/profile_name" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:inputType="textCapSentences" android:maxLength="40"
-                android:hint="@string/rules9_profile_name" android:importantForAutofill="no" android:textSize="16sp" />
-            <CheckBox android:id="@+id/profile_enabled" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_enabled" android:textSize="16sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_days" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_monday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_monday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_tuesday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_tuesday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_wednesday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_wednesday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_thursday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_thursday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_friday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_friday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_saturday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_saturday" android:textSize="16sp" />
-            <CheckBox android:id="@+id/day_sunday" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_sunday" android:textSize="16sp" />
-            <Button android:id="@+id/profile_start" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:textAllCaps="false" />
-            <Button android:id="@+id/profile_end" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:textAllCaps="false" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_categories" android:textSize="16sp" />
-            <CheckBox android:id="@+id/profile_ads" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_ads" android:textSize="16sp" />
-            <CheckBox android:id="@+id/profile_adult" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_adult" android:textSize="16sp" />
-            <CheckBox android:id="@+id/profile_gambling" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_gambling" android:textSize="16sp" />
-            <CheckBox android:id="@+id/profile_malware" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/rules9_malware" android:textSize="16sp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_uids" android:labelFor="@id/profile_uids" android:textSize="16sp" />
-            <EditText android:id="@+id/profile_uids" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:inputType="textMultiLine|textNoSuggestions" android:maxLength="12000"
-                android:importantForAutofill="no" android:textSize="16sp" android:gravity="top" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_uid_help" android:textSize="16sp" />
-            <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_save_profile" android:textAllCaps="false" />
-            <Button android:id="@+id/delete_profile" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_delete_profile" android:textAllCaps="false" />
-            <TextView android:id="@+id/backup_heading" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_backup" android:textSize="20sp" android:paddingTop="16dp" />
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:text="@string/rules9_backup_help" android:textSize="16sp" />
-            <Button android:id="@+id/export_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_export" android:textAllCaps="false" />
-            <Button android:id="@+id/import_rules" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:minHeight="48dp" android:text="@string/rules9_import" android:textAllCaps="false" />
-        </LinearLayout>
-    </ScrollView>
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/tw_background"
+    android:focusableInTouchMode="true"
+    android:orientation="vertical">
+
+    <!-- Navigation remains visible; each destination owns its own vertical scroll. -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/rules_back"
+        style="@style/Widget.Tracewall.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        app:navigationContentDescription="@string/rules9_back"
+        app:navigationIcon="@drawable/ic_tw_arrow_back"
+        app:navigationIconTint="@color/tw_text">
+
+        <TextView
+            android:id="@+id/rules_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="@string/rulesnav_title"
+            android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+    </com.google.android.material.appbar.MaterialToolbar>
+
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/rules_tabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:background="@color/tw_background"
+        app:tabGravity="start"
+        app:tabIndicatorColor="@color/tw_primary"
+        app:tabMode="scrollable"
+        app:tabSelectedTextColor="@color/tw_primary"
+        app:tabTextAppearance="@style/TextAppearance.Tracewall.Body"
+        app:tabTextColor="@color/tw_muted">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/rulesnav_domains" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/rulesnav_schedules" />
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/rulesnav_backups" />
+    </com.google.android.material.tabs.TabLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/tw_surface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="12dp">
+
+        <TextView
+            android:id="@+id/rules_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:accessibilityLiveRegion="polite"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="@string/rules9_loading"
+            android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/refresh_rules"
+            style="@style/Widget.Tracewall.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@string/rules9_refresh"
+            android:text="@string/rulesnav_refresh" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Stable IDs and inflated hidden pages preserve all unsaved input drafts. -->
+        <ScrollView
+            android:id="@+id/rules_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:saveEnabled="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:id="@+id/domains_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rules9_domains"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_domains_intro"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:textColor="@color/tw_muted" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/rule_pattern_layout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:hint="@string/rules9_pattern"
+                    app:endIconContentDescription="@string/rulesnav_clear_domain"
+                    app:endIconMode="clear_text"
+                    app:placeholderText="@string/rules9_pattern_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/rule_pattern"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:background="@null"
+                        android:imeOptions="actionDone"
+                        android:importantForAutofill="no"
+                        android:inputType="textUri"
+                        android:maxLength="255"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/add_deny"
+                    style="@style/Widget.Tracewall.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rulesnav_block_domain"
+                    app:icon="@drawable/ic_tw_shield" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/add_permanent"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rulesnav_allow_domain" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/tw_inset_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/temporary_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rulesnav_temporary_heading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/rule_minutes_layout"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="@string/rulesnav_duration"
+                        app:endIconContentDescription="@string/rulesnav_clear_duration"
+                        app:endIconMode="clear_text"
+                        app:helperText="@string/rulesnav_duration_help">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/rule_minutes"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minHeight="56dp"
+                            android:background="@null"
+                            android:imeOptions="actionDone"
+                            android:importantForAutofill="no"
+                            android:inputType="number"
+                            android:maxLength="5"
+                            android:textSize="16sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/add_timed"
+                        style="@style/Widget.Tracewall.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rules9_add_timed" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/saved_domains_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:text="@string/rulesnav_saved_domains"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_saved_domains_help"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:textColor="@color/tw_muted" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/show_denies"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rules9_denies" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/show_allows"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rules9_allows" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/show_timed"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rules9_timed" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/domain_help_toggle"
+                    style="@style/Widget.Tracewall.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rulesnav_show_domain_details" />
+                <LinearLayout
+                    android:id="@+id/domain_help"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/tw_info_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rules9_pattern_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/rules9_precedence"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/rules9_expiry_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/schedules_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:saveEnabled="false"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/schedules_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:id="@+id/profiles_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rulesnav_schedules_title"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_schedules_intro"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:textColor="@color/tw_muted" />
+                <TextView
+                    android:id="@+id/saved_schedules_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/rulesnav_saved_schedules"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/rules9_profiles"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <TextView
+                    android:id="@+id/profiles_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/tw_inset_panel"
+                    android:padding="16dp"
+                    android:text="@string/rulesnav_profiles_empty"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:visibility="gone" />
+                <LinearLayout
+                    android:id="@+id/profile_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/new_profile"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rules9_new_profile" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/tw_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/profile_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rules9_new_heading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rulesnav_schedule_editor_intro"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:labelFor="@id/profile_name"
+                        android:text="@string/rulesnav_profile_name"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <EditText
+                        android:id="@+id/profile_name"
+                        style="@style/Widget.Tracewall.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/rulesnav_profile_name_hint"
+                        android:importantForAutofill="no"
+                        android:inputType="textCapSentences"
+                        android:maxLength="40" />
+                    <CheckBox
+                        android:id="@+id/profile_enabled"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:minHeight="48dp"
+                        android:text="@string/rules9_enabled"
+                        android:textColor="@color/tw_text"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/when_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="@string/rulesnav_when_heading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rules9_days"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <!-- Wrap-content cells retain full weekday labels at large font sizes. -->
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:columnCount="2">
+
+                        <CheckBox android:id="@+id/day_monday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_monday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_tuesday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_tuesday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_wednesday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_wednesday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_thursday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_thursday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_friday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_friday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_saturday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_saturday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/day_sunday"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_sunday"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                    </GridLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/rulesnav_days_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/profile_start"
+                        style="@style/Widget.Tracewall.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        app:icon="@drawable/ic_tw_schedule" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/profile_end"
+                        style="@style/Widget.Tracewall.Button.Outlined"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:icon="@drawable/ic_tw_schedule" />
+
+                    <TextView
+                        android:id="@+id/blocks_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="@string/rulesnav_blocks_heading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rulesnav_categories_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:columnCount="2">
+
+                        <CheckBox android:id="@+id/profile_ads"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_ads"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/profile_adult"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_adult"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/profile_gambling"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_gambling"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                        <CheckBox android:id="@+id/profile_malware"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_columnWeight="1" android:layout_gravity="fill_horizontal"
+                            android:minHeight="48dp" android:text="@string/rules9_malware"
+                            android:textColor="@color/tw_text" android:textSize="16sp" />
+                    </GridLayout>
+
+                    <TextView
+                        android:id="@+id/uids_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:text="@string/rulesnav_uids_heading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:labelFor="@id/profile_uids"
+                        android:text="@string/rules9_uids"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <EditText
+                        android:id="@+id/profile_uids"
+                        style="@style/Widget.Tracewall.Input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="top|start"
+                        android:importantForAutofill="no"
+                        android:inputType="textMultiLine|textNoSuggestions"
+                        android:maxLength="12000"
+                        android:minLines="2" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rules9_uid_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/save_profile"
+                        style="@style/Widget.Tracewall.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/rules9_save_profile"
+                        app:icon="@drawable/ic_tw_check" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/delete_profile"
+                        style="@style/Widget.Tracewall.Button.Text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rules9_delete_profile"
+                        android:textColor="@color/tw_danger" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/schedule_help_toggle"
+                    style="@style/Widget.Tracewall.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/rulesnav_show_schedule_details" />
+                <TextView
+                    android:id="@+id/schedule_help"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/tw_info_panel"
+                    android:padding="16dp"
+                    android:text="@string/rules9_schedule_help"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/backup_scroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:saveEnabled="false"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:id="@+id/backup_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/rulesnav_backups"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_backups_intro"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:textColor="@color/tw_muted" />
+
+                <TextView
+                    android:id="@+id/export_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:text="@string/rulesnav_export_heading"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_export_help"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/export_rules"
+                    style="@style/Widget.Tracewall.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rules9_export"
+                    app:icon="@drawable/ic_tw_upload" />
+
+                <TextView
+                    android:id="@+id/import_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/rulesnav_import_heading"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rulesnav_import_help"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/import_rules"
+                    style="@style/Widget.Tracewall.Button.Outlined"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/rules9_import"
+                    app:icon="@drawable/ic_tw_download" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:background="@drawable/tw_info_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/backup_details_heading"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/rulesnav_backup_details"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/rules9_backup_help"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                </LinearLayout>
+                <TextView
+                    android:id="@+id/scope_heading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/rulesnav_scope_heading"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/rules9_intro"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                    android:textColor="@color/tw_muted" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
 </LinearLayout>

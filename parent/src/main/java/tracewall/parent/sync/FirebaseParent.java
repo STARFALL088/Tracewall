@@ -48,6 +48,9 @@ public class FirebaseParent {
 
     public interface HistoryListener {
         void onHistory(List<Map<String, Object>> records);
+        /** Metadata describes the displayed data, never the child's live connection. */
+        default void onSnapshotState(boolean cached) {}
+        default void onError() {}
     }
 
     private FirebaseParent() {
@@ -259,9 +262,9 @@ public class FirebaseParent {
         return fs.collection("devices").document(childUid).collection("events")
             .orderBy("time_ms", Query.Direction.DESCENDING)
             .limit(50)
-            .addSnapshotListener((snap, err) -> {
-                if (err != null) { Log.e(TAG, "events listen error", err); return; }
-                if (snap == null) return;
+            .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE, (snap, err) -> {
+                if (err != null) { Log.e(TAG, "events listen error", err); listener.onError(); return; }
+                if (snap == null) { listener.onError(); return; }
                 List<Map<String, Object>> events = new java.util.ArrayList<>();
                 for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
                     Map<String, Object> event = doc.getData();
@@ -270,6 +273,7 @@ public class FirebaseParent {
                         events.add(event);
                     }
                 }
+                listener.onSnapshotState(snap.getMetadata().isFromCache() || snap.getMetadata().hasPendingWrites());
                 listener.onHistory(events);
             });
     }
@@ -298,18 +302,20 @@ public class FirebaseParent {
             .collection("history")
             .orderBy("time_ms", Query.Direction.DESCENDING)
             .limit(limit)
-            .addSnapshotListener((snap, err) -> {
+            .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE, (snap, err) -> {
                 if (err != null) {
                     Log.e(TAG, "history listen error", err);
+                    listener.onError();
                     return;
                 }
-                if (snap == null) return;
+                if (snap == null) { listener.onError(); return; }
                 java.util.List<Map<String, Object>> out =
                     new java.util.ArrayList<>();
                 for (com.google.firebase.firestore.DocumentSnapshot doc : snap.getDocuments()) {
                     Map<String, Object> data = doc.getData();
                     if (data != null) out.add(data);
                 }
+                listener.onSnapshotState(snap.getMetadata().isFromCache() || snap.getMetadata().hasPendingWrites());
                 listener.onHistory(out);
             });
     }

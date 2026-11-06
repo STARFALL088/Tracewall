@@ -13,8 +13,8 @@ android {
         applicationId = "tracewall.child"
         minSdk = 24          // VpnService is 14+, but the UI and Room want more
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 4
+        versionName = "2.2.0"
     }
 
     buildTypes {
@@ -31,6 +31,8 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    testOptions { unitTests.isIncludeAndroidResources = true }
 
     packaging {
         resources.excludes += setOf("META-INF/*.kotlin_module")
@@ -50,6 +52,7 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     annotationProcessor("androidx.room:room-compiler:2.6.1")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
 
     // ZXing core: generate QR codes for the device-code pairing dialog.
     // No camera permission needed - this is the encode-only library.
@@ -61,4 +64,9 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-firestore")
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    maxHeapSize = "512m"
+    maxParallelForks = 1
 }

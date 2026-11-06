@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="tw_background">#111E2A</color>
+    <color name="tw_surface">#1A2A39</color>
+    <color name="tw_surface_variant">#233747</color>
+    <color name="tw_text">#E5EEF8</color>
+    <color name="tw_muted">#B0C2D3</color>
+    <color name="tw_primary">#A6C8FF</color>
+    <color name="tw_on_primary">#102F56</color>
+    <color name="tw_primary_soft">#243F61</color>
+    <color name="tw_border">#3A5063</color>
+    <color name="tw_success">#8BD5C6</color>
+    <color name="tw_danger">#FFADB8</color>
+    <color name="tw_warning">#F3CE88</color>
+    <color name="tw_hero">#17375B</color>
+    <color name="tw_on_hero">#FFFFFF</color>
+    <color name="tw_hero_muted">#C3D8EF</color>
+    <bool name="tw_light_system_bars">false</bool>
+</resources>

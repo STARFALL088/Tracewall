@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="auth_title_initial">Tracewall-এ সাইন ইন করুন</string>
-    <string name="auth_title_upgrade">এই অ্যাকাউন্ট সংযুক্ত বা উন্নীত করুন</string>
+    <string name="auth_title_upgrade">আপনার Tracewall অ্যাকাউন্ট</string>
     <string name="auth_back">ফিরে যান</string>
     <string name="auth_role_child">সুরক্ষিত শিশুর ডিভাইস</string>
     <string name="auth_role_parent">অভিভাবকের ডিভাইস</string>
-    <string name="auth_role_warning">অভিভাবকের জন্য আলাদা অ্যাকাউন্ট এবং প্রতিটি সুরক্ষিত শিশুর ডিভাইসের জন্য একটি করে অ্যাকাউন্ট ব্যবহার করুন। একটি অ্যাকাউন্ট নিজেই নিজের অভিভাবক হতে পারে না। শিশুর অ্যাকাউন্ট দিয়ে অভিভাবকের অ্যাপে সাইন ইন করবেন না।</string>
-    <string name="auth_intro">ক্লাউড সুবিধার জন্য সাইন ইন করুন, অতিথি হিসেবে এগিয়ে যান, অথবা প্রমাণীকরণ ছাড়াই স্থানীয়ভাবে ব্যবহার করুন। Gmail ঠিকানা দিয়েও ইমেইল/পাসওয়ার্ড ব্যবহার করা যায়; সেই পাসওয়ার্ড আপনার Google পাসওয়ার্ড থেকে আলাদা।</string>
-    <string name="auth_status_guest">এই ডিভাইসে একটি অতিথি পরিচয় আছে। নতুন পদ্ধতি সংযুক্ত করলে একই অ্যাকাউন্ট উন্নীত হয় এবং ডিভাইসের তথ্য অক্ষুণ্ণ থাকে। অন্য অ্যাকাউন্টে ইতিমধ্যে যুক্ত পরিচয় ব্যবহার করবেন না।</string>
-    <string name="auth_status_account">আপনি সাইন ইন করেছেন। নতুন পদ্ধতি এই একই পরিচয়ে যুক্ত হবে, অ্যাকাউন্ট বদলাবে না। সংযুক্ত পদ্ধতি এখানে প্রতিস্থাপন করা যায় না।</string>
+    <string name="auth_role_warning">অভিভাবক ও শিশুর অ্যাকাউন্ট আলাদা রাখুন। প্রতিটি সুরক্ষিত শিশুর ডিভাইসে একটি করে অ্যাকাউন্ট ব্যবহার করুন।</string>
+    <string name="auth_intro">পেয়ারিং ও ক্লাউড সুবিধার জন্য সাইন ইন করুন। অতিথি ও স্থানীয় মোডও ব্যবহার করতে পারেন।</string>
+    <string name="auth_status_guest">অতিথি পরিচয় ও ডিভাইসের তথ্য অক্ষুণ্ণ রাখতে সাইন ইন পদ্ধতি সংযুক্ত করুন। অন্য অ্যাকাউন্টে যুক্ত নয় এমন পরিচয়তথ্য ব্যবহার করুন।</string>
+    <string name="auth_status_account">এই অ্যাকাউন্টে সাইন ইন পদ্ধতি যোগ করুন, অথবা আগে সংযুক্ত পদ্ধতিগুলো দেখুন।</string>
+    <string name="auth_method_choose">সাইন ইন পদ্ধতি বেছে নিন</string>
+    <string name="auth_method_email">ইমেইল</string>
+    <string name="auth_method_phone">ফোন</string>
+    <string name="auth_other_methods">অন্য সাইন ইন পদ্ধতি</string>
+    <string name="auth_other_options">এগিয়ে যাওয়ার অন্য উপায়</string>
     <string name="auth_email_section">ইমেইল ও পাসওয়ার্ড</string>
-    <string name="auth_email_hint">ইমেইল ঠিকানা (Gmail-সহ)</string>
+    <string name="auth_email_hint">ইমেইল ঠিকানা</string>
+    <string name="auth_email_example">you@example.com</string>
     <string name="auth_password_hint">পাসওয়ার্ড</string>
     <string name="auth_password_help">তৈরি বা সংযুক্ত করার সময় অন্তত ৮টি অক্ষর দিন। স্পেস পাসওয়ার্ডের অংশ; তা কখনো বাদ দেওয়া হয় না।</string>
+    <string name="auth_email_sign_in_help">Gmail ঠিকানাও ব্যবহার করা যায়। Google পাসওয়ার্ড নয়, আপনার Tracewall পাসওয়ার্ড দিন।</string>
+    <string name="auth_reauthenticate_help">এই অ্যাকাউন্ট নিশ্চিত করতে এর সঙ্গে আগে সংযুক্ত পাসওয়ার্ড দিন।</string>
     <string name="auth_sign_in">সাইন ইন</string>
     <string name="auth_create_account">অ্যাকাউন্ট তৈরি</string>
     <string name="auth_link_email">ইমেইল/পাসওয়ার্ড সংযুক্ত করুন</string>
@@ -26,8 +34,9 @@
     <string name="auth_google_link">Google অ্যাকাউন্ট সংযুক্ত করুন</string>
     <string name="auth_google_connected">Google সংযুক্ত আছে</string>
     <string name="auth_phone_section">ফোন যাচাই</string>
-    <string name="auth_phone_hint">E.164 ফরম্যাটে ফোন নম্বর (+দেশেরকোড…)</string>
-    <string name="auth_phone_security">শুধু ফোন দিয়ে সাইন ইন তুলনামূলক কম নিরাপদ: নম্বর অন্যকে দেওয়া বা হস্তান্তর করা যায়। ইমেইল বা Google-ও সংযুক্ত করার কথা বিবেচনা করুন।</string>
+    <string name="auth_phone_label">দেশের কোডসহ ফোন নম্বর</string>
+    <string name="auth_phone_hint">+দেশেরকোড ও নম্বর, স্পেস ছাড়া</string>
+    <string name="auth_phone_security">নম্বর অন্যকে দেওয়া বা হস্তান্তর করা যায়। অ্যাকাউন্টের নিরাপত্তা বাড়াতে ইমেইল বা Google-ও সংযুক্ত করুন।</string>
     <string name="auth_phone_consent">আমি যাচাইকরণ SMS পেতে সম্মত; SMS ও ডেটা খরচ হতে পারে। Google পরিষেবাগুলোতে (Firebase-সহ) স্প্যাম ও অপব্যবহার ঠেকাতে আমার ফোন নম্বর Google-এ পাঠানো ও সংরক্ষণ করা হবে।</string>
     <string name="auth_send_code">যাচাইকরণ কোড পাঠান</string>
     <string name="auth_link_phone">ফোন নম্বর সংযুক্ত করুন</string>
@@ -41,11 +50,11 @@
     </plurals>
     <string name="auth_change_phone">ফোন যাচাই বাতিল করুন</string>
     <string name="auth_guest">অতিথি হিসেবে এগিয়ে যান</string>
-    <string name="auth_guest_help">অতিথি হিসেবে Firebase অ্যাকাউন্ট ও ইন্টারনেট লাগে। অ্যাপ পুনঃস্থাপনের পরও একই পরিচয় রাখতে পরে এটি সংযুক্ত করুন।</string>
+    <string name="auth_guest_help">ইন্টারনেটে অতিথি অ্যাকাউন্ট তৈরি হয়। অ্যাপ পুনঃস্থাপনের পরও এটি রাখতে পরে সাইন ইন পদ্ধতি সংযুক্ত করুন।</string>
     <string name="auth_local">স্থানীয়ভাবে এগিয়ে যান</string>
-    <string name="auth_local_help">স্থানীয় মোডে সাইন ইন বা অ্যাকাউন্ট তৈরি হয় না। পেয়ারিং ও ক্লাউড সুবিধার জন্য প্রমাণীকরণ দরকার।</string>
-    <string name="auth_identity_lock_notice">এই সংস্করণে অভিভাবক ও শিশুর উভয় ডিভাইসেই সাইন আউট ও অ্যাকাউন্ট বদলানো অনুপলব্ধ। অফলাইন ক্লাউড সারি ও স্থানীয় ডিভাইস প্রোফাইলের জন্য আলাদা নিরাপদ স্থানান্তর ব্যবস্থা দরকার। সংযুক্ত করলে একই অ্যাকাউন্ট থাকে।</string>
-    <string name="auth_bound_recovery">এই অ্যাপ ইনস্টলেশন তার মূল অ্যাকাউন্টে বাঁধা। সংযুক্ত সাইন ইন পদ্ধতি দিয়ে সেই অ্যাকাউন্ট পুনরুদ্ধার করুন, অথবা স্থানীয়ভাবে এগিয়ে যান। নতুন বা অতিথি পরিচয় দিয়ে এটি প্রতিস্থাপন করা যায় না।</string>
+    <string name="auth_local_help">সাইন ইন বা নতুন অ্যাকাউন্ট নয়। পেয়ারিং ও ক্লাউড সুবিধা বন্ধ থাকবে।</string>
+    <string name="auth_identity_lock_notice">এই পর্দা ডিভাইসের একই পরিচয় রাখে। সাইন আউট, অ্যাকাউন্ট বদলানো বা সংযুক্ত পদ্ধতি প্রতিস্থাপন করা যায় না।</string>
+    <string name="auth_bound_recovery">সংযুক্ত সাইন ইন পদ্ধতি দিয়ে এই ইনস্টলেশনের মূল অ্যাকাউন্ট পুনরুদ্ধার করুন। নতুন বা অতিথি অ্যাকাউন্ট দিয়ে এটি বদলানো যাবে না; স্থানীয় মোড ব্যবহার করতে পারেন।</string>
     <string name="auth_error_bound_existing">বর্তমান অ্যাকাউন্ট এই ইনস্টলেশনের বাঁধা পরিচয়ের সঙ্গে মেলে না। প্রমাণীকরণ পরিবর্তন বন্ধ আছে; বিদ্যমান সেশন বদলানো বা সাইন আউট করা হয়নি। স্থানীয়ভাবে এগিয়ে যান এবং নিরাপদ পুনরুদ্ধার পদ্ধতিতে মূল অ্যাকাউন্ট ফিরিয়ে আনুন।</string>
     <string name="auth_error_bound_candidate">নির্বাচিত অ্যাকাউন্ট এই ইনস্টলেশনের বাঁধা পরিচয়ের সঙ্গে মেলে না। শুধু এই নতুন সাইন ইন বাতিল করে আগের সাইন আউট অবস্থায় ফিরিয়ে আনা হয়েছে। মূল অ্যাকাউন্ট পুনরুদ্ধার করুন বা স্থানীয়ভাবে এগিয়ে যান। কোনো পরিচয় স্থানান্তর বা অতিথি বিকল্প তৈরি হয়নি।</string>
     <string name="auth_working">অপেক্ষা করুন…</string>

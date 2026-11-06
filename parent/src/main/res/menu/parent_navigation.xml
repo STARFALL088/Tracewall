@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_overview" android:icon="@drawable/ic_tw_home" android:title="@string/parent_nav_overview" />
+    <item android:id="@+id/nav_activity" android:icon="@drawable/ic_tw_activity" android:title="@string/parent_nav_activity" />
+    <item android:id="@+id/nav_rules" android:icon="@drawable/ic_tw_shield" android:title="@string/parent_nav_rules" />
+    <item android:id="@+id/nav_devices" android:icon="@drawable/ic_tw_family" android:title="@string/parent_nav_devices" />
+</menu>

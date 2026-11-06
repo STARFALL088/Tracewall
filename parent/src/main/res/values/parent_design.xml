@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- All color and type tokens come from the shared Tracewall design system. -->
+    <style name="Widget.Tracewall.Parent.Button" parent="Widget.Tracewall.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    <style name="Widget.Tracewall.Parent.Button.Outlined" parent="Widget.Tracewall.Button.Outlined">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    <style name="Widget.Tracewall.Parent.Button.Text" parent="Widget.Tracewall.Button.Text">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:singleLine">false</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Parent.Hero" parent="TextAppearance.Tracewall.Title">
+        <item name="android:textColor">@color/tw_on_hero</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Parent.HeroBody" parent="TextAppearance.Tracewall.Body">
+        <item name="android:textColor">@color/tw_hero_muted</item>
+    </style>
+    <style name="TextAppearance.Tracewall.Parent.Nav" parent="TextAppearance.Tracewall.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+    <style name="Widget.Tracewall.Parent.Category" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.Tracewall.Body</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+    <style name="Widget.Tracewall.Parent.InputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">@color/tw_surface</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="hintTextColor">@color/tw_muted</item>
+        <item name="android:textColorHint">@color/tw_muted</item>
+    </style>
+</resources>

@@ -1,154 +1,323 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:paddingStart="16dp"
-    android:paddingTop="16dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="8dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/tw_background" android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/childUidLabel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="12sp" />
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/dashboardToolbar" style="@style/Widget.Tracewall.Toolbar"
+        android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_tw_arrow_back" app:navigationContentDescription="@string/apps_back"
+        app:title="@string/parent_nav_overview" />
 
-    <LinearLayout android:id="@+id/tamperBanner"
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/deviceSwitcher" style="@style/Widget.Tracewall.Parent.Button.Text"
         android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:background="#B71C1C" android:padding="8dp"
-        android:orientation="horizontal" android:visibility="gone">
-        <TextView android:id="@+id/tamperText"
-            android:layout_width="0dp" android:layout_weight="1"
-            android:layout_height="wrap_content" android:textColor="#FFFFFF" />
-        <Button android:id="@+id/dismissTamper"
-            android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="@string/dismiss_event" />
-    </LinearLayout>
-    <TextView android:id="@+id/lastSeen"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/last_seen_unknown" />
-    <TextView android:id="@+id/ruleStatus"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/rules_waiting" android:accessibilityLiveRegion="polite" />
+        android:layout_marginStart="20dp" android:layout_marginEnd="20dp"
+        android:gravity="start|center_vertical" android:textAlignment="viewStart"
+        app:icon="@drawable/ic_tw_family" app:iconGravity="start" />
 
-    <!-- Allow-domain rule -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:hint="@string/dashboard_allow_hint">
+    <!-- Each destination owns its own scroll position and contains one task. -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <androidx.core.widget.NestedScrollView android:id="@+id/overviewPage"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:fillViewport="true" android:clipToPadding="false">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp" android:descendantFocusability="beforeDescendants"
+                android:focusableInTouchMode="true">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:background="@drawable/tw_hero_panel" android:orientation="vertical" android:padding="24dp">
+                    <ImageView android:layout_width="36dp" android:layout_height="36dp"
+                        android:src="@drawable/ic_tw_shield" app:tint="@color/tw_on_hero"
+                        android:importantForAccessibility="no" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp" android:text="@string/parent_selected_device"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Parent.HeroBody" />
+                    <TextView android:id="@+id/overviewDeviceName"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" android:accessibilityHeading="true"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Parent.Hero" />
+                    <TextView android:id="@+id/lastSeen"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp" android:text="@string/last_seen_unknown"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Parent.HeroBody" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/tamperBanner"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:background="@drawable/tw_panel"
+                    android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+                    <TextView android:id="@+id/tamperText"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body"
+                        android:textColor="@color/tw_danger" android:accessibilityLiveRegion="polite" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/dismissTamper"
+                        style="@style/Widget.Tracewall.Parent.Button.Text"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/dismiss_event" />
+                </LinearLayout>
+                <TextView android:id="@+id/connectionStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:text="@string/parent_access_checking"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" android:accessibilityLiveRegion="polite" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_overview_note"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/retryConnection"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_refresh" app:icon="@drawable/ic_tw_refresh" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/openActivity"
+                    style="@style/Widget.Tracewall.Parent.Button"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:text="@string/parent_open_activity"
+                    app:icon="@drawable/ic_tw_activity" />
+                <TextView android:id="@+id/overviewActivityStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_feed_loading"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/parent_rule_summary_title"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:id="@+id/overviewRulesSummary"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_rule_summary_waiting"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <TextView android:id="@+id/overviewRuleStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/rules_waiting"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/openRules"
+                    style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/parent_open_rules"
+                    app:icon="@drawable/ic_tw_shield" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/overviewApps"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_open_apps" app:icon="@drawable/ic_tw_apps" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/allowInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textNoSuggestions"
-            android:maxLines="1" />
+        <androidx.core.widget.NestedScrollView android:id="@+id/activityPage"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:fillViewport="true" android:visibility="gone">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+                android:orientation="vertical" android:padding="20dp" android:focusableInTouchMode="true">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_nav_activity" android:accessibilityHeading="true"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_activity_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/feedProgress"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:indeterminate="true" />
+                <TextView android:id="@+id/feedStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/parent_feed_loading"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" android:accessibilityLiveRegion="polite" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/activityRetry"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_refresh" app:icon="@drawable/ic_tw_refresh" />
+                <LinearLayout android:id="@+id/feedEmpty"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:orientation="vertical"
+                    android:padding="20dp" android:background="@drawable/tw_inset_panel">
+                    <ImageView android:layout_width="32dp" android:layout_height="32dp"
+                        android:src="@drawable/ic_tw_activity" app:tint="@color/tw_primary" android:importantForAccessibility="no" />
+                    <TextView android:id="@+id/feedEmptyTitle"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp" android:text="@string/parent_feed_loading_title"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                    <TextView android:id="@+id/feedEmptyBody"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" android:text="@string/parent_feed_loading"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                </LinearLayout>
+                <!-- A bounded viewport preserves RecyclerView recycling while nested scrolling
+                     hands movement to the page when the feed reaches either end. -->
+                <androidx.recyclerview.widget.RecyclerView android:id="@+id/historyList"
+                    android:layout_width="match_parent" android:layout_height="0dp"
+                    android:layout_weight="1" android:minHeight="240dp"
+                    android:layout_marginTop="12dp" android:nestedScrollingEnabled="true" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
-    </com.google.android.material.textfield.TextInputLayout>
+        <androidx.core.widget.NestedScrollView android:id="@+id/rulesPage"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:fillViewport="true" android:visibility="gone">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp" android:focusableInTouchMode="true">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_nav_rules" android:accessibilityHeading="true"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_rules_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:orientation="vertical"
+                    android:padding="16dp" android:background="@drawable/tw_info_panel">
+                    <com.google.android.material.progressindicator.LinearProgressIndicator android:id="@+id/rulesProgress"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:indeterminate="true" />
+                    <TextView android:id="@+id/ruleStatus"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" android:text="@string/rules_waiting"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" android:accessibilityLiveRegion="polite" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/rulesRetry"
+                        style="@style/Widget.Tracewall.Parent.Button.Text"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/parent_refresh" app:icon="@drawable/ic_tw_refresh" />
+                </LinearLayout>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/dashboard_categories"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_categories_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <LinearLayout android:id="@+id/categoryControls"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:orientation="vertical"
+                    android:background="@drawable/tw_panel" android:padding="12dp" android:visibility="gone">
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/catMalware"
+                        style="@style/Widget.Tracewall.Parent.Category"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/cat_malware" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/catGambling"
+                        style="@style/Widget.Tracewall.Parent.Category"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/cat_gambling" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/catAdult"
+                        style="@style/Widget.Tracewall.Parent.Category"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/cat_adult" />
+                    <com.google.android.material.switchmaterial.SwitchMaterial android:id="@+id/catAds"
+                        style="@style/Widget.Tracewall.Parent.Category"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/cat_ads" />
+                </LinearLayout>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/parent_apps_title"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_apps_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/rulesApps"
+                    style="@style/Widget.Tracewall.Parent.Button"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/parent_open_apps" app:icon="@drawable/ic_tw_apps" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/parent_allow_title"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_allow_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:hint="@string/dashboard_allow_hint">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/allowInput"
+                        style="@style/Widget.Tracewall.Input" android:background="@null"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="textNoSuggestions" android:maxLines="1" android:importantForAutofill="no" />
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/allowButton"
+                    style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/dashboard_allow_button" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/editRules"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/remove_rule" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/advancedToggle"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:text="@string/parent_advanced_uid"
+                    app:icon="@drawable/ic_tw_settings" />
+                <LinearLayout android:id="@+id/advancedRules"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp"
+                    android:background="@drawable/tw_inset_panel" android:visibility="gone">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/parent_advanced_uid_body" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Tracewall.Parent.InputLayout"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp" android:hint="@string/dashboard_block_hint">
+                        <com.google.android.material.textfield.TextInputEditText android:id="@+id/blockUidInput"
+                            style="@style/Widget.Tracewall.Input" android:background="@null"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:inputType="number" android:maxLines="1" android:importantForAutofill="no" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/blockUidButton"
+                        style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" android:text="@string/dashboard_block_button" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
-    <Button
-        android:id="@+id/allowButton"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/dashboard_allow_button" />
+        <androidx.core.widget.NestedScrollView android:id="@+id/devicesPage"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:fillViewport="true" android:visibility="gone">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="20dp" android:focusableInTouchMode="true">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/parent_nav_devices" android:accessibilityHeading="true"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Title" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/parent_devices_body"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <TextView android:id="@+id/savedDeviceSummary"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:orientation="vertical" android:padding="20dp" android:background="@drawable/tw_panel">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/parent_device_current" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                    <TextView android:id="@+id/childUidLabel"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" android:textIsSelectable="true"
+                        android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/renameDeviceButton"
+                        style="@style/Widget.Tracewall.Parent.Button.Text"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp" android:text="@string/menu_rename_device" />
+                </LinearLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/switchDeviceButton"
+                    style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" android:text="@string/menu_devices" app:icon="@drawable/ic_tw_family" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/addDeviceButton"
+                    style="@style/Widget.Tracewall.Parent.Button"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/device_add" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/parent_account_title"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:id="@+id/dashboardAccountStatus"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:textAppearance="@style/TextAppearance.Tracewall.Body" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/dashboardAccountButton"
+                    style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/parent_account_button" app:icon="@drawable/ic_tw_account" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp" android:text="@string/parent_device_management"
+                    android:accessibilityHeading="true" android:textAppearance="@style/TextAppearance.Tracewall.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/device_forget_note"
+                    android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/forgetDeviceButton"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/menu_forget_current" android:textColor="@color/tw_danger" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/forgetSavedButton"
+                    style="@style/Widget.Tracewall.Parent.Button.Text"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="@string/menu_forget_device" android:textColor="@color/tw_danger" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
-    <!-- Block-UID rule -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="@string/dashboard_block_hint">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/blockUidInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:maxLines="1" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <Button
-        android:id="@+id/blockUidButton"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/dashboard_block_button" />
-
-    <Button android:id="@+id/editRules"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/remove_rule" />
-
-    <!-- Category toggles -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/dashboard_categories"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/catMalware"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:checked="true"
-            android:text="@string/cat_malware" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/catGambling"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:checked="true"
-            android:text="@string/cat_gambling" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/catAdult"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:checked="true"
-            android:text="@string/cat_adult" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/catAds"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:checked="true"
-            android:text="@string/cat_ads" />
-
-    </LinearLayout>
-
-    <!-- History -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/dashboard_history"
-        android:textSize="13sp"
-        android:textStyle="bold" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/historyList"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="4dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:scrollbars="vertical" />
-
+    <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent" android:layout_height="80dp" android:minHeight="80dp"
+        android:background="@color/tw_surface" app:menu="@menu/parent_navigation"
+        app:labelVisibilityMode="labeled" app:itemHorizontalTranslationEnabled="false"
+        app:itemTextAppearanceActive="@style/TextAppearance.Tracewall.Parent.Nav"
+        app:itemTextAppearanceInactive="@style/TextAppearance.Tracewall.Parent.Nav"
+        app:itemIconTint="@color/parent_navigation_item" app:itemTextColor="@color/parent_navigation_item" />
 </LinearLayout>

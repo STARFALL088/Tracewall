@@ -7,15 +7,15 @@
 A local `VpnService` intercepts ordinary UDP DNS sent to its advertised resolver, runs it
 through a layered policy engine in microseconds, and shows the result live —
 down to exactly which app asked for which name.  
-Since **v2**, a companion parent app and Firebase backend let a parent push rules
+Since **v2.0.0**, a companion parent app and Firebase backend let a parent push rules
 and read history from any device, in real time.
 
 [![Language](https://img.shields.io/badge/language-Java-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![API](<https://img.shields.io/badge/minSdk-24%20(Android%207)-brightgreen?logo=android>)](https://developer.android.com/about/versions/nougat)
 [![AGP](https://img.shields.io/badge/AGP-8.5.2-blue?logo=gradle)](https://developer.android.com/build/releases/gradle-plugin)
-[![Tests](https://img.shields.io/badge/tests-170%20passing-success?logo=junit5)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/tests-288%20passing-success?logo=junit5)](https://junit.org/junit5/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20RTDB%20%7C%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
-[![Latest](https://img.shields.io/badge/latest-v1.2.0-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v1.2.0)
+[![Latest](https://img.shields.io/badge/latest-v2.2.0-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v2.2.0)
 
 </div>
 
@@ -24,7 +24,8 @@ and read history from any device, in real time.
 ## Table of Contents
 
 - [What it does](#what-it-does)
-- [Live demo](#live-demo-v1-verified-on-emulator-api-37)
+- [Screenshots](#screenshots)
+- [Live demo](#live-demo-v100-emulator-api-37)
 - [Architecture](#architecture)
 - [Versions](#versions)
 - [Modules & code layout](#modules--code-layout)
@@ -50,16 +51,31 @@ and read history from any device, in real time.
 | **Allowlist override**    | Explicit allows win over every category — long-press any blocked row                             |
 | **Live query log**        | 500-entry in-memory ring, refreshed every 700 ms, with a custom trend bar chart                  |
 | **Room history**          | Batched writes (1.5 s flush), one-week retention, exported via `ContentProvider`                 |
-| **Remote rules (v2)**     | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB           |
-| **Remote history (v2)**   | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live  |
-| **QR pairing (v2)**       | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing         |
+| **Remote rules (v2.0.0+)**   | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB        |
+| **Remote history (v2.0.0+)** | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live |
+| **QR pairing (v2.0.0+)**     | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing      |
 | **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                              |
 | **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, limiting encrypted-DNS discovery                      |
 | **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                         |
 
 ---
 
-## Live demo — v1, verified on emulator API 37
+## Screenshots
+
+Captured from **v2.2.0** on a Samsung SM-A127F running Android 13. Protection
+was left off, and the screens contain no private DNS history or account data.
+
+| Home | Activity | Protect |
+| :--: | :------: | :-----: |
+| [![Tracewall Home](docs/screenshots/03-child-home.png)](docs/screenshots/03-child-home.png) | [![Tracewall Activity](docs/screenshots/04-child-activity.png)](docs/screenshots/04-child-activity.png) | [![Tracewall Protect](docs/screenshots/05-child-protect.png)](docs/screenshots/05-child-protect.png) |
+
+| Family | Settings |
+| :----: | :------: |
+| [![Tracewall Family](docs/screenshots/06-child-family.png)](docs/screenshots/06-child-family.png) | [![Tracewall Settings](docs/screenshots/07-child-settings.png)](docs/screenshots/07-child-settings.png) |
+
+---
+
+## Live demo (v1.0.0, emulator API 37)
 
 ```
 $ adb shell ping -c 1 example.com          # not in any list → forwarded
@@ -71,7 +87,7 @@ PING xvideos.com (127.0.0.1)              # 0.0.0.0 written as loopback by ping
 $ adb shell ping -c 1 pornhub.com          # same category, but long-pressed → Allow
 PING pornhub.com (66.254.114.41)           # allowlist beats category, live
 
-$ adb shell ping -c 1 _dns.resolver.arpa   # SVCB discovery (v2) → NXDOMAIN
+$ adb shell ping -c 1 _dns.resolver.arpa   # SVCB discovery (v2.0.0+) → NXDOMAIN
 ping: _dns.resolver.arpa: No address associated with hostname
 ```
 
@@ -154,21 +170,24 @@ sequenceDiagram
 
 ## Versions
 
-|                     | **v1**                                                           | **v2**                                                           |
-| ------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **Tag**             | [`v1`](https://github.com/STARFALL088/Tracewall/releases/tag/v1) | [`v2`](https://github.com/STARFALL088/Tracewall/releases/tag/v2) |
-| **Date**            | 2026-10-20                                                       | 2026-10-26                                                       |
-| **Modules**         | `blocklist`, `app`                                               | `blocklist`, `app`, `parent`                                     |
-| **Network**         | None                                                             | Firebase (Auth, RTDB, Firestore)                                 |
-| **Tests**           | 76                                                               | 77                                                               |
-| **Device-verified** | ✅ Full                                                          | 🔄 Compiles; Firebase paths need real `google-services.json`     |
+Release tags now follow one SemVer sequence. The old `v1`, `v2`, and misplaced
+`v1.1.0` names were normalized without changing their tagged commits.
+
+| Release | Date | Snapshot |
+| ------- | ---- | -------- |
+| [`v1.0.0`](https://github.com/STARFALL088/Tracewall/tree/v1.0.0) | 2026-10-20 | Standalone child-side DNS filter |
+| [`v2.0.0`](https://github.com/STARFALL088/Tracewall/tree/v2.0.0) | 2026-10-26 | Firebase sync, parent app, remote rules, and QR pairing |
+| [`v2.1.0`](https://github.com/STARFALL088/Tracewall/tree/v2.1.0) | 2026-10-29 | Lifecycle, security, rules, blocklists, backups, and reporting checkpoint |
+| [`v2.2.0`](https://github.com/STARFALL088/Tracewall/releases/tag/v2.2.0) | 2026-11-06 | Multipage child and parent UX, shared visual system, and expanded regression coverage |
 
 ```bash
-git checkout v1   # standalone filter — everything verified on device
-git checkout v2   # full feature set — current HEAD
+git checkout v1.0.0   # standalone child-side filter
+git checkout v2.0.0   # first parent/Firebase release
+git checkout v2.1.0   # pre-redesign feature checkpoint
+git checkout v2.2.0   # current multipage release
 ```
 
-### What v2 added over v1
+### What v2.0.0 added over v1.0.0
 
 <details>
 <summary><strong>Click to expand full changelog</strong></summary>
@@ -314,7 +333,7 @@ Categories are loaded into a `TreeMap` so when a host appears in two of them it
 always reports the alphabetically-first reason — deterministic across restarts and
 devices.
 
-**Rule merging (v2).** Local rules (set on the child's device) and remote rules
+**Rule merging (v2.0.0+).** Local rules (set on the child's device) and remote rules
 (pushed by the parent) are merged before the `PolicyEngine` is built:
 
 - **Allow list** and **blocked UIDs** → union of local + remote. The parent can
@@ -420,7 +439,7 @@ firebase deploy --config firebase/firebase.json --project YOUR_PROJECT --only da
 
 ## Firebase setup
 
-> Skip this entirely if you only want to run the local filter (v1 behaviour).
+> Skip this entirely if you only want to run the local filter (v1.0.0 behaviour).
 > Firebase is optional; every DNS decision still happens on-device.
 
 **1. Create a project**
