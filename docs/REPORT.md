@@ -256,7 +256,7 @@ Android APKs.
   already read. Parent edits are last-write-wins. History/events have no cloud TTL.
 - Privacy controls are defaults and client-side gates, not an OS sandbox. Local
   mode stops new Tracewall uploads and networking but cannot recall writes already
-  issued, cached, exported or read. Cloud deletion covers only the three child
+  issued, cached, exported or read. Cloud deletion covers only the four child
   Firestore subcollections, needs deployed child delete rules, and cannot erase
   parent copies. Retention is enforced while the process runs, not while dead.
 - Diagnostics counters are process-lifetime only and reset with the service;

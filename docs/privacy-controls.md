@@ -84,13 +84,13 @@ The privacy controls are integrated into the shipped child app:
 ## Explicit cloud upload deletion
 
 The confirmation precisely scopes deletion to this authenticated child's
-`devices/{uid}/{history,events,apps}` **Firestore** subcollections. No parent can
+`devices/{uid}/{history,events,apps,location}` **Firestore** subcollections. No parent can
 choose another UID through this API. It does not erase identity, parent-owned
 rules, memberships, pairing, legacy RTDB data, exports, other caches or recursively
 nested unknown subcollections. Deployed child-only write/delete rules are required;
 no security rules are broadened or deployed here.
 
-1. After PIN approval, turn both share choices off, select local mode, persist a
+1. After PIN approval, stop location sharing, turn both share choices off, select local mode, persist a
    pending-deletion flag, invalidate all upload generations and stop listeners and
    pending publisher work. Cloud/sharing cannot be enabled while pending.
 2. Leave RTDB offline. Temporarily enable **only Firestore** for this explicit
@@ -105,7 +105,7 @@ no security rules are broadened or deployed here.
    on the shrinking collection, then move to the next collection. Bound an attempt
    to 50 batches total and a 120-second main-looper timeout. Larger jobs stay pending
    and resume by an explicit PIN-approved retry; no collection is loaded unboundedly.
-5. After all three collections have been processed, read **each again** from the
+5. After all four collections have been processed, read **each again** from the
    server with limit 1. Cached results, pending-write metadata, nonempty results,
    unavailable identity, offline/error/timeout/budget exhaustion are not success.
 6. Only after all server read-backs are empty and `disableNetwork()` completes

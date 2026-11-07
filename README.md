@@ -13,7 +13,7 @@ and read history from any device, in real time.
 [![Language](https://img.shields.io/badge/language-Java-orange?logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![API](<https://img.shields.io/badge/minSdk-24%20(Android%207)-brightgreen?logo=android>)](https://developer.android.com/about/versions/nougat)
 [![AGP](https://img.shields.io/badge/AGP-8.5.2-blue?logo=gradle)](https://developer.android.com/build/releases/gradle-plugin)
-[![Tests](https://img.shields.io/badge/tests-288%20passing-success?logo=junit5)](https://junit.org/junit5/)
+[![Tests](https://img.shields.io/badge/tests-306%20passing-success?logo=junit5)](https://junit.org/junit5/)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20RTDB%20%7C%20Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![Latest](https://img.shields.io/badge/latest-v2.2.0-informational)](https://github.com/STARFALL088/Tracewall/releases/tag/v2.2.0)
 
@@ -54,9 +54,10 @@ and read history from any device, in real time.
 | **Remote rules (v2.0.0+)**   | Parent pushes allow list, blocked UIDs and active categories from their phone via RTDB        |
 | **Remote history (v2.0.0+)** | Answered ordinary queries are mirrored after Room insert when signed in; parent reads them live |
 | **QR pairing (v2.0.0+)**     | Child shows its UID and expiring one-time code as a QR code; parent scans it — no typing      |
+| **Latest location (dev)**    | PIN-approved visible sharing of one latest point; verified parents view it on an osmdroid/OpenStreetMap map |
 | **Private DNS warning**   | Banner appears when `Settings.Global.private_dns_mode` is non-`off`                              |
 | **SVCB / HTTPS blocking** | Types 64 + 65 return NXDOMAIN immediately, limiting encrypted-DNS discovery                      |
-| **Bilingual**             | Full English and Bengali (`values-bn/`) string resources                                         |
+| **Bilingual**             | Core UI has English and Bengali (`values-bn/`); the isolated tracking slice is currently English-only |
 
 ---
 
@@ -558,6 +559,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Privacy controls + retention                   | DONE — JVM + APK builds         | PIN-gated cloud/history/app-name consent, clear and bounded deletion     |
 | Connection diagnostics                         | DONE — JVM + APK build          | Session counters, PIN-gated HTTPS/SVCB audit rows, zeroed panel observed |
 | Feed health + removable seeds                  | DONE — JVM + APK builds         | Read-only on entry, PIN-gated policy/refresh, exact-revision shrink approval |
+| Latest-only child location (development branch) | DONE — JVM + APK builds        | Visible PIN-approved location FGS, strict Firestore point and osmdroid parent map; production rules/device round trip pending |
 | Firebase Auth (email/password)                 | 🔄 Compiles                     | Email/password is the only remote method; startup never signs in         |
 | Realtime Database rules listener               | 🔄 Compiles                     | Needs real `google-services.json`                                        |
 | Firestore history mirror                       | 🔄 Compiles                     | Needs real `google-services.json`                                        |
