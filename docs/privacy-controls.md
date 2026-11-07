@@ -155,24 +155,33 @@ ANDROID_HOME="$HOME/Android/Sdk" ./gradlew --no-daemon --no-parallel \
   7 auth warnings; dominated by pre-existing unused legacy resources and
   API-level attributes). Reports: `app/build/reports/lint-results-debug.*`,
   `parent/build/reports/lint-results-debug.*`, `auth/build/reports/lint-results-debug.*`;
-  final log: `build/ci/final-verification.log`.
+  final log: `build/ci/final-verification.log`. The child-only rebuild after the
+  always-on string correction also passed (0 errors, 104 warnings); its log is
+  `build/ci/always-on-rebuild.log`.
 - EN/BN privacy XML has matching keys and matching format placeholders.
   `git diff --check` passed.
 - APK SHA-256:
   - `app/build/outputs/apk/debug/app-debug.apk`:
-    `c99bbcecd1cab5fc5e5863bb4421abfb0cb7c00714bc7668c9a2866043363642`
+    `3bf8db338fa5c13a7d5c004c78cacd6f4c7fccda63ef80d496ee2090f1a6aeb3`
   - `parent/build/outputs/apk/debug/parent-debug.apk`:
     `ad5063a253631967ea49cecc45adc770e7ee2ce186b9ddb5e9696a37fd5daafd`
 
 Both debug APKs were installed over the existing data on the Samsung SM-A127F
 (`R58RA294D7L`, Android 13) and the child app launched in local mode. Home showed
 zeroed diagnostics counters and the HTTPS/SVCB probe logging toggle as "on".
+After the phone was unlocked, protection started normally and the diagnostics
+panel moved to Allowed 7 / Blocked 3 with zero SERVFAIL, DNS queue drops and
+history drops. Settings → Privacy controls displayed the parent-PIN prompt, so
+the entry point and gate were exercised, but the content behind it was not
+opened. Settings also showed the corrected always-on message: Android 13 does
+not expose the selected app to third-party apps, so the screen directs the user
+to Android VPN settings instead of claiming a verified state.
 
-The Privacy screen, PIN dialogs, rotation, real SDK networking shutdown,
-persistent offline write ordering and server-acknowledged deletion under
-interrupted connectivity remain **unverified on Android / production Firebase**.
-The device locked before the unknown parent PIN could be entered, and no PIN was
-guessed or reset. Demo JSON does not configure emulators and must not be
-installed for a meaningful Firebase runtime check. No production success,
-security deployment or cache-recall claim is made. Exercise the PIN-gated
-screens on an authorized disposable test project/device before release.
+The PIN-gated privacy choices, retention/deletion behavior, rotation, real SDK
+networking shutdown, persistent offline write ordering and server-acknowledged
+deletion under interrupted connectivity remain **unverified on Android /
+production Firebase**. No PIN was guessed or reset. Demo JSON does not configure
+emulators and must not be installed for a meaningful Firebase runtime check. No
+production success, security deployment or cache-recall claim is made. Exercise
+the PIN-gated screens on an authorized disposable test project/device before
+release.

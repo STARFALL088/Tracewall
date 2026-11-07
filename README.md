@@ -628,6 +628,9 @@ Device and production limitations are also detailed in the report.
 - **Private DNS is warned, not disabled.** A determined user can keep Private DNS
   on. The new **Make it permanent** button explains always-on VPN and
   lockdown, then opens Android VPN settings; this still needs device testing.
+  Android 13 does not expose the always-on selection to third-party apps, so the
+  Settings status line explains the restriction and directs the user to Android's
+  VPN settings instead of claiming a verified state.
 
 - **Tamper reporting is best effort.** Android may kill or force-stop a process
   without a lifecycle callback. Events cannot be guaranteed in that case; an

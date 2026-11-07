@@ -14,7 +14,7 @@ The detailed week mapping below is preserved from the supplied root-level syllab
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | DONE — JVM + both APK builds; rotation device check blocked (AVD disk space) |
 | H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 300 JVM tests, 22 Python contracts and both APK builds pass |
 | I — Privacy and data controls | PIN-gated cloud mode, history/app-name consent, retention, race-safe local clear and bounded cloud deletion | DONE — 22 privacy tests and both APK builds; trusted device PIN flow pending |
-| J — Diagnostics and feed health | Session DNS counters, optional HTTPS/SVCB audit rows, read-only always-on status, read-only feed health with removable seeds | DONE — JVM tests and both APK builds; diagnostics panel observed, counter movement pending |
+| J — Diagnostics and feed health | Session DNS counters, optional HTTPS/SVCB audit rows, best-effort always-on status, read-only feed health with removable seeds | DONE — JVM tests and both APK builds; counters moved on device, PIN-gated changes pending |
 
 Existing components: VPN Service and sockets; Room with a private ContentProvider;
 Activities and RecyclerViews; boot receiver; bilingual resources; local parent PIN.
@@ -104,12 +104,16 @@ pairing/rules/history/revocation across two devices.
 On-device audit (Samsung SM-A127F, Android 13) confirmed cold start without ANR, a
 71 ms warm tunnel start (9.2 s cold parse on a background thread), working DNS
 filtering, and a full 4/4 list refresh after the dead malware endpoint was replaced.
-The integrated 7 November build preserved app data, rendered the Home diagnostics
-panel at zero and showed HTTPS/SVCB probe logging as on. Email/password is the only
-remote sign-in; phone OTP and Google sign-in were removed. The earlier phone attempt
-failed with error 17499 `BILLING_NOT_ENABLED` because the Firebase project has
-billing disabled. Privacy/retention/cloud-mode screens, diagnostics counter movement
-after protection starts, feed-health UI, parent dashboard/remote rules and per-app
-enforcement remain unverified because the phone locked and no parent PIN is known.
-No PIN was guessed, no production rules were deployed, no billing was enabled and no
+The integrated 7 November build preserved app data and rendered the Home diagnostics
+panel with HTTPS/SVCB probe logging on. After unlocking, protection started and the
+panel moved to Allowed 7 / Blocked 3 with zero SERVFAIL/queue/history drops;
+Settings → Privacy controls prompted for the unknown parent PIN; Protect → Feed
+health opened read-only with PIN-gated change/refresh; and Settings explained that
+Android 13 withholds the always-on selection from third-party apps. Email/password
+is the only remote sign-in; phone OTP and Google sign-in were removed. The earlier
+phone attempt failed with error 17499 `BILLING_NOT_ENABLED` because the Firebase
+project has billing disabled. Privacy screen contents behind the PIN, feed policy
+changes/refresh, parent dashboard/remote rules and per-app enforcement remain
+unverified because no parent PIN is known and no child is paired. No PIN was
+guessed, no production rules were deployed, no billing was enabled and no
 credentials changed. XML parsing remains optional and is not claimed as implemented.

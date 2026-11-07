@@ -425,14 +425,17 @@ production/device requirements are stated separately.
   counters.
 - Home now shows a Connection diagnostics panel with allowed, blocked, SERVFAIL,
   queue-drop, history-drop, unknown-app and HTTPS/SVCB-probe counts, plus the
-  PIN-gated probe logging toggle. Settings shows Android's always-on VPN
-  selection and lockdown state read-only; Tracewall cannot change it.
+  PIN-gated probe logging toggle. Settings attempts to show Android's always-on
+  VPN selection and lockdown state read-only. On Android 13 the selected-app
+  key is not `@Readable`, so third-party apps receive a security exception; the
+  panel explains the restriction and points to Android VPN settings. Tracewall
+  cannot change the selection.
 - EN/BN resources were added for every new label, summary and failure state.
 - Verification: `DnsMetricsTest` covers counter separation and reset; the full
-  run is recorded below. On the device, Home rendered the panel with zeroed
-  counters and the logging toggle as "on" in local mode. Counter movement after
-  starting protection and the always-on status text still need an unlocked
-  device pass.
+  run is recorded below. On the device, starting protection moved the panel to
+  Allowed 7 / Blocked 3 with zero SERVFAIL, queue drops and history drops; the
+  logging toggle stayed "on". Settings showed the Android-restricted always-on
+  message. A PIN-gated toggle change was not attempted.
 
 ### 12 — Feed health, removable bundled seeds and consistent docs (2026-11-07)
 
@@ -462,15 +465,25 @@ production/device requirements are stated separately.
   `:parent:testDebugUnitTest`, both APK assemblies and all three lint tasks
   succeeded. Lint has zero errors (104 child, 40 parent, 7 auth warnings;
   dominated by pre-existing unused legacy resources and API-level attributes).
-- APK SHA-256: Child
-  `c99bbcecd1cab5fc5e5863bb4421abfb0cb7c00714bc7668c9a2866043363642`;
-  Parent `ad5063a253631967ea49cecc45adc770e7ee2ce186b9ddb5e9696a37fd5daafd`.
+- APK SHA-256 after the always-on wording correction: Child
+  `3bf8db338fa5c13a7d5c004c78cacd6f4c7fccda63ef80d496ee2090f1a6aeb3`;
+  Parent `ad5063a253631967ea49cecc45adc770e7ee2ce186b9ddb5e9696a37fd5daafd`
+  (`parent` was unchanged by the resource-only child rebuild). The corrective
+  child build and lint passed; log `build/ci/always-on-rebuild.log`.
 - Both APKs were installed with `adb install -r` on the Samsung SM-A127F
   (`R58RA294D7L`, Android 13), preserving app data. The child Home screen showed
   103,113 rules, the diagnostics panel at zero and probe logging "on".
-- Still blocked by the unknown parent PIN: opening Privacy controls, changing
-  retention/consent/cloud mode, changing probe logging, feed policy changes,
-  refresh, pairing and revocation. Parent dashboard, remote rules, app picker,
-  device switching, child history and revocation also remain blocked because no
-  child is paired. No PIN was guessed or reset, and no production Firebase rules,
-  billing, providers or accounts were changed.
+- Device checks after unlocking: protection started normally; the diagnostics
+  panel moved to Allowed 7 / Blocked 3 with zero SERVFAIL/queue/history drops;
+  Settings → Privacy controls displayed the parent-PIN prompt; Protect → Feed
+  health opened read-only with the default bundled-seed policy and PIN-gated
+  change/refresh. Feed health showed no health record for the earlier
+  pre-integration refresh, as expected; a new PIN-gated refresh could not be run.
+  The always-on panel correctly reported that Android 13 withholds the selected
+  app from third-party apps.
+- Still blocked by the unknown parent PIN: opening the Privacy controls content,
+  changing retention/consent/cloud mode, changing probe logging, feed policy
+  changes, refresh, pairing and revocation. Parent dashboard, remote rules, app
+  picker, device switching, child history and revocation also remain blocked
+  because no child is paired. No PIN was guessed or reset, and no production
+  Firebase rules, billing, providers or accounts were changed.
