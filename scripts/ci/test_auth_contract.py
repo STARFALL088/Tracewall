@@ -83,6 +83,30 @@ class AuthIntegrationContractTest(unittest.TestCase):
         for symbol in ("GetSignInWithGoogleOption", "GoogleIdTokenCredential", "GoogleAuthProvider"):
             self.assertNotIn(symbol, model)
 
+    def test_phone_auth_is_not_exposed_or_implemented(self):
+        layout = ET.parse(ROOT / "auth/src/main/res/layout/activity_tracewall_auth.xml").getroot()
+        ids = {node.get(ANDROID + "id", "") for node in layout.iter()}
+        for fragment in ("auth_phone", "auth_code", "auth_sms", "auth_cooldown", "auth_resend"):
+            with self.subTest(layout_id=fragment):
+                self.assertFalse([value for value in ids if fragment in value])
+
+        resources = ET.parse(ROOT / "auth/src/main/res/values/strings.xml").getroot()
+        names = {node.attrib["name"] for node in resources if node.tag in ("string", "plurals")}
+        for fragment in ("auth_phone", "auth_code", "auth_sms", "auth_cooldown", "auth_resend"):
+            with self.subTest(resource_name=fragment):
+                self.assertFalse([name for name in names if fragment in name])
+
+        for path in sorted((ROOT / "auth/src/main/java/tracewall/auth").glob("*.java")):
+            with self.subTest(path=path.name):
+                source = path.read_text(encoding="utf-8")
+                self.assertNotRegex(source, r"(?i)\b(phone|sms|otp)\b")
+                for symbol in ("PhoneAuthProvider", "PhoneAuthOptions", "PhoneAuthCredential",
+                               "PhoneFlowGuard", "AccountPolicy.PHONE", "validPhone", "validCode"):
+                    self.assertNotIn(symbol, source)
+
+        self.assertFalse((ROOT / "auth/src/main/java/tracewall/auth/PhoneFlowGuard.java").exists())
+        self.assertFalse((ROOT / "auth/src/test/java/tracewall/auth/PhoneFlowGuardTest.java").exists())
+
     def test_consumer_account_resources_have_bengali_and_placeholder_parity(self):
         for module in ("app", "parent"):
             documents = []

@@ -1,10 +1,6 @@
 package tracewall.auth;
 
-import android.app.Activity;
 import android.app.Application;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -13,7 +9,6 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.FirebaseException;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.AuthCredential;
@@ -22,33 +17,22 @@ import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthOptions;
-import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.auth.UserInfo;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * All state and Firebase task ownership survive rotation, but not process death.
- * Never put an Activity, password, OTP, ID token, or AuthCredential in saved state.
- * Phone verification IDs/resend tokens live ONLY in this model's memory.
+ * Never put an Activity, password, ID token, or AuthCredential in saved state.
  */
 public final class AuthViewModel extends AndroidViewModel {
-    private enum Work { NONE, FIREBASE, PHONE_REQUEST }
-
     private final MutableLiveData<AuthUiState> states = new MutableLiveData<>();
-    private final Handler handler = new Handler(Looper.getMainLooper());
     private final Executor main;
     private final AuthFlowGuard work = new AuthFlowGuard();
-    private final PhoneFlowGuard phoneFlow = new PhoneFlowGuard();
     private final FirebaseAuth.AuthStateListener authListener = ignored -> onAuthStateChanged();
     private FirebaseAuth auth;
-    private Work workType = Work.NONE;
-    private long workToken;
     private int message;
     private boolean cleared;
     private boolean initialized;
@@ -60,31 +44,6 @@ public final class AuthViewModel extends AndroidViewModel {
     private long successSequence;
     private String successfulUid;
     private boolean autoFinish;
-
-    private boolean consent;
-    private String phone = "";
-    private String phoneExpectedUid;
-    private String verificationId;
-    private PhoneAuthProvider.ForceResendingToken resendToken;
-    private boolean phoneNeedsReattach;
-    private long phoneSendToken;
-    private long phoneRequestDeadline;
-
-    private final Runnable tick = new Runnable() {
-        @Override public void run() {
-            if (cleared) return;
-            long now = SystemClock.elapsedRealtime();
-            if (workType == Work.PHONE_REQUEST && now >= phoneRequestDeadline) {
-                finishWork(phoneSendToken);
-                phoneFlow.stopListening(phoneFlow.generation());
-                message = R.string.auth_phone_timeout;
-            }
-            publish();
-            if (workType == Work.PHONE_REQUEST || phoneFlow.remainingSeconds(now) > 0) {
-                handler.postDelayed(this, 1_000L);
-            }
-        }
-    };
 
     public AuthViewModel(@NonNull Application application) {
         super(application);
@@ -115,15 +74,9 @@ public final class AuthViewModel extends AndroidViewModel {
     LiveData<AuthUiState> states() { return states; }
 
     void setCreateEmail(boolean create) {
-        if (work.busy() || phoneFlow.active()) return;
+        if (work.busy()) return;
         if (boundUid != null && create) { show(R.string.auth_bound_recovery); return; }
         createEmail = create;
-        publish();
-    }
-
-    void setConsent(boolean accepted) {
-        if (work.busy() || phoneFlow.active()) return;
-        consent = accepted;
         publish();
     }
 
@@ -145,14 +98,12 @@ public final class AuthViewModel extends AndroidViewModel {
             show(R.string.auth_error_bound_existing);
             return false;
         }
-        return !cleared && !work.busy() && !phoneFlow.active();
+        return !cleared && !work.busy();
     }
 
-    private long begin(Work type) {
+    private long begin() {
         long token = work.begin();
         if (token == 0 || cleared) return 0;
-        workType = type;
-        workToken = token;
         message = 0;
         publish();
         return token;
@@ -160,8 +111,6 @@ public final class AuthViewModel extends AndroidViewModel {
 
     private boolean finishWork(long token) {
         if (!work.finish(token)) return false;
-        workType = Work.NONE;
-        workToken = 0;
         return true;
     }
 
@@ -174,7 +123,6 @@ public final class AuthViewModel extends AndroidViewModel {
 
     private void identityError(long token) {
         finishWork(token);
-        clearPhone();
         show(R.string.auth_error_identity_changed);
     }
 
@@ -195,7 +143,7 @@ public final class AuthViewModel extends AndroidViewModel {
             return;
         }
         String expectedUid = uid();
-        long token = begin(Work.FIREBASE);
+        long token = begin();
         if (token == 0) return;
         try {
             // Keep the check immediately next to SDK issuance, never silently turn a sign-in into a switch.
@@ -211,9 +159,9 @@ public final class AuthViewModel extends AndroidViewModel {
                 task = boundUid == null ? auth.signInWithEmailAndPassword(email, password)
                     : recover(EmailAuthProvider.getCredential(email, password), token);
             }
-            observeAuthentication(task, token, expectedUid, 0);
+            observeAuthentication(task, token, expectedUid);
         } catch (RuntimeException failure) {
-            failAuthentication(token, expectedUid, 0, failure);
+            failAuthentication(token, expectedUid, failure);
         }
     }
 
@@ -225,7 +173,7 @@ public final class AuthViewModel extends AndroidViewModel {
                 || current.getEmail() == null) { show(R.string.auth_already_connected); return; }
         if (!AuthInputs.validLoginPassword(password)) { show(R.string.auth_error_password_empty); return; }
         String expectedUid = current.getUid();
-        long token = begin(Work.FIREBASE);
+        long token = begin();
         if (token == 0) return;
         try {
             if (!identityMatches(expectedUid)) { identityError(token); return; }
@@ -249,17 +197,17 @@ public final class AuthViewModel extends AndroidViewModel {
             show(boundUid != null ? R.string.auth_bound_recovery : R.string.auth_error_identity_changed);
             return;
         }
-        long token = begin(Work.FIREBASE);
+        long token = begin();
         if (token == 0) return;
         try {
             if (user() != null) { identityError(token); return; }
-            observeAuthentication(auth.signInAnonymously(), token, null, 0);
+            observeAuthentication(auth.signInAnonymously(), token, null);
         } catch (RuntimeException failure) {
-            failAuthentication(token, null, 0, failure);
+            failAuthentication(token, null, failure);
         }
     }
 
-    private void observeAuthentication(Task<AuthResult> task, long token, String expectedUid, long phoneGeneration) {
+    private void observeAuthentication(Task<AuthResult> task, long token, String expectedUid) {
         task.addOnCompleteListener(main, result -> {
             if (!work.owns(token)) return;
             FirebaseUser authenticated = result.isSuccessful() && result.getResult() != null
@@ -267,7 +215,7 @@ public final class AuthViewModel extends AndroidViewModel {
             String resultUid = authenticated == null ? null : authenticated.getUid();
             if (cleared) return;
             if (!result.isSuccessful()) {
-                failAuthentication(token, expectedUid, phoneGeneration, result.getException());
+                failAuthentication(token, expectedUid, result.getException());
                 return;
             }
             if (!AccountPolicy.successfulIdentity(expectedUid,
@@ -276,7 +224,6 @@ public final class AuthViewModel extends AndroidViewModel {
                 return;
             }
             finishWork(token);
-            clearPhone();
             successfulUid = authenticated.getUid();
             ++successSequence;
             autoFinish = initial && launchedWithoutUser && expectedUid == null;
@@ -289,203 +236,21 @@ public final class AuthViewModel extends AndroidViewModel {
             () -> !cleared && work.owns(token) && identityMatches(null), main);
     }
 
-    private void failAuthentication(long token, String expectedUid, long phoneGeneration, Exception failure) {
+    private void failAuthentication(long token, String expectedUid, Exception failure) {
         if (cleared || !work.owns(token)) return;
         finishWork(token);
         if (!identityMatches(expectedUid)) {
-            clearPhone();
             show(R.string.auth_error_identity_changed);
             return;
         }
-        if (phoneGeneration != 0) phoneFlow.completionFailed(phoneGeneration);
         show(AuthErrors.message(failure, expectedUid != null));
-    }
-
-    private void useCredential(AuthCredential credential, String provider, String expectedUid,
-                               long token, long phoneGeneration) {
-        if (cleared || !work.owns(token)) return;
-        if (!identityMatches(expectedUid)) { identityError(token); return; }
-        FirebaseUser current = user();
-        AccountPolicy.Action action = AccountPolicy.action(uid(), providers(current), provider, false);
-        if (action == AccountPolicy.Action.ALREADY_CONNECTED) {
-            finishWork(token);
-            clearPhone();
-            show(R.string.auth_already_connected);
-            return;
-        }
-        workType = Work.FIREBASE; // Not cancellable by Activity teardown once Firebase owns the credential.
-        publish();
-        try {
-            // This is the ONLY generic primary sign-in site. Existing UIDs always take the link branch.
-            Task<AuthResult> task;
-            if (current != null) {
-                task = current.linkWithCredential(credential);
-            } else {
-                if (expectedUid != null || user() != null) { identityError(token); return; }
-                task = boundUid == null ? auth.signInWithCredential(credential) : recover(credential, token);
-            }
-            observeAuthentication(task, token, expectedUid, phoneGeneration);
-        } catch (RuntimeException failure) {
-            failAuthentication(token, expectedUid, phoneGeneration, failure);
-        }
-    }
-
-    void startPhone(Activity activity, String rawPhone) {
-        if (!available()) return;
-        if (!consent) { show(R.string.auth_error_consent); return; }
-        if (!AuthInputs.validPhone(rawPhone)) { show(R.string.auth_error_phone); return; }
-        if (providers(user()).contains(AccountPolicy.PHONE)) { show(R.string.auth_already_connected); return; }
-        if (phoneFlow.remainingSeconds(SystemClock.elapsedRealtime()) > 0) {
-            publish();
-            return;
-        }
-        phone = AuthInputs.phone(rawPhone);
-        phoneExpectedUid = uid();
-        requestPhone(activity, null);
-    }
-
-    void resendPhone(Activity activity) {
-        if (cleared || work.busy() || !phoneFlow.active() || resendToken == null) return;
-        if (!consent) { show(R.string.auth_error_consent); return; }
-        if (!identityMatches(phoneExpectedUid)) { identityError(0); return; }
-        if (phoneFlow.remainingSeconds(SystemClock.elapsedRealtime()) > 0) return;
-        requestPhone(activity, resendToken); // Force only for an explicit, cooldown-eligible resend.
-    }
-
-    private void requestPhone(Activity activity, PhoneAuthProvider.ForceResendingToken forceToken) {
-        long now = SystemClock.elapsedRealtime();
-        long generation = phoneFlow.start(now);
-        if (generation == 0) return;
-        verificationId = null;
-        resendToken = null;
-        phoneRequestDeadline = now + PhoneFlowGuard.TIMEOUT_MS;
-        phoneSendToken = begin(Work.PHONE_REQUEST);
-        if (phoneSendToken == 0) { clearPhone(); return; }
-        message = R.string.auth_phone_sending;
-        phoneNeedsReattach = false;
-        issuePhone(activity, generation, forceToken);
-        startTicks();
-    }
-
-    private void issuePhone(Activity activity, long generation, PhoneAuthProvider.ForceResendingToken forceToken) {
-        if (cleared || !phoneFlow.owns(generation)) return;
-        if (!identityMatches(phoneExpectedUid)) { identityError(phoneSendToken); return; }
-        try {
-            PhoneAuthOptions.Builder options = PhoneAuthOptions.newBuilder(auth)
-                    .setPhoneNumber(phone)
-                    .setTimeout(60L, TimeUnit.SECONDS)
-                    .setActivity(activity)
-                    .setCallbacks(phoneCallbacks(generation));
-            if (forceToken != null) options.setForceResendingToken(forceToken);
-            PhoneAuthProvider.verifyPhoneNumber(options.build());
-        } catch (RuntimeException failure) {
-            boolean linking = phoneExpectedUid != null;
-            finishWork(phoneSendToken);
-            clearPhone();
-            show(AuthErrors.message(failure, linking));
-        }
-        publish();
-    }
-
-    private PhoneAuthProvider.OnVerificationStateChangedCallbacks phoneCallbacks(long generation) {
-        // This callback captures only the ViewModel/generation, never the Activity used for binding.
-        return new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-            @Override public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                if (cleared || !phoneFlow.owns(generation)) return;
-                finishWork(phoneSendToken);
-                completePhoneCredential(credential, generation, true);
-            }
-
-            @Override public void onVerificationFailed(@NonNull FirebaseException error) {
-                if (cleared || !phoneFlow.owns(generation) || workType == Work.FIREBASE) return;
-                boolean linking = phoneExpectedUid != null;
-                finishWork(phoneSendToken);
-                clearPhone();
-                show(AuthErrors.message(error, linking));
-            }
-
-            @Override public void onCodeSent(@NonNull String id, @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                if (cleared || !phoneFlow.owns(generation)) return;
-                verificationId = id;
-                resendToken = token;
-                phoneFlow.sent(generation, SystemClock.elapsedRealtime());
-                finishWork(phoneSendToken);
-                if (workType != Work.FIREBASE) message = R.string.auth_code_sent;
-                startTicks();
-            }
-
-            @Override public void onCodeAutoRetrievalTimeOut(@NonNull String id) {
-                if (cleared || !phoneFlow.owns(generation)) return;
-                verificationId = id;
-                phoneFlow.stopListening(generation);
-                finishWork(phoneSendToken);
-                if (workType != Work.FIREBASE) message = R.string.auth_phone_timeout;
-                publish();
-            }
-        };
-    }
-
-    void submitCode(String code) {
-        if (cleared || work.busy() || !phoneFlow.active() || verificationId == null) return;
-        if (!AuthInputs.validCode(code)) { show(R.string.auth_error_code); return; }
-        try {
-            completePhoneCredential(PhoneAuthProvider.getCredential(verificationId, code), phoneFlow.generation(), false);
-        } catch (RuntimeException invalidCode) {
-            show(R.string.auth_error_code);
-        }
-    }
-
-    private void completePhoneCredential(PhoneAuthCredential credential, long generation, boolean automatic) {
-        if (cleared || work.busy() || !phoneFlow.claimCompletion(generation, automatic)) return;
-        long token = begin(Work.FIREBASE);
-        if (token == 0) { phoneFlow.completionFailed(generation); return; }
-        useCredential(credential, AccountPolicy.PHONE, phoneExpectedUid, token, generation);
-    }
-
-    void cancelPhone() {
-        if (work.busy() && workType != Work.PHONE_REQUEST) return;
-        finishWork(phoneSendToken);
-        clearPhone();
-        show(R.string.auth_phone_cancelled);
-    }
-
-    private void clearPhone() {
-        phoneFlow.cancel();
-        consent = false;
-        verificationId = null;
-        resendToken = null;
-        phoneExpectedUid = null;
-        phone = "";
-        phoneNeedsReattach = false;
-        phoneSendToken = 0;
-    }
-
-    void onHostStopped() {
-        // Activity-bound Firebase callbacks are detached on stop by the SDK.
-        if (phoneFlow.active()) phoneNeedsReattach = true;
-    }
-
-    void onHostStarted(Activity activity) {
-        if (cleared || !phoneNeedsReattach || !phoneFlow.active()) return;
-        phoneNeedsReattach = false;
-        long generation = phoneFlow.generation();
-        if (phoneFlow.canReattach(generation, SystemClock.elapsedRealtime())) {
-            // SDK reentrant reattachment, not a resend: NEVER pass ForceResendingToken here.
-            issuePhone(activity, generation, null);
-        }
-        startTicks();
-    }
-
-    private void startTicks() {
-        handler.removeCallbacks(tick);
-        handler.post(tick);
     }
 
     void resetPassword(String rawEmail) {
         if (!available()) return;
         String email = AuthInputs.email(rawEmail);
         if (!AuthInputs.validEmail(email)) { show(R.string.auth_error_email); return; }
-        long token = begin(Work.FIREBASE);
+        long token = begin();
         if (token == 0) return;
         try {
             auth.sendPasswordResetEmail(email).addOnCompleteListener(main, task -> {
@@ -509,7 +274,7 @@ public final class AuthViewModel extends AndroidViewModel {
         FirebaseUser current = user();
         if (current == null || current.getEmail() == null) return;
         String expectedUid = current.getUid();
-        long token = begin(Work.FIREBASE);
+        long token = begin();
         if (token == 0) return;
         try {
             Task<Void> task = reload ? current.reload() : current.sendEmailVerification();
@@ -527,19 +292,14 @@ public final class AuthViewModel extends AndroidViewModel {
         }
     }
 
-    /** Firebase tasks cannot be cancelled safely; phone sessions can be invalidated. */
+    /** Firebase tasks cannot be cancelled safely; leave only after they finish. */
     boolean mayLeave() {
-        if (workType == Work.PHONE_REQUEST || (!work.busy() && phoneFlow.active())) cancelPhone();
         if (work.busy()) { show(R.string.auth_wait_to_leave); return false; }
         return true;
     }
 
     private void onAuthStateChanged() {
         if (cleared) return;
-        if (!work.busy() && phoneFlow.active() && !identityMatches(phoneExpectedUid)) {
-            clearPhone();
-            message = R.string.auth_error_identity_changed;
-        }
         publish();
     }
 
@@ -547,25 +307,19 @@ public final class AuthViewModel extends AndroidViewModel {
         if (cleared) return;
         FirebaseUser current = user();
         Set<String> connected = providers(current);
-        long remaining = phoneFlow.remainingSeconds(SystemClock.elapsedRealtime());
         boolean emailPresent = current != null && current.getEmail() != null && !current.getEmail().isEmpty();
         boolean mismatch = !AccountPolicy.currentMatchesBound(boundUid, uid());
         boolean successful = !mismatch && current != null && current.getUid().equals(successfulUid);
         states.setValue(new AuthUiState(auth != null, mismatch, boundUid != null, current != null, current != null && current.isAnonymous(),
-                connected.contains(AccountPolicy.EMAIL), connected.contains(AccountPolicy.PHONE),
-                emailPresent, current != null && current.isEmailVerified(), emailPresent ? current.getEmail() : "",
-                work.busy(), phoneFlow.active(), verificationId != null,
-                phoneFlow.active() && resendToken != null && remaining == 0 && !work.busy(),
-                phoneFlow.active() && (!work.busy() || workType == Work.PHONE_REQUEST),
-                remaining, consent, phone, createEmail, mismatch ? R.string.auth_error_bound_existing : message, successful ? successSequence : 0,
+                connected.contains(AccountPolicy.EMAIL), emailPresent, current != null && current.isEmailVerified(),
+                emailPresent ? current.getEmail() : "", work.busy(), createEmail,
+                mismatch ? R.string.auth_error_bound_existing : message, successful ? successSequence : 0,
                 successful && autoFinish));
     }
 
     @Override protected void onCleared() {
         cleared = true;
         if (auth != null) auth.removeAuthStateListener(authListener);
-        handler.removeCallbacksAndMessages(null);
-        clearPhone();
         super.onCleared();
     }
 }

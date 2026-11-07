@@ -92,7 +92,7 @@ final class BoundAccountRecovery {
                     finish(null, new Failure(Reason.WRONG_IDENTITY));
                     return;
                 }
-                // Copy the verified SAME-PROJECT user, rather than consuming a phone OTP twice.
+                // Copy the verified SAME-PROJECT user, rather than consuming the credential twice.
                 // Only the exact anchored UID can ever reach the primary auth instance.
                 primary.updateCurrentUser(candidate).addOnCompleteListener(executor, promoted -> {
                     if (!promoted.isSuccessful()) { finish(null, promoted.getException()); return; }

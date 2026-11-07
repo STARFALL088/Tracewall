@@ -8,7 +8,6 @@ public final class AccountPolicy {
     public static final String CHILD = "child";
     public static final String PARENT = "parent";
     public static final String EMAIL = "password";
-    public static final String PHONE = "phone";
 
     public enum Action { SIGN_IN, CREATE_EMAIL, LINK, ALREADY_CONNECTED }
 

@@ -101,9 +101,9 @@ pairing/rules/history/revocation across two devices.
 On-device audit (Samsung SM-A127F, Android 13) confirmed cold start without ANR, a
 71 ms warm tunnel start (9.2 s cold parse on a background thread), working DNS
 filtering, and a full 4/4 list refresh after the dead malware endpoint was replaced.
-Phone OTP still cannot complete: the SMS region policy now allows Bangladesh, but
-the Firebase project has billing disabled, so the SDK returns error 17499
-`BILLING_NOT_ENABLED` and no SMS is sent. Parent dashboard/remote rules, PIN-gated
+Email/password is the only remote sign-in; phone OTP and Google sign-in were removed.
+The earlier phone attempt failed with error 17499 `BILLING_NOT_ENABLED` because the
+Firebase project has billing disabled. Parent dashboard/remote rules, PIN-gated
 actions and per-app enforcement remain unverified because no child is paired. No
 production rules were deployed, no billing was enabled and no credentials changed.
 XML parsing remains optional and is not claimed as implemented.

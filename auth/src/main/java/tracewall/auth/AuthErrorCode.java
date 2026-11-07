@@ -4,7 +4,7 @@ package tracewall.auth;
 final class AuthErrorCode {
     enum Reason {
         INVALID_CREDENTIALS, COLLISION, PROVIDER_DISABLED, CONFIGURATION, NETWORK,
-        RATE_LIMIT, WEAK_PASSWORD, RECENT_LOGIN, EXPIRED_CODE, ACCOUNT_DISABLED, UNKNOWN
+        RATE_LIMIT, WEAK_PASSWORD, RECENT_LOGIN, ACCOUNT_DISABLED, UNKNOWN
     }
 
     private AuthErrorCode() { }
@@ -24,8 +24,6 @@ final class AuthErrorCode {
             case "ERROR_WRONG_PASSWORD":
             case "ERROR_USER_NOT_FOUND":
             case "ERROR_INVALID_EMAIL":
-            case "ERROR_INVALID_PHONE_NUMBER":
-            case "ERROR_INVALID_VERIFICATION_CODE":
                 return Reason.INVALID_CREDENTIALS;
             case "ERROR_CREDENTIAL_ALREADY_IN_USE":
             case "ERROR_EMAIL_ALREADY_IN_USE":
@@ -38,10 +36,6 @@ final class AuthErrorCode {
             case "ERROR_MISSING_CLIENT_IDENTIFIER":
             case "ERROR_MISSING_APP_CREDENTIAL":
             case "ERROR_INVALID_APP_CREDENTIAL":
-            case "ERROR_INVALID_CERT_HASH":
-            case "ERROR_CAPTCHA_CHECK_FAILED":
-            case "ERROR_MISSING_ACTIVITY":
-            case "ERROR_APP_NOT_VERIFIED":
             case "ERROR_WEB_INTERNAL_ERROR":
                 return Reason.CONFIGURATION;
             case "ERROR_NETWORK_REQUEST_FAILED":
@@ -54,10 +48,6 @@ final class AuthErrorCode {
                 return Reason.WEAK_PASSWORD;
             case "ERROR_REQUIRES_RECENT_LOGIN":
                 return Reason.RECENT_LOGIN;
-            case "ERROR_SESSION_EXPIRED":
-            case "ERROR_CODE_EXPIRED":
-            case "ERROR_INVALID_VERIFICATION_ID":
-                return Reason.EXPIRED_CODE;
             case "ERROR_USER_DISABLED":
                 return Reason.ACCOUNT_DISABLED;
             default:

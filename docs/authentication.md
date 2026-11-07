@@ -1,16 +1,18 @@
 # Authentication and account recovery
 
-Both Android apps use the shared Java `:auth` library for email/password and
-phone-number OTP. Gmail addresses work through email/password; they are not a
-separate Firebase provider. Google sign-in is not exposed or implemented.
+Both Android apps use the shared Java `:auth` library for email/password only.
+Google sign-in and phone-number OTP are intentionally not exposed or implemented.
+Phone OTP was removed on 2026-11-07 after the Firebase project turned out to have
+billing disabled; the removal note below records the decision.
 
 ## Identity policy
 
 Firebase UIDs currently identify protected devices and parent memberships. A login
 method must not silently replace one of those identities.
 
-- Existing anonymous/named sessions add credentials with `linkWithCredential`.
-  Successful linking keeps the UID, device paths and parent memberships.
+- Existing anonymous/named sessions add an email/password credential with
+  `linkWithCredential`. Successful linking keeps the UID, device paths and parent
+  memberships.
 - Initial installs with no identity can sign in to an existing account, create
   an email/password account, explicitly choose a Firebase guest identity, or
   continue without an account. Child local filtering is not dependent on login.
@@ -70,28 +72,18 @@ Do not paste API keys, OAuth tokens, signing passwords or refreshed configuratio
 into source control or logs. The existing build-fixture generator never reads or
 overwrites real configuration files.
 
-### Phone OTP
+### Removed methods
 
-1. Enable Phone authentication and review the project's allowed SMS regions,
-   quotas and current billing requirements before allowing real SMS delivery.
-2. Register SHA-256 for Play Integrity and SHA-1 for the reCAPTCHA fallback. Keep
-   the Firebase authorized domains/API configuration appropriate for that flow.
-3. Use Firebase-configured fictional test numbers for initial provider testing.
-   Do not guess verification codes or disable real-device app verification.
-4. Verify explicit SMS/privacy consent, international E.164 input, automatic
-   verification, manual code entry, timeout, cooldown/resend and cancellation.
-5. Complete any real account challenge/reCAPTCHA/OTP yourself. Those actions and
-   successful real SMS delivery cannot be inferred from builds or unit tests.
+The shared auth UI does not call Google sign-in, Credential Manager, phone
+verification, SMS retrieval or any one-time-code API. It requests no SMS-reading,
+contacts-reading or phone-number-reading permissions. Enabling a provider in the
+Firebase console does not add client code back; the source and resource contracts
+in `scripts/ci/test_auth_contract.py` fail if the phone or Google controls return.
 
-Phone-only authentication is weaker than the other offered methods because a
-phone number can change owners or be accessible from another device profile.
-Prefer linking an email/password method too; login does not replace
-the Child's independent local parent PIN.
-
-The app does not request SMS-reading, contacts or phone-number permissions for
-this feature. Phone-verification IDs and resend tokens stay in transient memory;
-Firebase Authentication manages its own session in app-private storage. Password
-and OTP controls must not save their contents into Activity state.
+A previous phone attempt is recorded here only as history: the project's SMS region
+allowlist contained `BD`, but Firebase returned `17499 BILLING_NOT_ENABLED` because
+the project has no billing account (`billingEnabled: false`). No SMS was sent. The
+owner chose to remove phone login rather than add a payment method.
 
 ## Privacy and authorization
 
@@ -102,7 +94,7 @@ app-name-sharing setting is enabled by signing in.
 
 Provider credentials do not grant access to another child's data. Parent membership
 still requires the existing pairing workflow and server rules. Server rule files
-are not weakened to permit the new login methods. Parent views discard prior
+are not weakened to permit login methods. Parent views discard prior
 session feed state and verify access before attaching cloud listeners.
 
 ## Verification
@@ -112,16 +104,16 @@ contracts, both debug builds and lint:
 
     python3 -B -m unittest discover -s scripts/ci -p 'test_*.py' -v
     ./gradlew :blocklist:test :auth:testDebugUnitTest \
+      :app:testDebugUnitTest :parent:testDebugUnitTest \
       :app:assembleDebug :parent:assembleDebug \
       :auth:lintDebug :app:lintDebug :parent:lintDebug \
       --no-daemon --max-workers=1 -Dorg.gradle.jvmargs=-Xmx512m --console=plain
 
 CI uses synthetic `demo-tracewall` configuration for compilation, not production
-credentials. Synthetic build configuration is not an auth emulator connection and
-cannot prove that a real SMS provider works. Robolectric tests
-simulate Android preference/UI/lifecycle behavior on the JVM, not physical-device
-dispatch or remote provider verification. Record real-device/provider checks
-separately; they require the setup and user-controlled accounts above.
+credentials. Synthetic build configuration is not an auth emulator connection.
+Robolectric tests simulate Android preference/UI/lifecycle behavior on the JVM, not
+physical-device dispatch or remote provider verification. Record real-device/provider
+checks separately; they require the setup and user-controlled accounts above.
 
 The separate SDK recovery/linking suite uses a real local Auth emulator:
 
@@ -129,46 +121,38 @@ The separate SDK recovery/linking suite uses a real local Auth emulator:
       --config firebase/firebase.json --project demo-tracewall --only auth \
       './gradlew :auth:testDebugUnitTest -PauthEmulator=true --no-daemon --max-workers=1 -Dorg.gradle.jvmargs=-Xmx512m --console=plain'
 
-It creates fictional emulator accounts and phone-verification sessions, never
-real SMS or production accounts. Tests assert real SDK guest-UID preservation,
-credential-collision retention, wrong-candidate exclusion from primary auth,
-same-UID promotion/token refresh, stale-operation rejection and secondary-session
-cleanup. This is not a real SMS, Play Integrity or reCAPTCHA test.
-CI runs this suite before the regular suite, with Java 21 for the pinned Firebase
-CLI and Java 17 for Gradle. SDK reports are preserved in
-`auth/build/test-results/authEmulator/` and `auth/build/reports/tests/authEmulator/`.
+It creates fictional emulator accounts, never production accounts or real messages.
+Tests assert real SDK guest-UID preservation, credential-collision retention,
+wrong-candidate exclusion from primary auth, same-UID promotion/token refresh,
+stale-operation rejection and secondary-session cleanup.
 
-### Verified local checkpoint — 2026-11-06
+### Verified local checkpoint — 2026-11-07
 
-- 254 regular JVM tests (188 core, 66 auth) and 21 Python contract/integration
-  tests passed without failures or skips.
-- Both debug APKs built. Auth, Child and Parent lint passed with zero errors;
-  warnings remain.
-- Source and manifest contracts confirm private account activities and no
-  SMS-reading, contacts-reading or phone-number-reading permissions. EN/BN
-  authentication resources match: 83 strings and one plural resource.
-- Google sign-in is intentionally not exposed or implemented. The auth module has
-  no direct Credential Manager/Google ID dependency declarations; Firebase Auth's
-  own runtime graph still includes transitive authentication support libraries.
-- No real email action, SMS delivery, Play Integrity, reCAPTCHA or physical-device
-  provider check was run for this code-only change. The local Auth-emulator suite
-  was not rerun because Google removal does not alter recovery or credential promotion.
-
-### Phone-auth device attempt — 2026-11-07
-
-The project's SMS region allowlist now contains `BD`, so `+8801716367054` passes
-the region check on a physical SM-A127F. Firebase phone verification then fails
-with error 17499 `BILLING_NOT_ENABLED`; the project's Cloud Billing info reports
-`billingEnabled: false`. No SMS is sent until a billing account is attached. That
-is an owner/billing decision, so this document does not claim a successful OTP
-round trip. The app correctly surfaced a generic failure and kept the guest
-identity intact without attempting an account merge.
+- 258 regular JVM tests passed with zero failures or skips: 189 core, 11 Child,
+  6 Parent and 52 auth. All 22 Python contract/integration tests passed.
+- Both debug APKs built. Installed hashes match the local artifacts:
+  Child `35486a190f0f91986f461fe1e2c144266433b30c0134cfd5a64f28e419b98ae2`,
+  Parent `ecb2e2d5516d7d060c351e03576a55353e07665680e4dde9f93d00dd7022aace`.
+- Auth, Child and Parent lint completed with zero errors (7 auth, 103 Child and
+  40 Parent warnings; the Child/Parent totals include dependency and asset notices).
+- English/Bengali auth resources match: 62 strings and no plural resources. The
+  shared layout has no phone, code, SMS-consent, cooldown or resend controls, and
+  the auth sources contain no phone/OTP symbols or `AccountPolicy.PHONE`.
+- On the physical SM-A127F (Android 13), the Parent account screen rendered the
+  guest identity with only the Email method. The email page offered
+  `Link email/password`; an invalid address produced the localized validation
+  message and cleared the password field. No crash, ANR or phone control was
+  observed. A real email link was not attempted because no account credentials
+  were supplied for this audit.
+- The local Auth-emulator suite was not rerun because the phone removal only
+  deleted credential types; the remaining email/recovery paths and their emulator
+  tests are unchanged. No Firebase Console setting, production account, app data
+  or signing configuration was changed.
 
 ## Primary references
 
 - Firebase account linking: https://firebase.google.com/docs/auth/android/account-linking
 - Firebase same-project user promotion: https://firebase.google.com/docs/reference/android/com/google/firebase/auth/FirebaseAuth#updateCurrentUser(com.google.firebase.auth.FirebaseUser)
 - Firebase anonymous-account upgrades: https://firebase.google.com/docs/auth/android/anonymous-auth
-- Firebase phone authentication: https://firebase.google.com/docs/auth/android/phone-auth
 - Firebase email/password: https://firebase.google.com/docs/auth/android/password-auth
 - Robolectric setup: https://robolectric.org/getting-started/

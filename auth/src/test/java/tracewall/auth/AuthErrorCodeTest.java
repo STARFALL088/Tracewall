@@ -8,7 +8,7 @@ public class AuthErrorCodeTest {
         assertEquals(AuthErrorCode.Reason.INVALID_CREDENTIALS, AuthErrorCode.classify("ERROR_WRONG_PASSWORD"));
         assertEquals(AuthErrorCode.Reason.INVALID_CREDENTIALS, AuthErrorCode.classify("ERROR_USER_NOT_FOUND"));
         assertEquals(AuthErrorCode.Reason.INVALID_CREDENTIALS, AuthErrorCode.classify("ERROR_INVALID_LOGIN_CREDENTIALS"));
-        assertEquals(AuthErrorCode.Reason.INVALID_CREDENTIALS, AuthErrorCode.classify("ERROR_INVALID_VERIFICATION_CODE"));
+        assertEquals(AuthErrorCode.Reason.INVALID_CREDENTIALS, AuthErrorCode.classify("ERROR_INVALID_EMAIL"));
     }
 
     @Test public void everyCollisionUsesNoMergePolicy() {
@@ -22,8 +22,8 @@ public class AuthErrorCodeTest {
     @Test public void configurationAndDisabledProvidersAreDistinct() {
         assertEquals(AuthErrorCode.Reason.PROVIDER_DISABLED, AuthErrorCode.classify("ERROR_OPERATION_NOT_ALLOWED"));
         assertEquals(AuthErrorCode.Reason.CONFIGURATION, AuthErrorCode.classify("ERROR_INVALID_APP_CREDENTIAL"));
-        assertEquals(AuthErrorCode.Reason.CONFIGURATION, AuthErrorCode.classify("ERROR_INVALID_CERT_HASH"));
-        assertEquals(AuthErrorCode.Reason.CONFIGURATION, AuthErrorCode.classify("ERROR_MISSING_ACTIVITY"));
+        assertEquals(AuthErrorCode.Reason.CONFIGURATION, AuthErrorCode.classify("ERROR_INVALID_API_KEY"));
+        assertEquals(AuthErrorCode.Reason.CONFIGURATION, AuthErrorCode.classify("ERROR_APP_NOT_AUTHORIZED"));
     }
 
     @Test public void commonRecoverableErrorsAreMappedWithoutRawExceptionText() {
@@ -32,7 +32,6 @@ public class AuthErrorCodeTest {
         assertEquals(AuthErrorCode.Reason.RATE_LIMIT, AuthErrorCode.classify("ERROR_QUOTA_EXCEEDED"));
         assertEquals(AuthErrorCode.Reason.WEAK_PASSWORD, AuthErrorCode.classify("ERROR_WEAK_PASSWORD"));
         assertEquals(AuthErrorCode.Reason.RECENT_LOGIN, AuthErrorCode.classify("ERROR_REQUIRES_RECENT_LOGIN"));
-        assertEquals(AuthErrorCode.Reason.EXPIRED_CODE, AuthErrorCode.classify("ERROR_SESSION_EXPIRED"));
         assertEquals(AuthErrorCode.Reason.ACCOUNT_DISABLED, AuthErrorCode.classify("ERROR_USER_DISABLED"));
     }
 

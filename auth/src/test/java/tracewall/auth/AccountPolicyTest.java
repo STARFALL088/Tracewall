@@ -12,33 +12,24 @@ public class AccountPolicyTest {
         assertEquals(AccountPolicy.Action.CREATE_EMAIL, AccountPolicy.action(null, NONE, AccountPolicy.EMAIL, true));
     }
 
-    @Test public void signedOutPhoneNeverCreatesEmail() {
+    @Test public void signedOutOtherProviderNeverCreatesEmail() {
         assertEquals(AccountPolicy.Action.SIGN_IN,
-                AccountPolicy.action(null, NONE, AccountPolicy.PHONE, true));
+                AccountPolicy.action(null, NONE, "other", true));
     }
 
     @Test public void everyExistingUidLinksRegardlessOfInitialEmailChoice() {
         for (String uid : new String[] { "synthetic-guest-uid", "synthetic-registered-uid" }) {
-            for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.PHONE }) {
-                assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, provider, false));
-                assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, provider, true));
-            }
+            assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, AccountPolicy.EMAIL, false));
+            assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action(uid, NONE, AccountPolicy.EMAIL, true));
         }
     }
 
     @Test public void alreadyLinkedProviderIsNotReplaced() {
-        for (String provider : new String[] { AccountPolicy.EMAIL, AccountPolicy.PHONE }) {
-            assertEquals(AccountPolicy.Action.ALREADY_CONNECTED,
-                    AccountPolicy.action("synthetic-uid", Set.of(provider), provider, false));
-        }
+        assertEquals(AccountPolicy.Action.ALREADY_CONNECTED,
+                AccountPolicy.action("synthetic-uid", Set.of(AccountPolicy.EMAIL), AccountPolicy.EMAIL, false));
     }
 
-    @Test public void differentProviderCanLinkWithoutChangingExistingProvider() {
-        assertEquals(AccountPolicy.Action.LINK,
-                AccountPolicy.action("synthetic-uid", Set.of(AccountPolicy.EMAIL), AccountPolicy.PHONE, false));
-    }
-
-    @Test public void phoneCallbackCannotAdoptAnUnexpectedIdentity() {
+    @Test public void identityGuardRejectsUnexpectedUid() {
         assertTrue(AccountPolicy.sameIdentity(null, null));
         assertTrue(AccountPolicy.sameIdentity("old", "old"));
         assertFalse(AccountPolicy.sameIdentity(null, "new"));
@@ -61,7 +52,7 @@ public class AccountPolicyTest {
 
     @Test public void collisionNeverPermitsReplacementOrAutomaticMerge() {
         assertFalse(AccountPolicy.mayReplaceIdentityAfterCollision());
-        assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action("old", NONE, AccountPolicy.PHONE, false));
+        assertEquals(AccountPolicy.Action.LINK, AccountPolicy.action("old", NONE, AccountPolicy.EMAIL, false));
     }
 
     @Test public void noNormalPrimarySignOutForEitherRoleEvenRegisteredParent() {

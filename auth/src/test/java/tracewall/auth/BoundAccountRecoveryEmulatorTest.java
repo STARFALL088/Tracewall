@@ -13,10 +13,7 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.PhoneAuthProvider;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,10 +24,6 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -196,53 +189,5 @@ public class BoundAccountRecoveryEmulatorTest {
         assertFalse(result.isSuccessful());
         assertEquals(uid, primary.getCurrentUser().getUid());
         assertEquals(1, FirebaseApp.getApps(application).size());
-    }
-
-    @Test public void verifiedPhoneUserIsCopiedWithoutConsumingTheSmsCredentialTwice() throws Exception {
-        // Reserved fictional NANP range; the emulator never delivers a real SMS.
-        String phone = "+1" + "202" + "555" + "0149";
-        JSONObject first = phoneCode(phone);
-        JSONObject account = http("POST", "/identitytoolkit.googleapis.com/v1/accounts:signInWithPhoneNumber?key=emulator",
-            new JSONObject().put("sessionInfo", first.getString("sessionInfo")).put("code", first.getString("code")));
-        String uid = account.getString("localId");
-        JSONObject second = phoneCode(phone);
-        success(recovery(PhoneAuthProvider.getCredential(second.getString("sessionInfo"), second.getString("code")), uid));
-        assertEquals(uid, primary.getCurrentUser().getUid());
-        assertEquals(phone, primary.getCurrentUser().getPhoneNumber());
-        assertEquals(1, FirebaseApp.getApps(application).size());
-        assertNotNull(success(primary.getCurrentUser().getIdToken(true)).getToken());
-    }
-
-    private JSONObject phoneCode(String phone) throws Exception {
-        JSONObject sent = http("POST", "/identitytoolkit.googleapis.com/v1/accounts:sendVerificationCode?key=emulator",
-            new JSONObject().put("phoneNumber", phone));
-        JSONArray codes = http("GET", "/emulator/v1/projects/" + PROJECT + "/verificationCodes", null)
-            .getJSONArray("verificationCodes");
-        for (int i = 0; i < codes.length(); i++) {
-            JSONObject value = codes.getJSONObject(i);
-            if (sent.getString("sessionInfo").equals(value.getString("sessionInfo"))) return value;
-        }
-        throw new AssertionError("Emulator did not expose its fictional verification session");
-    }
-
-    private JSONObject http(String method, String path, JSONObject body) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL("http://127.0.0.1:" + port + path).openConnection();
-        connection.setConnectTimeout(5_000);
-        connection.setReadTimeout(5_000);
-        connection.setRequestMethod(method);
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.setRequestProperty("Authorization", "Bearer owner");
-        try {
-            if (body != null) {
-                connection.setDoOutput(true);
-                try (java.io.OutputStream output = connection.getOutputStream()) {
-                    output.write(body.toString().getBytes(StandardCharsets.UTF_8));
-                }
-            }
-            assertEquals("Local Auth emulator HTTP status", 200, connection.getResponseCode());
-            try (InputStream input = connection.getInputStream()) {
-                return new JSONObject(new String(input.readAllBytes(), StandardCharsets.UTF_8));
-            }
-        } finally { connection.disconnect(); }
     }
 }

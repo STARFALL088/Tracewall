@@ -3,10 +3,10 @@ package tracewall.auth;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/** Syntax-only synthetic inputs; no SDK, network, account, or real OTP is used. */
+/** Syntax-only synthetic inputs; no SDK, network, account, or credential is used. */
 public class AuthInputsTest {
-    @Test public void acceptsGmailAndPlusAddressing() {
-        assertTrue(AuthInputs.validEmail("tracewall.syntax+only@gmail.com"));
+    @Test public void acceptsPlusAddressingAndTrimsIdentifier() {
+        assertTrue(AuthInputs.validEmail("tracewall.syntax+only@example.invalid"));
         assertTrue(AuthInputs.validEmail("  user+child@example.invalid  "));
         assertEquals("User@example.invalid", AuthInputs.email(" User@example.invalid "));
     }
@@ -42,34 +42,5 @@ public class AuthInputsTest {
         assertTrue(AuthInputs.validNewPassword(" ".repeat(8)));
         assertFalse(AuthInputs.validNewPassword("অ".repeat(7)));
         assertTrue(AuthInputs.validNewPassword("অ".repeat(8)));
-    }
-
-    @Test public void acceptsOnlyExplicitE164Syntax() {
-        // Reserved fictional NANP number, never passed to Firebase.
-        // Construct the syntax fixture so tool-output privacy masking cannot corrupt it in transit.
-        String fictional = "+" + "1" + "202" + "555" + "0123";
-        assertTrue(AuthInputs.validPhone(fictional));
-        assertTrue(AuthInputs.validPhone(" " + fictional + " "));
-        assertTrue(AuthInputs.validPhone("+12"));
-        assertTrue(AuthInputs.validPhone("+" + "1".repeat(15)));
-        assertEquals(fictional, AuthInputs.phone(" " + fictional + " "));
-    }
-
-    @Test public void rejectsAmbiguousOrNonAsciiPhoneNumbers() {
-        assertFalse(AuthInputs.validPhone("+120****0123"));
-        for (String value : new String[] { "", "+", "+1", "12025550123", "0012025550123", "+02025550123",
-                "+1 2025550123", "+1-202-555-0123", "+(1202)5550123", "+১২০২৫৫৫০১২৩", "+１２３４５６７８９", "+" + "1".repeat(16) }) {
-            assertFalse(value, AuthInputs.validPhone(value));
-        }
-        assertFalse(AuthInputs.validPhone(null));
-    }
-
-    @Test public void codeMustBeExactlySixAsciiDigitsAndIsNeverTrimmed() {
-        assertTrue(AuthInputs.validCode("0".repeat(6)));
-        for (String value : new String[] { "", "0".repeat(5), "0".repeat(7), " 000000", "000000 ",
-                "00 000", "abcdef", "০০০০০০", "００００００", "00000\n" }) {
-            assertFalse(value, AuthInputs.validCode(value));
-        }
-        assertFalse(AuthInputs.validCode(null));
     }
 }

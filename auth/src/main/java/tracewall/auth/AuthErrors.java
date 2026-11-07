@@ -27,7 +27,6 @@ final class AuthErrors {
             case RATE_LIMIT: return R.string.auth_error_rate_limit;
             case WEAK_PASSWORD: return R.string.auth_error_weak_password;
             case RECENT_LOGIN: return R.string.auth_error_recent_login;
-            case EXPIRED_CODE: return R.string.auth_error_code_expired;
             case ACCOUNT_DISABLED: return R.string.auth_error_disabled;
             default: return R.string.auth_error_generic;
         }

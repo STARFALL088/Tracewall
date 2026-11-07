@@ -295,8 +295,8 @@ production/device requirements are stated separately.
 ### Google sign-in removal (2026-11-06)
 
 - Removed the nonfunctional Google sign-in/link button and its Credential Manager,
-  Google ID token, OAuth client lookup and lifecycle code. Email/password, phone OTP,
-  guest and local entry remain available.
+  Google ID token, OAuth client lookup and lifecycle code. Email/password, phone OTP
+  (removed later), guest and local entry remained available.
 - Removed the direct Credential Manager and Google ID dependency declarations. Firebase
   Auth still supplies its own transitive support libraries. Existing sessions are not
   signed out or replaced; the immutable identity safeguards remain.
@@ -348,7 +348,31 @@ production/device requirements are stated separately.
   (`billingEnabled: false`). No SMS was sent. Enabling billing is a project-owner
   decision, so phone login remains unverified; it is no longer a region-policy
   problem.
-- Still pending: phone OTP delivery (billing disabled), parent dashboard/remote
-  rules/history/revocation (no child paired; PIN unknown), PIN-gated child
-  actions, per-app enforcement attribution and boot/always-on behavior. No parent
-  PIN was guessed or reset.
+- Still pending: parent dashboard/remote rules/history/revocation (no child
+  paired; PIN unknown), PIN-gated child actions, per-app enforcement attribution
+  and boot/always-on behavior. No parent PIN was guessed or reset.
+
+### Email-only authentication — phone OTP removal (2026-11-07)
+
+- Removed phone OTP from the shared `:auth` module and both account screens: no
+  phone picker, phone form, SMS code/consent/cooldown/resend/cancel controls, or
+  phone-specific strings. `PhoneFlowGuard`, E.164/code validation, phone error
+  classification and phone emulator coverage were deleted.
+- Email/password remains the only remote method, alongside explicit guest and
+  local entry. Guest linking, immutable-UID policy, isolated bound-account
+  recovery, reauthentication, verification and password reset are unchanged.
+- Updated English/Bengali resources (62 strings, no plurals), documentation and CI
+  contracts. The contract now fails if phone/SMS controls, symbols or resources
+  are reintroduced.
+- Verification: 258 JVM tests (189 core, 11 Child, 6 Parent, 52 auth) and 22
+  Python contracts passed. Both debug APKs built; data-preserving installs match
+  local SHA-256 values (Child `35486a19…`, Parent `ecb2e2d5…`).
+  Auth/Child/Parent lint completed with zero errors.
+- On the SM-A127F, the Parent account screen showed only Email for the guest
+  identity; the email page offered `Link email/password`, rejected an invalid
+  address with the localized message and cleared the password, with no crash or
+  ANR. A real link was not attempted because no credentials were supplied.
+- Reason: phone verification could not work on this Firebase project
+  (`billingEnabled: false`, error 17499 `BILLING_NOT_ENABLED`) and the owner chose
+  not to add billing. No console provider, production account, rules or app data
+  was changed.

@@ -6,14 +6,11 @@ import java.util.regex.Pattern;
 public final class AuthInputs {
     private static final Pattern LOCAL = Pattern.compile("[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+");
     private static final Pattern DOMAIN_LABEL = Pattern.compile("[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?");
-    private static final Pattern E164 = Pattern.compile("\\+[1-9][0-9]{1,14}");
-    private static final Pattern CODE = Pattern.compile("[0-9]{6}");
 
     private AuthInputs() { }
 
     /** Surrounding whitespace is removed from identifiers, NEVER from passwords. */
     public static String email(String value) { return value == null ? "" : value.trim(); }
-    public static String phone(String value) { return value == null ? "" : value.trim(); }
 
     public static boolean validEmail(String value) {
         String email = email(value);
@@ -27,16 +24,6 @@ public final class AuthInputs {
         if (labels.length < 2) return false;
         for (String label : labels) if (!DOMAIN_LABEL.matcher(label).matches()) return false;
         return true;
-    }
-
-    /** E.164 syntax: a plus and 2..15 ASCII digits; never infer a country code. */
-    public static boolean validPhone(String value) {
-        return value != null && E164.matcher(phone(value)).matches();
-    }
-
-    /** Do not trim, localize, normalize or silently truncate one-time codes. */
-    public static boolean validCode(String value) {
-        return value != null && CODE.matcher(value).matches();
     }
 
     public static boolean validLoginPassword(String value) {
