@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string translatable="false" name="location_title">Location sharing</string>
+    <string translatable="false" name="location_back">Back</string>
+    <string translatable="false" name="location_intro">Share only this device’s latest location with verified paired parents. Tracewall does not keep a route history.</string>
+    <string translatable="false" name="location_privacy_note">Starting requires the parent PIN. Sharing uses a visible foreground service and ongoing notification, updates at roughly 30 seconds or 25 metres, and stops when cloud mode or the signed-in identity becomes unavailable. Stopping requests deletion of the current cloud location.</string>
+    <string translatable="false" name="location_status_title">Sharing status</string>
+    <string translatable="false" name="location_status_off">Location sharing is off.</string>
+    <string translatable="false" name="location_status_waiting">Sharing is on and waiting for a location fix.</string>
+    <string translatable="false" name="location_status_active">Sharing the latest location with verified parents.</string>
+    <string translatable="false" name="location_status_cloud">Cloud mode and a bound account are required.</string>
+    <string translatable="false" name="location_status_permission">Location and notification permission are required for visible sharing.</string>
+    <string translatable="false" name="location_status_disabled">Android location services are off.</string>
+    <string translatable="false" name="location_status_failed">The latest location could not be uploaded. Tracewall will retry on a new fix.</string>
+    <string translatable="false" name="location_status_invalid">Android returned an invalid location fix.</string>
+    <string translatable="false" name="location_last_never">No location has been uploaded in this process.</string>
+    <string translatable="false" name="location_last_fix">Last fix: %1$s · accuracy about %2$.0f m</string>
+    <string translatable="false" name="location_start">Start location sharing</string>
+    <string translatable="false" name="location_stop">Stop location sharing</string>
+    <string translatable="false" name="location_open_settings">Open Android location settings</string>
+    <string translatable="false" name="location_start_failed">Could not start the visible location service.</string>
+    <string translatable="false" name="location_family_title">Latest location</string>
+    <string translatable="false" name="location_family_body">Optionally share a latest-only location with verified paired parents. No route history is stored.</string>
+    <string translatable="false" name="location_family_open">Manage location sharing</string>
+    <string translatable="false" name="location_family_on">Location sharing: on</string>
+    <string translatable="false" name="location_family_off">Location sharing: off</string>
+    <string translatable="false" name="location_notification_channel">Location sharing</string>
+    <string translatable="false" name="location_notification_channel_body">Visible status while Tracewall shares this device’s latest location.</string>
+    <string translatable="false" name="location_notification_title">Tracewall location sharing is on</string>
+    <string translatable="false" name="location_notification_waiting">Waiting for an Android location fix</string>
+    <string translatable="false" name="location_notification_active">Latest fix uploaded at %1$s</string>
+</resources>

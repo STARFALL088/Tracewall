@@ -35,6 +35,25 @@ service cloud.firestore {
         && request.resource.data.updated_ms is int && request.resource.data.updated_ms >= 0;
       allow delete: if child(uid);
     }
+    // Latest-only child location. There is one fixed document and no route history.
+    match /devices/{uid}/location/current {
+      allow read: if child(uid) || parent(uid);
+      allow create, update: if child(uid)
+        && request.resource.data.keys().hasOnly([
+          'latitude', 'longitude', 'accuracy_m', 'time_ms', 'provider', 'mock'
+        ])
+        && request.resource.data.latitude is number
+        && request.resource.data.latitude >= -90 && request.resource.data.latitude <= 90
+        && request.resource.data.longitude is number
+        && request.resource.data.longitude >= -180 && request.resource.data.longitude <= 180
+        && request.resource.data.accuracy_m is number
+        && request.resource.data.accuracy_m >= 0 && request.resource.data.accuracy_m <= 100000
+        && request.resource.data.time_ms is int && request.resource.data.time_ms >= 0
+        && request.resource.data.provider is string
+        && request.resource.data.provider.matches('^(gps|network)$')
+        && request.resource.data.mock is bool;
+      allow delete: if child(uid);
+    }
     match /devices/{uid}/events/{id} {
       allow read: if child(uid) || parent(uid);
       allow create: if child(uid)
@@ -78,6 +97,6 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/devices/$(uid)/pairing/current).data.claimed_by == parentUid;
       allow delete: if child(uid);
     }
-    // No recursive grants: unlisted paths are denied, including parent history writes.
+    // No recursive grants: unlisted paths are denied, including parent history/location writes.
   }
 }

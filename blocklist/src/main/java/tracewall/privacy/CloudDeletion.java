@@ -2,7 +2,7 @@ package tracewall.privacy;
 
 /** Bounded deletion decisions. Acknowledged batches alone can never mean completion. */
 public final class CloudDeletion {
-    public static final int PAGE_SIZE = 200, MAX_BATCHES = 50, COLLECTION_COUNT = 3;
+    public static final int PAGE_SIZE = 200, MAX_BATCHES = 50, COLLECTION_COUNT = 4;
     public enum Page { DELETE, NEXT_COLLECTION, PENDING }
     private int batches, verified;
     private boolean failed;

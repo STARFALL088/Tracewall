@@ -31,6 +31,7 @@ import org.robolectric.shadows.ShadowDialog;
 import org.robolectric.util.ReflectionHelpers;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.child.ui.HistoryActivity;
+import tracewall.child.ui.LocationSharingActivity;
 import tracewall.child.ui.PinGate;
 import tracewall.child.ui.RulesActivity;
 import tracewall.security.PinStore;
@@ -84,6 +85,10 @@ public class MainNavigationTest {
             assertEquals(activity.getString(R.string.nav_empty_search_title), text(R.id.emptyTitle));
             select(R.id.nav_family);
             assertPage(R.id.nav_family, R.id.familyPage);
+            activity.findViewById(R.id.locationOpen).performClick();
+            Intent location = shadowOf(activity).getNextStartedActivity();
+            assertNotNull(location);
+            assertEquals(LocationSharingActivity.class.getName(), location.getComponent().getClassName());
             select(R.id.nav_activity);
             assertEquals("no-such-request.invalid", text(R.id.queryFilter));
 

@@ -11,7 +11,8 @@ class CloudDeletionTest {
         assertFalse(job.confirmed());
         assertTrue(job.verify(0, 0, false, false)); assertFalse(job.confirmed());
         assertTrue(job.verify(1, 0, false, false)); assertFalse(job.confirmed());
-        assertTrue(job.verify(2, 0, false, false)); assertTrue(job.confirmed());
+        assertTrue(job.verify(2, 0, false, false)); assertFalse(job.confirmed());
+        assertTrue(job.verify(3, 0, false, false)); assertTrue(job.confirmed());
     }
     @Test void cachedOrPendingEmptySnapshotsAreNotProofOfDeletion() {
         for (boolean cached : new boolean[] {false, true}) for (boolean pending : new boolean[] {false, true}) {
@@ -34,7 +35,8 @@ class CloudDeletionTest {
         CloudDeletion job = new CloudDeletion();
         for (int i = 0; i < CloudDeletion.MAX_BATCHES; i++) job.page(1, false, false);
         assertEquals(CloudDeletion.Page.NEXT_COLLECTION, job.page(0, false, false));
-        for (int i = 0; i < 3; i++) assertTrue(job.verify(i, 0, false, false));
+        for (int i = 0; i < CloudDeletion.COLLECTION_COUNT; i++)
+            assertTrue(job.verify(i, 0, false, false));
         assertTrue(job.confirmed());
     }
     @Test void duplicateOutOfOrderOrNonemptyVerificationFailsClosed() {

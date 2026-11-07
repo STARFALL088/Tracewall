@@ -41,7 +41,10 @@ public class PrivacyActivity extends AppCompatActivity {
             boolean enable = !sync.isCloudEnabled();
             confirm(enable ? R.string.privacy_use_cloud : R.string.privacy_use_local,
                 enable ? R.string.privacy_cloud_confirm : R.string.privacy_local_confirm,
-                () -> changed(sync.setCloudEnabled(enable)));
+                () -> {
+                    if (!enable) tracewall.child.location.LocationSharingService.stop(this);
+                    changed(sync.setCloudEnabled(enable));
+                });
         });
         ui.privacyHistorySharing.setOnClickListener(v -> {
             boolean enable = !sync.isHistorySharingEnabled();
@@ -58,6 +61,7 @@ public class PrivacyActivity extends AppCompatActivity {
         ui.privacyClearLocal.setOnClickListener(v -> confirm(R.string.privacy_clear_local, R.string.privacy_clear_confirm,
             () -> storageAction(() -> getString(R.string.privacy_clear_done, HistoryWriter.get().clearStored(getApplicationContext())))));
         ui.privacyDeleteCloud.setOnClickListener(v -> confirm(R.string.privacy_cloud_delete_title, R.string.privacy_delete_confirm, () -> {
+            tracewall.child.location.LocationSharingService.stop(this);
             sync.deleteCloudUploads(result -> {
                 if (!alive()) return;
                 ui.privacyResult.setText(result == FirebaseSync.DeleteResult.CONFIRMED ? R.string.privacy_delete_confirmed

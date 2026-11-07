@@ -28,7 +28,8 @@ function db(method, path, token, data, allowed = true) {
 function fields(data) {
   return Object.fromEntries(Object.entries(data).map(([key, value]) => [key,
     typeof value === 'string' ? {stringValue: value} : typeof value === 'boolean' ? {booleanValue: value} :
-    Array.isArray(value) ? {arrayValue: {values: value.map(v => ({stringValue: v}))}} : {integerValue: String(value)}]));
+    Array.isArray(value) ? {arrayValue: {values: value.map(v => ({stringValue: v}))}} :
+    typeof value === 'number' && !Number.isInteger(value) ? {doubleValue: value} : {integerValue: String(value)}]));
 }
 function doc(method, path, token, data, allowed = true) {
   return request(method, `${base}/${path}`, data === undefined ? undefined : {fields: fields(data)}, token, allowed);
@@ -123,6 +124,25 @@ for (const path of ['history/h', 'events/e', 'events/install']) {
   await doc('DELETE', `${root}/${path}`, pt, undefined, false);
   await doc('PATCH', `${root}/${path}`, pt, {host: 'evil.test'}, false);
 }
+// Location is one strict child-owned latest-point document, never a route collection.
+const location = {latitude: 22.8456, longitude: 89.5403, accuracy_m: 12.5,
+  time_ms: 3, provider: 'gps', mock: false};
+await doc('PATCH', `${root}/location/current`, ct, location);
+for (const token of [ct, pt]) {
+  const stored = await doc('GET', `${root}/location/current`, token);
+  assert.equal(stored.fields.provider.stringValue, 'gps');
+}
+for (const token of [ot, undefined])
+  await doc('GET', `${root}/location/current`, token, undefined, false);
+await doc('PATCH', `${root}/location/current`, pt, {...location, latitude: 1}, false);
+await doc('DELETE', `${root}/location/current`, pt, undefined, false);
+for (const bad of [
+  {...location, latitude: -90.1}, {...location, latitude: 90.1},
+  {...location, longitude: -180.1}, {...location, longitude: 180.1},
+  {...location, accuracy_m: -1}, {...location, accuracy_m: 100001},
+  {...location, time_ms: -1}, {...location, provider: 'passive'},
+  {...location, label: 'not allowed'},
+]) await doc('PATCH', `${root}/location/current`, ct, bad, false);
 // App-name snapshots are child-owned and readable only by the child or a paired parent.
 const app = {package: 'example.app', label: 'Example', uid: 12345, updated_ms: 2};
 await doc('PATCH', `${root}/apps/example.app`, ct, app);
@@ -177,8 +197,10 @@ for (const token of [ot, ct]) {
 await db('GET', `${root}/rules`, pt, undefined, false);
 await doc('GET', `${root}/history/h`, pt, undefined, false);
 await doc('GET', `${root}/apps/example.app`, pt, undefined, false);
+await doc('GET', `${root}/location/current`, pt, undefined, false);
 await request('GET', `${base}/${root}/apps`, undefined, pt, false);
 await doc('DELETE', `${root}/apps/example.app`, ct);
+await doc('DELETE', `${root}/location/current`, ct);
 // Admin seeds only expired fixtures; claims use ordinary authenticated tokens.
 await db('PUT', `${root}/pairing`, 'owner', {code, expires_ms: 1});
 await doc('PATCH', `${root}/pairing/current`, 'owner', {code, expires_ms: 1});

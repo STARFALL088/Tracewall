@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import tracewall.data.LocationSnapshot;
 import tracewall.privacy.CloudDeletion;
 import tracewall.privacy.PrivacyPolicy;
 
@@ -50,7 +51,7 @@ import tracewall.privacy.PrivacyPolicy;
 public final class FirebaseSync {
     private static final String TAG = "FirebaseSync";
     private static final FirebaseSync INSTANCE = new FirebaseSync();
-    private static final String[] UPLOAD_COLLECTIONS = {"history", "events", "apps"};
+    private static final String[] UPLOAD_COLLECTIONS = {"history", "events", "apps", "location"};
     private static final long DELETE_TIMEOUT_MS = 120_000;
     private final FirebaseAuth auth;
     private final FirebaseDatabase realtimeDb;
@@ -405,6 +406,35 @@ public final class FirebaseSync {
             firestore.collection("devices").document(deviceUid).collection("events").add(event)
                 .addOnFailureListener(error -> Log.w(TAG, "Protection event failed", error));
         });
+    }
+
+    /** Latest-only, explicitly enabled location sharing; no point history is created. */
+    public synchronized boolean publishLocation(LocationSnapshot location, Runnable accepted, Runnable failed) {
+        String deviceUid = uid();
+        if (!policy.allowsCloud() || deviceUid == null || location == null) return false;
+        long ticket = policy.generation;
+        Map<String, Object> value = new HashMap<>();
+        value.put("latitude", location.latitude);
+        value.put("longitude", location.longitude);
+        value.put("accuracy_m", location.accuracyM);
+        value.put("time_ms", location.timeMs);
+        value.put("provider", location.provider);
+        value.put("mock", location.mock);
+        return cloudWork(ticket, () -> firestore.collection("devices").document(deviceUid)
+            .collection("location").document("current").set(value)
+            .addOnSuccessListener(done -> { if (policy.acceptsCloud(ticket)) accepted.run(); })
+            .addOnFailureListener(error -> {
+                Log.w(TAG, "Location upload failed", error);
+                if (policy.acceptsCloud(ticket)) failed.run();
+            }));
+    }
+
+    /** Privacy-reducing delete may be queued while local mode keeps Firestore networking disabled. */
+    public synchronized void clearLocation(Runnable complete) {
+        String deviceUid = uid();
+        if (deviceUid == null) { complete.run(); return; }
+        firestore.collection("devices").document(deviceUid).collection("location").document("current")
+            .delete().addOnCompleteListener(done -> complete.run());
     }
 
 

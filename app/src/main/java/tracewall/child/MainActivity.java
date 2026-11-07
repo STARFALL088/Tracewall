@@ -195,6 +195,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, tracewall.child.ui.PrivacyActivity.class))));
         settings.accountButton.setOnClickListener(v -> PinGate.require(this, () -> openAccount(false)));
         family.familyAccount.setOnClickListener(v -> PinGate.require(this, () -> openAccount(false)));
+        family.locationOpen.setOnClickListener(v -> startActivity(
+            new Intent(this, tracewall.child.ui.LocationSharingActivity.class)));
         home.homeActivity.setOnClickListener(v -> ui.navigation.setSelectedItemId(R.id.nav_activity));
         home.homeProtection.setOnClickListener(v -> ui.navigation.setSelectedItemId(R.id.nav_protect));
         home.privateDnsSettings.setOnClickListener(v -> openPrivateDnsSettings());
@@ -731,6 +733,8 @@ public class MainActivity extends AppCompatActivity {
         settings.alwaysOnStatus.setText(alwaysOnStatus());
         family.shareAppNames.setText(FirebaseSync.get().isInventorySharingEnabled()
             ? R.string.inventory_on : R.string.inventory_off);
+        family.locationStatus.setText(tracewall.child.location.LocationSharingService.isRunning()
+            ? R.string.location_family_on : R.string.location_family_off);
 
         List<QueryLog.Entry> recent = QueryLog.get().snapshot(500);
         List<QueryLog.Entry> visible = new java.util.ArrayList<>();
