@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feeds_title">Feed health and settings</string>
+    <string name="feeds_back">Back</string>
+    <string name="feeds_intro">These are local download results, not a live upstream guarantee. Failed refreshes keep the last validated cache; without a cache the bundled list is used. Opening this screen does not start downloads or change the VPN.</string>
+    <string name="feeds_retain">Keep bundled seeds (default)</string>
+    <string name="feeds_only">Validated feed only</string>
+    <string name="feeds_policy_current">Selected policy: %1$s</string>
+    <string name="feeds_policy_help">Keeping seeds uses BUNDLED + FRESH, never previous downloads. Download-only removals already work. Feed-only replacement also lets upstream removals remove bundled seeds. A saved selection affects each category only after its next successful refresh; failures keep its existing cache. Category switches and parent rules are unchanged.</string>
+    <string name="feeds_change_policy">Change bundled-seed policy (PIN)</string>
+    <string name="feeds_confirm_only">Use only each newly validated feed after a successful refresh? Bundled seeds missing from that feed will no longer be pinned. This can reduce protection. Current caches stay unchanged until a successful refresh. Parent-managed rules and the VPN are not changed.</string>
+    <string name="feeds_confirm_retain">Keep bundled seeds on future successful refreshes? This restores missing bundled seeds only when that category next refreshes successfully. Existing caches, parent-managed rules and the VPN are not changed now.</string>
+    <string name="feeds_confirm">Confirm with PIN</string>
+    <string name="feeds_saved">Policy saved. Refresh to apply; existing caches have not changed.</string>
+    <string name="feeds_setting_failed">Not saved: another operation is running or local storage failed. Try again when idle.</string>
+    <string name="feeds_shrink_help" formatted="false">Shrink protection rejects a feed that loses more than 25% of its last accepted unique feed hosts (not its bundled or merged count). First downloads and legacy caches use the 100-host minimum until a baseline is recorded. Check the source first. To accept a legitimate shrink, approve that exact rejected revision with your PIN and retry. Changed content needs fresh approval. Approval never bypasses UTF-8, parse, size or minimum-count checks.</string>
+    <string name="feeds_refresh">Refresh feeds now (PIN)</string>
+    <string name="feeds_busy">A feed operation is already running. No second operation was queued.</string>
+    <string name="feeds_progress">Category refresh: %1$d / %2$d…</string>
+    <string name="feeds_finished">Updated: %1$d; failed: %2$d; added: %3$d; removed: %4$d.</string>
+    <string name="feeds_limits">Limits: 5,000,000 raw AND assembled UTF-8 bytes per category, at least 100 unique hosts, at most 3 HTTPS redirects. One serialized operation; 45-second source / 180-second run deadlines with connection/read timeouts. Daily work runs only when protection is enabled and Android permits it; temporary errors get at most two retries. No online availability is inferred from saved metadata.</string>
+    <string name="feeds_adult">Adult</string>
+    <string name="feeds_gambling">Gambling</string>
+    <string name="feeds_ads">Ads</string>
+    <string name="feeds_malware">Malware</string>
+    <string name="feeds_status">Latest status: %1$s</string>
+    <string name="feeds_never">Never attempted / unknown</string>
+    <string name="feeds_running">In progress</string>
+    <string name="feeds_interrupted">Previous attempt did not finish; retry when ready</string>
+    <string name="feeds_ok">Validated and cached</string>
+    <string name="feeds_http">HTTP %1$d; cache kept</string>
+    <string name="feeds_network">Network or redirect error; cache kept</string>
+    <string name="feeds_timeout">Time limit reached; cache kept</string>
+    <string name="feeds_utf8">Invalid UTF-8; cache kept</string>
+    <string name="feeds_parse">Malformed or fewer than 100 unique hosts; cache kept</string>
+    <string name="feeds_size">Raw or assembled size limit exceeded; cache kept</string>
+    <string name="feeds_shrink">Suspicious shrink; cache kept pending exact-revision approval</string>
+    <string name="feeds_storage">Local storage error; inspect and retry</string>
+    <string name="feeds_metadata">Invalid local metadata; cache not discarded</string>
+    <string name="feeds_cancelled">Cancelled; uncommitted replacement discarded</string>
+    <string name="feeds_unknown">Unknown / not recorded</string>
+    <string name="feeds_times">Last attempt: %1$s\nLast success: %2$s\nLast failure: %3$s\nLast failure reason: %4$s</string>
+    <string name="feeds_counts">Last successful refresh\nUnique feed hosts: %1$d; cached hosts: %2$d\nRaw bytes: %3$d; assembled bytes: %4$d\nRaw lines: %5$d; duplicates: %6$d; malformed: 0\nAdded: %7$d; removed: %8$d\nPolicy used by that cache: %9$s</string>
+    <string name="feeds_no_counts">No successful refresh statistics recorded. A bundled or legacy cache may still be active.</string>
+    <string name="feeds_source_info">Configured source: %1$s\nExisting attribution (see lists-licenses.txt): %2$s\nLatest response URL: %3$s\nHTTP: %4$s\nETag: %5$s\nLast-Modified: %6$s</string>
+    <string name="feeds_approve_category">Approve %1$s shrink and retry (PIN)</string>
+    <string name="feeds_approve_title">Approve this exact rejected revision?</string>
+    <string name="feeds_approve_body">%1$s\nUnique feed hosts: %2$d → %3$d. The cache has not changed. Approve only after checking that this upstream removal is intended. The next download must match this SHA-256 exactly; all other validation still applies.\n\n%4$s</string>
+</resources>

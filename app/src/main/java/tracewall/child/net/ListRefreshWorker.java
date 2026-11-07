@@ -26,8 +26,10 @@ public final class ListRefreshWorker extends Worker {
     @NonNull @Override public Result doWork() {
         if (!BlocklistStore.isEnabled(getApplicationContext())) return Result.success();
         ListUpdater.Result result = ListUpdater.updateBlocking(getApplicationContext(), (completed, total) ->
-            setProgressAsync(new Data.Builder().putInt("completed", completed).putInt("total", total).build()));
-        if (isStopped()) return Result.retry();
-        return result.success() ? Result.success() : Result.retry();
+            setProgressAsync(new Data.Builder().putInt("completed", completed).putInt("total", total).build()), this::isStopped);
+        // Cancellation belongs to WorkManager. Permanent HTTP/validation/shrink failures wait for the
+        // next daily run or an explicit PIN-approved recovery, rather than retrying forever.
+        if (isStopped() || result.busy) return Result.success();
+        return result.retryable && getRunAttemptCount() < 2 ? Result.retry() : Result.success();
     }
 }

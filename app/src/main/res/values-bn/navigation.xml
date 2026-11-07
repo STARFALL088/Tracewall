@@ -56,6 +56,7 @@
     <string name="nav_lists_title">ব্লকলিস্ট আপডেট</string>
     <string name="nav_lists_body">সুরক্ষায় ব্যবহৃত ডোমেইনের তালিকা হালনাগাদ রাখুন।</string>
     <string name="nav_refresh_lists">ব্লকলিস্ট হালনাগাদ করুন</string>
+    <string name="nav_feed_health">ফিডের স্বাস্থ্য ও সেটিংস</string>
     <string name="nav_pair_title">অভিভাবকের ডিভাইস যুক্ত করুন</string>
     <string name="nav_pair_body">একবার ব্যবহারযোগ্য QR কোড তৈরি করে Tracewall Parent দিয়ে স্ক্যান করুন। অভিভাবক সিঙ্ক করা অ্যাক্টিভিটি দেখতে ও দূরের নিয়ম পরিচালনা করতে পারবেন।</string>
     <string name="nav_pair_action">পেয়ারিং কোড তৈরি করুন</string>

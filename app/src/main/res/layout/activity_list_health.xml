@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="12dp" android:paddingEnd="16dp">
+        <com.google.android.material.button.MaterialButton android:id="@+id/feedsBack"
+            style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/feeds_back" />
+        <TextView android:id="@+id/feedsHeading" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:layout_marginStart="12dp" android:text="@string/feeds_title"
+            android:textSize="22sp" android:textStyle="bold" />
+    </LinearLayout>
+    <ScrollView android:id="@+id/feedsScroll" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/feeds_intro" />
+            <TextView android:id="@+id/feedsPolicy" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/feeds_policy_help" android:layout_marginTop="6dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/feedsChangePolicy"
+                style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:minHeight="48dp" android:text="@string/feeds_change_policy" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/feeds_shrink_help" android:layout_marginTop="12dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/feedsRefresh"
+                android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp"
+                android:text="@string/feeds_refresh" />
+            <TextView android:id="@+id/feedsOperation" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite" />
+            <LinearLayout android:id="@+id/feedsCards" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/feeds_limits" android:layout_marginTop="16dp" android:layout_marginBottom="16dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -56,6 +56,7 @@
     <string name="nav_lists_title">Blocklist updates</string>
     <string name="nav_lists_body">Keep the domain lists used by protection up to date.</string>
     <string name="nav_refresh_lists">Update blocklists</string>
+    <string name="nav_feed_health">Feed health and settings</string>
     <string name="nav_pair_title">Connect a parent device</string>
     <string name="nav_pair_body">Generate a one-time QR code, then scan it in Tracewall Parent. A parent can view synced activity and manage remote rules.</string>
     <string name="nav_pair_action">Create pairing code</string>

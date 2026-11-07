@@ -182,7 +182,10 @@ public class MainActivity extends AppCompatActivity {
             .setPositiveButton(android.R.string.ok, (d, w) ->
                 openVpnSettings())
             .setNegativeButton(android.R.string.cancel, null).show());
-        protect.updateLists.setOnClickListener(v -> updateLists());
+        protect.openFeedHealth.setOnClickListener(v ->
+            startActivity(new Intent(this, tracewall.child.ui.ListHealthActivity.class))
+        );
+        protect.updateLists.setOnClickListener(v -> PinGate.require(this, this::updateLists));
         feed.openHistory.setOnClickListener(v -> startActivity(new Intent(this, tracewall.child.ui.HistoryActivity.class)));
         protect.openRules.setOnClickListener(v -> openRules(RulesActivity.PAGE_DOMAINS));
         protect.openSchedules.setOnClickListener(v -> openRules(RulesActivity.PAGE_SCHEDULES));
