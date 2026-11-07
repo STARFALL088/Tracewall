@@ -559,7 +559,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Privacy controls + retention                   | DONE — JVM + APK builds         | PIN-gated cloud/history/app-name consent, clear and bounded deletion     |
 | Connection diagnostics                         | DONE — JVM + APK build          | Session counters, PIN-gated HTTPS/SVCB audit rows, zeroed panel observed |
 | Feed health + removable seeds                  | DONE — JVM + APK builds         | Read-only on entry, PIN-gated policy/refresh, exact-revision shrink approval |
-| Latest-only child location (development branch) | DONE — JVM + device verified  | Visible PIN-approved location FGS, strict Firestore point and live osmdroid parent marker; no route history |
+| Latest-only child location (development branch) | DONE — JVM + one device verified | Visible PIN-approved location FGS, one strict point per child, and an osmdroid family map for all saved children; no route history |
 | Firebase Auth (email/password)                 | 🔄 Compiles                     | Email/password is the only remote method; startup never signs in         |
 | Realtime Database rules listener               | 🔄 Compiles                     | Needs real `google-services.json`                                        |
 | Firestore history mirror                       | 🔄 Compiles                     | Needs real `google-services.json`                                        |

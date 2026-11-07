@@ -136,7 +136,7 @@ public final class LocationSharingService extends Service implements LocationLis
         try {
             if (!locationManager.isProviderEnabled(provider)) return false;
             locationManager.requestLocationUpdates(provider,
-                MIN_TIME_MS, MIN_DISTANCE_M, this, Looper.getMainLooper());
+                MIN_TIME_MS, 0f, this, Looper.getMainLooper());
             return true;
         } catch (SecurityException | IllegalArgumentException unavailable) { return false; }
     }

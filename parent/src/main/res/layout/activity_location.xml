@@ -21,7 +21,8 @@
             android:accessibilityLiveRegion="polite" />
         <TextView android:id="@+id/locationParentDetail"
             android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+            android:layout_marginTop="6dp" android:maxLines="6" android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
     </LinearLayout>
 
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"

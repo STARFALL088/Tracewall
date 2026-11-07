@@ -100,6 +100,10 @@ public class ParentNavigationTest {
 
     @Test public void appShortcutsAndDeviceControlsAreObviousWithoutEnablingUnverifiedRules() {
         create(null);
+        activity.findViewById(R.id.openLocation).performClick();
+        Intent location = shadowOf(activity).getNextStartedActivity();
+        assertNotNull(location);
+        assertEquals(LocationActivity.class.getName(), location.getComponent().getClassName());
         for (int shortcut : new int[]{R.id.overviewApps, R.id.rulesApps}) {
             navigation().setSelectedItemId(shortcut == R.id.overviewApps ? R.id.nav_overview : R.id.nav_rules);
             activity.findViewById(shortcut).performClick();

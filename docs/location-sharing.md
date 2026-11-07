@@ -45,10 +45,14 @@ service type. It requires coarse or fine location and a visible notification;
 background-location permission is not requested. A recent last-known fix may seed
 the first update only when it is no more than two minutes old.
 
-The parent uses `org.osmdroid:osmdroid-android:6.1.20` to display one marker on
-OpenStreetMap tiles, with an explicit package user agent and OpenStreetMap
-attribution. The map lifecycle follows Activity resume/pause/destroy and does not
-prefetch or retain a route.
+The parent uses `org.osmdroid:osmdroid-android:6.1.20` to display one marker for
+each saved child that passes an independent server access check and currently
+shares a point. A compact legend names every saved child and distinguishes
+checking, not-sharing, unavailable, cached, stale, and simulated states. Markers
+use deterministic colours and “Fit all children” frames every current point.
+OpenStreetMap tiles use an explicit package user agent and visible attribution.
+The map lifecycle follows Activity resume/pause/destroy and does not prefetch or
+retain a route.
 
 osmdroid is Apache-2.0 open source, but its upstream repository was archived on
 20 November 2024. Version 6.1.20 is the final Maven Central release. This branch
@@ -79,4 +83,7 @@ and strict data validation.
   hosting, accounts, or app data were changed. A physical round trip then passed:
   the child foreground service uploaded a fresh GPS point and the verified parent
   rendered and centered its osmdroid marker with a current timestamp and reported
-  accuracy. No location screenshot or coordinates are retained in the repository.
+  accuracy. The one-device path is physically verified; simultaneous two-device
+  rendering is built and tested but still needs a second child device for a real
+  two-marker check. No location screenshot or coordinates are retained in the
+  repository.
