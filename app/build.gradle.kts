@@ -13,8 +13,8 @@ android {
         applicationId = "tracewall.child"
         minSdk = 24          // VpnService is 14+, but the UI and Room want more
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.2.0"
+        versionCode = 5
+        versionName = "2.3.0-dev.1"
     }
 
     buildTypes {
