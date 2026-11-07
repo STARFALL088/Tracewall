@@ -32,6 +32,8 @@ dependencies {
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     maxHeapSize = "512m"
     maxParallelForks = 1
+    systemProperty("robolectric.dependency.repo.id", "mavenCentral")
+    systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
     if (providers.gradleProperty("authEmulator").orNull == "true") {
         include("**/BoundAccountRecoveryEmulatorTest.class")
         systemProperty("tracewall.auth.emulator", "true")
