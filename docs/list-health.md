@@ -81,36 +81,33 @@ blanket shrink override. The known text cache is not deleted by this screen.
   network/time-limit/HTTP 429/5xx failures retry, at most twice per daily cycle.
   Permanent HTTP/validation/shrink failures wait for the next daily/manual run.
 
-## Screen and parent integration
+## Screen and integration status
 
-`tracewall.child.ui.ListHealthActivity` is read-only on entry. It has an explicit
-Back button, a vertically scrollable settings/cards area, wrapped text, 48dp
-minimum action targets, compatibility accessibility headings, stable card views
-(to preserve focus), polite live status, and 46 matching EN/BN resource keys
-with matching format placeholders. Policy changes, shrink approvals and manual
-refresh from this screen require the existing `PinGate`; PIN setup alone does
-not authorize them.
+`tracewall.child.ui.ListHealthActivity` is integrated and read-only on entry. It
+has an explicit Back button, a vertically scrollable settings/cards area, wrapped
+text, 48dp minimum action targets, compatibility accessibility headings, stable
+card views (to preserve focus), polite live status, and 46 matching EN/BN
+resource keys with matching format placeholders. Policy changes, shrink
+approvals and manual refresh from this screen require the existing `PinGate`;
+PIN setup alone does not authorize them.
 
-**Parent-owned integration still required:**
+Integration completed on `main` in commit `5bd28b3`:
 
-1. Register `.ui.ListHealthActivity` in the child manifest with `exported=false`
-   and the `@string/feeds_title` label.
-2. Add a child navigation entry launching that activity. This scoped commit does
-   not modify `MainActivity`, manifests or shared `strings.xml`.
-3. If retaining the old main-screen refresh action, route it through `PinGate`
-   as well (or make it navigate to this screen). Its compatible updater API
-   continues to work; optionally show the new `busy`/`removed` result fields.
-4. Keep `BlocklistStore`'s cached-text `validate(text, 100)` loading contract;
-   the new cache header is a normal comment. Release/version/main docs and
-   ledger updates belong to the parent integration.
+1. `.ui.ListHealthActivity` is registered in the child manifest with
+   `exported=false` and the `@string/feeds_title` label.
+2. The Protect page launches it; no navigation entry bypasses the screen.
+3. The old main-screen refresh action is PIN-gated and uses the compatible
+   updater API with the additive `busy`/`removed` fields.
+4. `BlocklistStore` retains its cached-text `validate(text, 100)` loading
+   contract; the new cache header is a normal comment.
 
-No attached device/emulator was used. Launch/navigation, TalkBack, EN/BN large
-font/small-screen scrolling, PIN lifecycle/rotation, Android cancellation and
-background scheduling, on-device TLS/network/cache-rename failure injection,
-and confirmation that a running VPN swaps rules without restarting are runtime
-checks still to perform after integration. No production credentials/configs
-were read, no Firebase calls or account actions were performed, and nothing
-was pushed.
+The read-only screen, TalkBack, EN/BN large-font/small-screen scrolling, PIN
+lifecycle/rotation, Android cancellation and background scheduling, on-device
+TLS/network/cache-rename failure injection, and confirmation that a running VPN
+swaps rules without restarting are runtime checks still to perform. At the
+7 November checkpoint the phone was locked before these checks could run; no
+production credentials/configs were read and no Firebase calls or account
+actions were performed.
 
 ## Read-only upstream observation
 
@@ -133,11 +130,13 @@ bytes. These probe outputs were scratch artifacts, not committed feed snapshots.
 
 The current primary URLhaus API documentation requires an Auth-Key for its
 exports and restricts access to the hostfile documentation accordingly.[3]
-This change does **not** add credentials, silently migrate endpoints, change
-licensing, or claim that the old public URL is healthy. Selecting a replacement
-malware source and reviewing its current terms remains an explicit parent/user
-decision; the existing CC0 attribution is retained as an existing declaration,
-not a newly verified assertion about a replacement export's terms.
+The configured malware endpoint was subsequently changed to the maintained
+`https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-hosts.txt`
+mirror; a device refresh reported `Updated: 4 · Failed: 0 · Rules added: 1598`.
+No credentials were added. The existing CC0 attribution is retained as an
+existing declaration, not a newly verified assertion about the mirror's terms.
+The observation above remains a point-in-time workstation result and is not
+evidence that the old endpoint is still healthy.
 
 ## Verification checkpoint
 
@@ -145,24 +144,21 @@ Synthetic `demo-tracewall` Google Services files for **both** modules were
 created exclusively by `scripts/ci/prepare-google-services.py --output-root .`.
 There were no existing config files to inspect. These ignored, inert build
 fixtures are not credentials, were not committed and were not used to run apps.
-JDK 17, SDK 34, AGP 8.5.2, Gradle 8.9:
+JDK 17, SDK 34, AGP 8.5.2, Gradle 8.9. The integrated re-run on 7 November 2026:
 
 ```text
-: blocklist:test                                      PASS: 178 tests, 0 failures/errors/skips
-: FeedUpdateTest / FeedHealthTest                     PASS: 11 + 7 new deterministic tests
-: app:testDebugUnitTest / parent:testDebugUnitTest     NO-SOURCE (not counted as passing tests)
-: app:assembleDebug / parent:assembleDebug             PASS
-: app:lintDebug / parent:lintDebug                     PASS: 0 errors, 30 / 20 warnings
-: feed-owned lint findings                            0
+: blocklist:test                                      PASS: 231 tests, 0 failures/errors/skips
+: app:testDebugUnitTest                               PASS: 11 tests
+: auth:testDebugUnitTest                              PASS: 52 tests
+: parent:testDebugUnitTest                            PASS: 6 tests
+: app:assembleDebug / parent:assembleDebug            PASS
+: app:lintDebug / parent:lintDebug / auth:lintDebug    PASS: 0 errors
 : EN/BN resources                                    PASS: 46 keys, equal placeholders
 : git diff --check                                    PASS
-BUILD SUCCESSFUL in 44s; 103 actionable tasks: 37 executed, 2 from cache, 64 up-to-date
+BUILD SUCCESSFUL; 300 JVM tests total; 22 Python contracts passed
 ```
 
-The build completed before the host memory-pressure warning. Any subsequent
-integration build should be serialized with `--no-daemon --max-workers=1
--Dorg.gradle.jvmargs=-Xmx512m`; do not start an emulator under that constraint.
-The new tests cover prior-download removals, retained seed/overlap behavior,
+The feed tests cover prior-download removals, retained seed/overlap behavior,
 feed-only seed removals, restoring retention, shrink threshold/dedup/baseline
 and exact-content recovery, malformed/UTF-8/oversize input, a valid raw bare-host
 list whose normalized output exceeds the cap, metadata schema/types/bounds,

@@ -16,9 +16,9 @@ Each completed implementation is tested and committed separately, then pushed.
 7. [x] History: persistent filtered browsing, statistics, pagination/ranged CSV export.
 8. [x] Parent controls: app-name selection and named child profiles.
 9. [x] Rules: custom deny patterns, expiring allows and scheduled profiles.
-10. [ ] Privacy: explicit cloud mode, retention/deletion and PIN-gated local clear.
-11. [ ] Diagnostics: attribution/failure/drop metrics and configurable logged HTTPS-record handling.
-12. [ ] Packaging: feed health/removal policy, release metadata/icon/settings and consistent docs.
+10. [x] Privacy: explicit cloud mode, retention/deletion and PIN-gated local clear.
+11. [x] Diagnostics: attribution/failure/drop metrics and configurable logged HTTPS-record handling.
+12. [x] Packaging: feed health/removal policy, release metadata/icon/settings and consistent docs.
 
 ## Verification discipline
 
@@ -376,3 +376,101 @@ production/device requirements are stated separately.
   (`billingEnabled: false`, error 17499 `BILLING_NOT_ENABLED`) and the owner chose
   not to add billing. No console provider, production account, rules or app data
   was changed.
+
+### 10 — Privacy controls, explicit cloud mode and retention (2026-11-07)
+
+- Integrated the unmerged `task/privacy-controls` work instead of reimplementing
+  it: `PrivacyPolicy`, `HistoryBuffer`, `HistoryRetention`, `CloudDeletion`,
+  `PrivacyActivity`, its EN/BN resources and four pure-JVM test classes. The
+  merge conflicts in `TracewallApp`, `FirebaseSync` and `AppInventoryPublisher`
+  were resolved against the current auth/feed code.
+- Cloud mode, query-history sharing and app-name sharing all default to **off**,
+  including upgrades from older auto-sync installs. Local mode stops uploads,
+  listeners and Firebase networking while retaining the identity, SDK caches
+  and last valid remote rules. Filtering and list downloads stay local.
+- Startup never creates an anonymous identity. Cloud mode requires an
+  authenticated, `IdentityAnchor`-bound account; otherwise the privacy screen
+  reports `IDENTITY_REQUIRED`. Email/password remains the only remote method and
+  links to the existing guest/device UID.
+- `PrivacyActivity` is registered `exported=false` and is reached only from
+  Settings after the existing PIN gate. Every mode change, consent change,
+  retention choice and cloud deletion is separately PIN-gated.
+- History clear is now PIN-gated and uses `HistoryWriter.clearStored(...)`. The
+  clear shares the writer's storage monitor, so an in-flight insert cannot
+  reappear after deletion; provider/writer failures toast a failure instead of
+  a false zero-row success.
+- The app-name button always reflects persisted consent. A change rejected by a
+  pending cloud deletion is explained and does not continue pairing. Pairing and
+  parent management explain local mode instead of enabling cloud implicitly.
+- Verification: 22 privacy tests cover default/independent grants, no backfill,
+  generation/ABA invalidation, deletion lockout/bounds and server-proof
+  decisions, retention boundaries, bounded overflow and coordinated
+  insert/clear. The full run is recorded below.
+- Device: both APKs were replaced with data preserved and the child app launches
+  in local mode. The PIN-gated Privacy screen and cloud transitions were not
+  exercised because the phone locked before the unknown parent PIN could be
+  entered; no PIN was guessed or reset.
+
+### 11 — Connection diagnostics and HTTPS/SVCB probe logging (2026-11-07)
+
+- `DnsMetrics` adds process-lifetime, lock-free counters for policy decisions
+  (allowed/blocked), upstream SERVFAIL, DNS worker queue drops, unknown app
+  attribution, and blocked SVCB/HTTPS probes. `HistoryWriter.droppedRowCount()`
+  remains the separate history-drop counter. Counters reset when the VPN
+  service is created and are intentionally not durable analytics.
+- `DnsVpnService` updates the counters on actual decisions and failures. Blocked
+  SVCB/HTTPS probes always count; `DnsDiagnostics` controls whether each probe is
+  also written to the live log and retained history (default **on**). The
+  PIN-gated Home toggle changes only that audit-row choice, not the block or the
+  counters.
+- Home now shows a Connection diagnostics panel with allowed, blocked, SERVFAIL,
+  queue-drop, history-drop, unknown-app and HTTPS/SVCB-probe counts, plus the
+  PIN-gated probe logging toggle. Settings shows Android's always-on VPN
+  selection and lockdown state read-only; Tracewall cannot change it.
+- EN/BN resources were added for every new label, summary and failure state.
+- Verification: `DnsMetricsTest` covers counter separation and reset; the full
+  run is recorded below. On the device, Home rendered the panel with zeroed
+  counters and the logging toggle as "on" in local mode. Counter movement after
+  starting protection and the always-on status text still need an unlocked
+  device pass.
+
+### 12 — Feed health, removable bundled seeds and consistent docs (2026-11-07)
+
+- Integrated `5bd28b3`, which adds `FeedSource`, `FeedHealth`, `FeedUpdate`,
+  hardened `ListData` validation, `ListHealthActivity`, bilingual feed
+  resources, `docs/list-health.md` and the manifest entry.
+- The Protect page opens the feed-health screen. It is read-only on entry; local
+  policy changes, exact-revision shrink approvals and manual refresh are
+  PIN-gated. The old main-screen refresh remains PIN-gated.
+- Default remains BUNDLED + FRESH. `FEED_ONLY` lets upstream removals remove
+  bundled seeds only after a successful replacement; failures leave the last
+  validated cache or bundled asset intact. A partial refresh still reports
+  success when at least one category updated (`updated > 0`), preserving the
+  on-device 4/4 refresh result.
+- The configured malware URL remains the maintained `urlhaus-filter` mirror;
+  the old abuse.ch hostfile endpoint is documented as a historical 410 result.
+- Docs for privacy, feed health, the update ledger, syllabus coverage and the
+  project report were reconciled with the integrated implementation.
+
+### Final verification — integrated main (2026-11-07)
+
+- 300 JVM tests passed with zero failures/errors/skips: 231 core, 11 child
+  Robolectric, 6 parent and 52 auth. This includes the 22 privacy tests, the 18
+  feed tests and 2 diagnostics-counter tests.
+- 22 Python contract tests passed.
+- `:blocklist:test`, `:app:testDebugUnitTest`, `:auth:testDebugUnitTest`,
+  `:parent:testDebugUnitTest`, both APK assemblies and all three lint tasks
+  succeeded. Lint has zero errors (104 child, 40 parent, 7 auth warnings;
+  dominated by pre-existing unused legacy resources and API-level attributes).
+- APK SHA-256: Child
+  `c99bbcecd1cab5fc5e5863bb4421abfb0cb7c00714bc7668c9a2866043363642`;
+  Parent `ad5063a253631967ea49cecc45adc770e7ee2ce186b9ddb5e9696a37fd5daafd`.
+- Both APKs were installed with `adb install -r` on the Samsung SM-A127F
+  (`R58RA294D7L`, Android 13), preserving app data. The child Home screen showed
+  103,113 rules, the diagnostics panel at zero and probe logging "on".
+- Still blocked by the unknown parent PIN: opening Privacy controls, changing
+  retention/consent/cloud mode, changing probe logging, feed policy changes,
+  refresh, pairing and revocation. Parent dashboard, remote rules, app picker,
+  device switching, child history and revocation also remain blocked because no
+  child is paired. No PIN was guessed or reset, and no production Firebase rules,
+  billing, providers or accounts were changed.

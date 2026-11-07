@@ -1,8 +1,9 @@
 # Tracewall — Week 13 project report
 
-Date: 29 October 2026. Java 17, Android minSdk 24 / compileSdk 34 / targetSdk 34.
-This report describes the implementation at the end of tasks A–H. A successful
-build is distinguished from device testing and production Firebase verification.
+Date: 7 November 2026. Java 17, Android minSdk 24 / compileSdk 34 / targetSdk 34.
+This report describes the integrated implementation at the end of tasks A–J. A
+successful build is distinguished from device testing and production Firebase
+verification.
 
 ## Problem statement
 
@@ -30,6 +31,9 @@ flowchart TB
         Store[BlocklistStore]
         History[QueryLog / HistoryWriter / Room]
         Sync[FirebaseSync]
+        PrivacyP[PrivacyPolicy / HistoryRetention / CloudDeletion]
+        Diagnostics[DnsMetrics / DnsDiagnostics]
+        Health[FeedHealth / FeedUpdate]
         Refresh[ListUpdater / ListRefreshWorker]
         Providers[QueryLogProvider / FileProvider]
     end
@@ -44,8 +48,12 @@ flowchart TB
     VPN --> Store
     VPN --> Forward
     VPN --> History --> Sync
+    VPN --> Diagnostics
     UI --> Providers
+    UI --> PrivacyP
+    Sync --> PrivacyP
     Refresh --> Store
+    Refresh --> Health
     Refresh --> Data
     UI --> Security
     Pair --> Security
@@ -80,7 +88,7 @@ sequenceDiagram
     TUN->>VPN: IPv4/UDP packet
     VPN->>VPN: Parse question and best-effort UID attribution
     alt Type 64 or 65
-        VPN-->>App: NXDOMAIN (early return; not recorded in ordinary history)
+        VPN-->>App: NXDOMAIN; counter always increments, audit row is optional
     else Ordinary question
         VPN->>Policy: decide(host, UID)
         alt Blocked
@@ -107,24 +115,29 @@ is dropped. Replies include IPv4/UDP checksums generated in Java.
 
 The live log keeps 500 entries; Main shows up to 60 matching entries, refreshed
 every 700 ms. The trend uses the retained ring. `HistoryWriter` has a 2,000-row
-queue, drains batches of up to 256, and uses a 1.5-second idle poll. It prunes
-Room records older than seven days, checking at most hourly. Queue overflow or
-a write failure can lose history without blocking DNS. Firestore mirroring is
-per record after the local insert; queries before authentication are not
-backfilled. Firestore has no retention job.
+queue, drains batches of up to 256, and uses a 1.5-second idle poll. Local
+retention accepts 0/1/3/7 days (default 7); zero disables Room inserts. Startup
+and roughly once-per-minute maintenance enforce the stored choice while the
+process runs, and a clear shares the writer's storage monitor so an in-flight
+insert cannot reappear after deletion. Queue overflow or a write failure can
+lose history without blocking DNS and is counted in diagnostics. Firestore
+mirroring is per record after the local insert and only with query-history
+consent; queries before authentication are not backfilled. Firestore has no
+retention job.
 
 ## Android components and APIs
 
 | Component | Implementation and role |
 | --- | --- |
-| Activities | Child `MainActivity` shows protection, search, history, sharing, updates, pairing and settings; `AppBlockActivity` manages app DNS blocks. Parent `PairingActivity` scans QR or accepts UID/code; `DashboardActivity` edits remote rules and shows activity. |
-| Service | `DnsVpnService` establishes the DNS-only TUN, owns packet workers and upstream sockets, and follows physical network changes. It does not call `startForeground`; its process lifetime still needs OS/device testing. |
+| Activities | Child `MainActivity` shows protection, search, history, sharing, updates, pairing and settings; `AppBlockActivity` manages app DNS blocks; `PrivacyActivity` holds PIN-gated cloud/retention/deletion controls; `ListHealthActivity` shows read-only feed health. Parent `PairingActivity` scans QR or accepts UID/code; `DashboardActivity` edits remote rules and shows activity. |
+| Service | `DnsVpnService` establishes the DNS-only TUN, owns packet workers and upstream sockets, follows physical network changes, and promotes itself to a foreground service with the declared type. Its process lifetime still ultimately depends on Android. |
+| Diagnostics | `DnsMetrics` keeps process-lifetime allowed/blocked/SERVFAIL/queue-drop/unknown-UID/HTTPS-probe counters; `DnsDiagnostics` stores the PIN-gated audit-row preference; Home renders the snapshot and Settings shows Android's always-on VPN state read-only. |
 | Manifest receiver | `BootReceiver` handles boot and own-package replacement; if protection was wanted but is not running, it prewarms Firebase and posts a notification. It does not start the VPN itself. |
 | Dynamic receiver | Registered in the VPN service for `ACTION_PACKAGE_ADDED`, scheme `package`; ignores `EXTRA_REPLACING`. Offloads label resolution, notifies locally, and writes a `new_app` event. Unregistered in `onDestroy`. |
-| ContentProvider | Private `QueryLogProvider` reads Room and supports local history clearing; rejects insert/update. The CSV export uses its current default of the most recent 200 rows. It does not delete cloud history. |
+| ContentProvider | Private `QueryLogProvider` reads Room and delegates local clearing to the race-safe `HistoryWriter.clearStored(...)`; it rejects insert/update. The CSV export uses its current default of the most recent 200 rows. It does not delete cloud history. |
 | FileProvider | Private `androidx.core.content.FileProvider` exposes only `cacheDir/exports/`, granting temporary read access for CSV/JSON `ACTION_SEND` sharing. |
 | Room | `QueryRecord`, `QueryDao`, `TracewallDb`, and `HistoryWriter`; WAL database and local retention. |
-| Firebase | Anonymous Auth identities; RTDB remote rules and pairing; Firestore history, protection-off events, new-app events, and independently validated membership. SDK persistent caches support authenticated offline writes. |
+| Firebase | Email/password-bound identities (no background anonymous sign-in); RTDB remote rules and pairing; Firestore history, protection-off events, new-app events, and independently validated membership. Cloud, history and app-name sharing are separate PIN-approved consents; SDK persistent caches support authenticated offline writes. |
 | WorkManager | Java `ListRefreshWorker`, work-runtime 2.9.1, unique KEEP work `tracewall.category-refresh.v1`, 24-hour interval/initial delay, CONNECTED constraint, exponential retry starting at 30 minutes. |
 | Networking | Java `DatagramSocket` and `Socket` in the forwarder; `HttpURLConnection` for HTTPS list refresh with explicit timeouts, redirects and byte caps. |
 | Data APIs | `org.json` serialization/validation in the JVM module; document import via `ACTION_OPEN_DOCUMENT`; CSV field quoting in `CsvRow`. |
@@ -140,6 +153,9 @@ backfilled. Firestore has no retention job.
 | `protect()` both upstream socket types | Keeps UDP forwarding and TCP fallback outside VPN interception. Physical-network callbacks replace the resolver pool; protected sockets prevent recursive routing. |
 | Immutable policy snapshots | A complete replacement engine is published atomically. Packet decisions see the previous or next policy, never a half-built engine. |
 | Local processing with optional sync | Filtering works without a backend. Firebase adds remote management, and consequently receives hostnames and events when configured. No HTTPS content is decrypted. |
+| Privacy defaults off | Cloud mode, query-history sharing and app-name sharing require an explicit PIN-approved opt-in, including upgrades. Local mode stops uploads and listeners and disables Firebase networking while retaining identity, caches and the last valid remote rules. Deletion is bounded and requires server read-back before success. |
+| Separate diagnostics from enforcement | Counters are process-lifetime diagnostics, not analytics, and always run. Blocked SVCB/HTTPS audit rows are optional and PIN-gated; the block itself never depends on the preference. |
+| Removable bundled seeds | The default remains BUNDLED + FRESH. FEED_ONLY removes bundled seeds only after a successful validated replacement; failures preserve the last cache or bundled asset, and a >25% shrink needs an exact-revision approval. |
 | Separate local and remote rules | Allows and blocked UIDs are unions; remote categories replace local categories when present. Local JSON import cannot erase parent-managed rules. Parent edits start only after the full initial rule snapshot. |
 | Salted PIN verifier | A 4–6 digit PIN uses PBKDF2WithHmacSHA1, 210,000 iterations, a random 16-byte salt and 256-bit output; no plaintext PIN is stored. API 24 supports this algorithm. Verification runs on an executor; five failures lock local prompts for 30 seconds. A short PIN and local storage are not an OS security boundary. |
 | Expiring one-use pairing | SecureRandom supplies eight characters (40 random bits), shown with the child UID in `tracewall:1:UID:CODE`. Each database requires matching unexpired code and an atomic membership-plus-claim write. This prevents reuse within that database before child cleanup. |
@@ -169,10 +185,12 @@ memberships; revoke in both stores and generate a new code before retrying.
 The child mirrors RTDB removal events while listening, but that is not a trusted
 backend reconciliation service. Already downloaded parent data cannot be taken
 back. There is no server-side pairing rate limit or durable account recovery.
-Clearing anonymous-auth data loses that identity.
+Clearing app data loses the local identity; email/password linking preserves the
+existing guest UID, and `IdentityAnchor` rejects an unrelated UID.
 
 The first person setting up the child app chooses its local PIN. The PIN gates
-protection-off, rule relaxations, pairing/revocation and CSV/JSON transfer flows;
+protection-off, rule relaxations, pairing/revocation, privacy/retention/deletion
+changes, feed policy/refresh, the HTTPS/SVCB audit toggle and CSV/JSON transfer flows;
 it does not lock Android settings, stop uninstall, or stop clearing app data.
 Its lockout depends on the device clock and preferences. Cloud rules protect
 only projects to which these rules have actually been deployed. This task did
@@ -180,25 +198,31 @@ not deploy rules or change any `google-services.json` or real credentials.
 
 ## Testing summary
 
-| Check | Result in this continuation |
+| Check | Result on integrated main (7 November 2026) |
 | --- | --- |
-| `./gradlew :blocklist:test` | 98 tests, zero failures/errors/skips. Required after each task. Covers DNS/IP codecs, forwarder behavior, policy precedence, PIN, pairing payloads, hosts parsing, CSV quoting, JSON limits/types/fields, bounded UTF-8 I/O, list merging, bundled-data budget, feed ordering and search. |
-| `./gradlew :app:assembleDebug :parent:assembleDebug` | Both APKs built after every task. SDK was available. WorkManager's public future API required an explicit Guava dependency due to Firebase's empty listenablefuture shim. |
-| `scripts/test-firebase-rules.sh` | 70 emulator REST checks passed after adding new-app events: child rules writes denied; stranger reads denied; wrong/expired/reused codes denied; valid atomic claims succeed; parents cannot mutate/delete history/events; child revocation removes access; event schema checked. Uses demo project and synthetic Auth users. |
+| `./gradlew :blocklist:test` | 231 tests, zero failures/errors/skips. Covers DNS/IP codecs, forwarder behavior, policy precedence, PIN, pairing payloads, hosts parsing, CSV quoting, JSON limits/types/fields, bounded UTF-8 I/O, list merging, feed health/seed removal, privacy retention/clear/deletion and diagnostics counters. |
+| `./gradlew :app:testDebugUnitTest :auth:testDebugUnitTest :parent:testDebugUnitTest` | 11 child Robolectric, 52 auth and 6 parent tests passed. Total across modules: 300 tests. |
+| Python contracts | 22 tests passed, including UI/auth contracts and the SQL fixture. |
+| `./gradlew :app:assembleDebug :parent:assembleDebug` | Both APKs built after the final integration. WorkManager's public future API still uses the explicit Guava dependency. |
+| Lint | Child, parent and auth lint passed with zero errors (104 / 40 / 7 warnings, dominated by pre-existing unused legacy resources and API-level attributes). |
+| `scripts/test-firebase-rules.sh` | 70 emulator REST checks passed after adding new-app events: child rules writes denied; stranger reads denied; wrong/expired/reused codes denied; valid atomic claims succeed; parents cannot mutate/delete history/events; child revocation removes access; event schema checked. These predate the privacy integration; no rules changed, so they were not re-run. |
 | Source generation | `scripts/fetch-lists.sh` downloaded and merged licensed category sources; resulting baseline size is also checked by a JVM test. |
-| Runtime Android checks | Not verified in this continuation. ADB listed no devices. Attempted read-only, headless API 37 AVD startup failed for insufficient host disk space (1.4 GB free). |
-| Real Firebase project | Not verified. Production sign-in, QR camera scanning, deployed-rule integration, offline sync/revocation and dashboard operation require configured devices and a real project. |
+| Runtime Android checks | Both APKs were installed data-preservingly on the Samsung SM-A127F. The child Home showed 103,113 rules, the diagnostics panel at zero and probe logging "on". PIN-gated screens and counter movement after starting protection remain unverified because the phone locked with an unknown PIN. |
+| Real Firebase project | Not verified. Production email/password linking, QR camera scanning, deployed-rule integration, offline sync/revocation and dashboard operation require configured devices and a real project. |
 
-The Gradle daemon connection failed once after adding WorkManager. The checks
-passed using `--no-daemon --max-workers=2 -Dorg.gradle.jvmargs=-Xmx1536m`.
-Existing README screenshots/device results describe earlier versions and are
-not runtime evidence for these changes. Emulator security tests run Firebase
-services locally; they do not run the Android APKs.
+Commands were run serialized with `--no-daemon --no-parallel --max-workers=2`;
+the final log is `build/ci/final-verification.log`. Existing README screenshots
+and earlier device results are not runtime evidence for the current APK.
+Emulator security tests run Firebase services locally; they do not run the
+Android APKs.
 
 ### Manual device/demo checklist — pending
 
 - [ ] Install both APKs; configure both apps in the same real Firebase project and deploy the checked-in rules. Check English and Bengali layouts.
 - [ ] Set the parent PIN; test wrong PIN, five-attempt lockout, successful reset, protected exports and rule changes.
+- [ ] Open Settings → Privacy with wrong and correct PIN. Verify cloud/history/app-name choices persist, no-account cloud mode reports identity required, retention 0/1/3/7 prunes or disables Room, a clear during a live insert leaves no resurrected rows, and bounded cloud deletion requires server read-back.
+- [ ] Start protection and confirm allowed/blocked/SERVFAIL/drop counters move. Toggle the HTTPS/SVCB audit rows with the PIN; blocked probes must still count with the toggle off. Check the always-on/lockdown status text.
+- [ ] Open Protect → Feed health read-only. Change the bundled-seed policy with the PIN, run a partial refresh and a rejected >25% shrink, and confirm exact-revision approval, cache fallback and no VPN restart.
 - [ ] Enable protection after Android VPN consent. Resolve an allowed domain, a blocked A domain, blocked AAAA/other question and a SVCB/HTTPS name; check policy precedence and history.
 - [ ] Switch Wi-Fi/mobile networks while querying. Check SERVFAIL/recovery and no socket loops.
 - [ ] Create a pairing code; pair by QR and by manual entry using separate fresh codes. Try wrong, expired and already-claimed codes. Revoke a parent and check both rule writes and history reads stop after server confirmation.
@@ -230,9 +254,18 @@ services locally; they do not run the Android APKs.
 - Firebase is optional and unverified against a production project. Pairing and
   revocation are not atomic across databases; revocation cannot erase data
   already read. Parent edits are last-write-wins. History/events have no cloud TTL.
-- Logs are bounded and best effort. The live ring is lost on process death;
-  local history clears do not delete the Firestore mirror. CSV uses the provider's
-  default recent 200 rows rather than all seven days of retained history.
+- Privacy controls are defaults and client-side gates, not an OS sandbox. Local
+  mode stops new Tracewall uploads and networking but cannot recall writes already
+  issued, cached, exported or read. Cloud deletion covers only the three child
+  Firestore subcollections, needs deployed child delete rules, and cannot erase
+  parent copies. Retention is enforced while the process runs, not while dead.
+- Diagnostics counters are process-lifetime only and reset with the service;
+  they are not an audit ledger. History-drop counts are separate from DNS queue
+  drops. Blocked SVCB/HTTPS rows are optional audit entries; the block itself is
+  not evidence that encrypted DNS or direct-IP traffic is fully prevented.
+- Feed health is a local observation, not an upstream guarantee or signature.
+  FEED_ONLY removals apply only after that category's next successful validated
+  replacement; a mixed cache policy across partial failures is possible.
 - Blocklists can misclassify domains, omit popular sites, or become stale.
   Refreshes trust upstream HTTPS feeds without signed manifests. Categories
   update atomically one file at a time, so partial updates can mix feed ages.
@@ -250,10 +283,10 @@ services locally; they do not run the Android APKs.
 2. Introduce a trusted server pairing/revocation coordinator, parent account
    recovery, attempt limits and cloud history/event retention.
 3. Improve app identity/UID selection and document platform attribution limits.
-4. Add signed/versioned list manifests, feed health reporting and a managed
-   baseline-removal policy; evaluate memory/load latency on lower-end devices.
+4. Add signed/versioned list manifests and server-verifiable feed signatures;
+   evaluate memory/load latency on lower-end devices.
 5. Consider client TCP DNS and IPv6 tunnel support while preserving a narrowly
    defined routing boundary; explain DoH/direct-IP limitations in the product.
-6. Offer explicit history-export ranges/pagination and stronger local history
-   controls. Consider optional device-owner deployment for managed devices,
-   with informed enrollment and recovery design.
+6. Extend history privacy with secure-erasure options and consider optional
+   device-owner deployment for managed devices, with informed enrollment and
+   recovery design.

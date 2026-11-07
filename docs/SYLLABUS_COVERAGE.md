@@ -12,7 +12,9 @@ The detailed week mapping below is preserved from the supplied root-level syllab
 | E — Background data operations | Unique connected 24-hour WorkManager refresh | DONE — JVM regression tests and both APK builds |
 | F — Dynamic broadcast receiver | New install notification and parent event feed | DONE — JVM, emulator rules, both APK builds; install device check pending |
 | G — Lifecycle and state | Seven lifecycle callbacks, filter and scroll restoration | DONE — JVM + both APK builds; rotation device check blocked (AVD disk space) |
-| H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 206 JVM/Robolectric tests and both APK builds pass |
+| H — Week 13: project report | Architecture, decisions, testing, limits and future work | DONE — report written; 300 JVM tests, 22 Python contracts and both APK builds pass |
+| I — Privacy and data controls | PIN-gated cloud mode, history/app-name consent, retention, race-safe local clear and bounded cloud deletion | DONE — 22 privacy tests and both APK builds; trusted device PIN flow pending |
+| J — Diagnostics and feed health | Session DNS counters, optional HTTPS/SVCB audit rows, read-only always-on status, read-only feed health with removable seeds | DONE — JVM tests and both APK builds; diagnostics panel observed, counter movement pending |
 
 Existing components: VPN Service and sockets; Room with a private ContentProvider;
 Activities and RecyclerViews; boot receiver; bilingual resources; local parent PIN.
@@ -67,9 +69,10 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 | HTTP request + JSON parsing | `ListUpdater` HTTPS; `RulesJson` validated backups and document picker | DONE — built and JVM tested; device network checks pending |
 | XML parsing | none yet | PLANNED (optional) |
 | Room database (entity, DAO, batched writer) | `J/log/TracewallDb.java`, `QueryDao.java`, `HistoryWriter.java` | DONE |
+| Privacy controls and data lifecycle | `PrivacyPolicy`, `HistoryBuffer`, `HistoryRetention`, `CloudDeletion`; `J/ui/PrivacyActivity.java` | DONE — 22 JVM tests and both APK builds; PIN-gated device flow pending |
 | Background work (`WorkManager` periodic list refresh) | `ListRefreshWorker`, CONNECTED, unique KEEP, exponential retry | DONE — built; OS scheduling checks pending |
 | Advanced APIs: `VpnService`, `protect()`, `getConnectionOwnerUid`, `ConnectivityManager` callbacks | `DnsVpnService`, `UidAttributor.java` | DONE |
-| Firebase Auth, Realtime DB, Firestore | `FirebaseSync`, `FirebaseParent`, scoped pairing rules | DONE — built + 70 emulator checks; production end-to-end verification pending |
+| Firebase Auth, Realtime DB, Firestore | `FirebaseSync`, `FirebaseParent`, scoped pairing rules | DONE — built + 70 emulator checks; email/password only; production end-to-end verification pending |
 
 ## Java concepts (Weeks 1 to 4, reused in the Android project)
 
@@ -77,7 +80,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 |---|---|---|
 | OOP, packages, interfaces, exceptions | `blocklist/` module | DONE |
 | Multithreading, synchronization | `HistoryWriter` thread, `QueryLog` (synchronized), DNS worker pool | DONE |
-| Unit testing (pure JVM) | `blocklist/src/test` | DONE — 189 passing tests; 206 including app/parent Robolectric suites |
+| Unit testing (pure JVM) | `blocklist/src/test` | DONE — 231 core tests; 300 including child/parent/auth Robolectric suites and 22 Python contracts |
 | Git history | `git log` | DONE: keep committing small changes |
 
 ## Week 13 demo checklist
@@ -93,7 +96,7 @@ Paths are relative to the repo root; `J/` means `app/src/main/java/tracewall/chi
 
 ## Remaining verification
 
-Implementation for tasks A–H builds. Runtime checks remain in [REPORT.md](REPORT.md):
+Implementation for tasks A–J builds. Runtime checks remain in [REPORT.md](REPORT.md):
 rotation and scroll restoration, sharing/document-picker permissions, settings fallback,
 WorkManager scheduling/retry, actual install vs update broadcasts, and real Firebase
 pairing/rules/history/revocation across two devices.
@@ -101,9 +104,12 @@ pairing/rules/history/revocation across two devices.
 On-device audit (Samsung SM-A127F, Android 13) confirmed cold start without ANR, a
 71 ms warm tunnel start (9.2 s cold parse on a background thread), working DNS
 filtering, and a full 4/4 list refresh after the dead malware endpoint was replaced.
-Email/password is the only remote sign-in; phone OTP and Google sign-in were removed.
-The earlier phone attempt failed with error 17499 `BILLING_NOT_ENABLED` because the
-Firebase project has billing disabled. Parent dashboard/remote rules, PIN-gated
-actions and per-app enforcement remain unverified because no child is paired. No
-production rules were deployed, no billing was enabled and no credentials changed.
-XML parsing remains optional and is not claimed as implemented.
+The integrated 7 November build preserved app data, rendered the Home diagnostics
+panel at zero and showed HTTPS/SVCB probe logging as on. Email/password is the only
+remote sign-in; phone OTP and Google sign-in were removed. The earlier phone attempt
+failed with error 17499 `BILLING_NOT_ENABLED` because the Firebase project has
+billing disabled. Privacy/retention/cloud-mode screens, diagnostics counter movement
+after protection starts, feed-health UI, parent dashboard/remote rules and per-app
+enforcement remain unverified because the phone locked and no parent PIN is known.
+No PIN was guessed, no production rules were deployed, no billing was enabled and no
+credentials changed. XML parsing remains optional and is not claimed as implemented.

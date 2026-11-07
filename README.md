@@ -131,7 +131,7 @@ graph TB
         FWD -->|protect| REAL([Upstream DNS])
         REAL --> FWD --> SINK
         VPN --> HW[HistoryWriter\nbatch 1.5s]
-        HW --> ROOM[(Room DB\n1-week retention)]
+        HW --> ROOM[(Room DB\n0/1/3/7-day retention)]
         HW --> FSYNC[FirebaseSync]
     end
 
@@ -212,7 +212,7 @@ git checkout v2.2.0   # current multipage release
 
 | Area                               | Change                                                                                                                                                                          |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Firebase Auth**                  | `TracewallApp` signs in anonymously on startup; the UID identifies the device; pairing requires a separate one-time code                                                        |
+| **Firebase Auth** (historical)     | v2.0.0 signed in anonymously on startup. Current builds never sign in during startup: email/password is the only remote method, and it links to the existing guest/device UID. Pairing still requires a separate one-time code |
 | **Realtime Database**              | `FirebaseSync.listenForRules()` subscribes to `/devices/{uid}/rules`; reloads `BlocklistStore` atomically on any parent write                                                   |
 | **Firestore**                      | `HistoryWriter` mirrors each batch to `/devices/{uid}/history` after the Room insert; Firestore SDK queues writes offline                                                       |
 | **Offline persistence**            | Both databases enable on-disk caching before any reference is obtained                                                                                                          |
@@ -223,7 +223,7 @@ git checkout v2.2.0   # current multipage release
 | **Private DNS warning**            | Yellow banner in `MainActivity` when `Settings.Global.private_dns_mode ≠ off`; re-checked on every `onResume`                                                                   |
 | **SVCB / HTTPS blocking**          | `TYPE_SVCB=64`, `TYPE_HTTPS=65` added to `DnsMessage`; `DnsVpnService` returns NXDOMAIN before any policy check, limiting the `_dns.resolver.arpa` encrypted-DNS discovery path |
 | **`AtomicBoolean`**                | `DnsVpnService.running` was `volatile boolean`; replaced with `AtomicBoolean` to remove the data-race between tunnel thread, `teardown()` and binder-thread `onDestroy()`       |
-| **BootReceiver pre-warm**          | `FirebaseSync.signInAnonymously()` called at boot when protection was previously enabled                                                                                        |
+| **BootReceiver pre-warm** (historical) | v2.0.0 called `FirebaseSync.signInAnonymously()` at boot. Current builds only notify; they never create an identity in the background.                                      |
 | **Security rules**                 | `firebase/database.rules.json` + `firebase/firestore.rules` committed alongside the code; locked to `auth.uid` with parent-pairing carve-out                                    |
 | **`google-services.json.example`** | Template committed in `app/` so contributors know what to fill in                                                                                                               |
 
@@ -272,11 +272,11 @@ Tracewall/
 │       │   ├── DnsVpnService.java    TUN loop, worker pool, SVCB blocking
 │       │   └── UidAttributor.java    Maps (srcIp, srcPort) → Android UID
 │       └── boot/
-│           └── BootReceiver.java     BOOT_COMPLETED: notify + pre-warm Firebase
+│           └── BootReceiver.java     BOOT_COMPLETED: notify only; no background sign-in
 │
 ├── parent/                 Parent's phone. Second APK, same Firebase project.
 │   └── src/main/java/tracewall/parent/
-│       ├── TracewallParentApp.java   Application: anonymous Firebase sign-in
+│       ├── TracewallParentApp.java   Application: shared account entry; no anonymous sign-in
 │       ├── PairingActivity.java      Enter child UID or scan QR; registerAsParent
 │       ├── DashboardActivity.java    Live history + allow/block/category rule forms
 │       └── sync/
@@ -289,7 +289,8 @@ Tracewall/
 
 **Why the split?** The hardest code — wire formats, real checksums — lives in
 `blocklist/` with zero Android dependencies. `./gradlew :blocklist:test` runs all
-98 tests on any laptop with just a JDK, including checksum re-verification
+231 core tests on any laptop with just a JDK (300 tests across all modules),
+including checksum re-verification
 against an independent RFC 1071 reference and 11 policy-precedence tests.
 No emulator needed.
 
@@ -402,9 +403,9 @@ sequenceDiagram
     participant FB    as Firebase
     participant Parent as Parent App
 
-    Child  ->> FB    : signInAnonymously() → childUid
+    Child  ->> FB    : explicit guest or email/password sign-in → childUid
     Child  ->> Child : generate code and expiry, show QR(uid, code)
-    Parent ->> FB    : signInAnonymously() → parentUid
+    Parent ->> FB    : explicit guest or email/password sign-in → parentUid
     Parent ->> Child : scan QR → get childUid + code
     Parent ->> FB    : RTDB atomic registration(code) + pairing claim
     Parent ->> FB    : Firestore batch registration(code) + pairing claim
@@ -416,9 +417,10 @@ sequenceDiagram
 
 ### Security model — honestly
 
-Anonymous Firebase Auth identifies each child and parent. Knowing a child UID
-alone grants no access. A parent must claim a random eight-character code within
-five minutes. The code and expiry live at RTDB `devices/{uid}/pairing` and
+Firebase Auth identities (email/password, or an explicitly chosen guest session)
+identify each child and parent; startup never creates an anonymous identity.
+Knowing a child UID alone grants no access. A parent must claim a random
+eight-character code within five minutes. The code and expiry live at RTDB `devices/{uid}/pairing` and
 Firestore `devices/{uid}/pairing/current`; neither is readable by other users.
 Registration atomically writes membership plus `claimed_by` in each database,
 which prevents a second claim even before the child clears the pairing records.
@@ -439,8 +441,9 @@ retrying. A party who steals a live code can race its intended recipient,
 including claiming one database before the other; there is no trusted server to
 coordinate them. Out-of-band RTDB deletion while the child is not listening must
 also delete the Firestore membership. There is no server-side pairing attempt
-rate limit or durable parent account recovery. Anonymous identities are lost if
-app data is cleared. Firebase rules do not prevent uninstall, system VPN changes,
+rate limit or durable parent account recovery. The local identity is lost if
+app data is cleared; email/password linking preserves the existing guest UID,
+and a different UID is rejected by the installation anchor. Firebase rules do not prevent uninstall, system VPN changes,
 Private DNS/DoH bypass, or tampering on a rooted device. Revocation cannot remove history already read or cached by a parent. Local PIN storage uses
 salted PBKDF2; its attempt lockout relies on the device clock and app storage.
 
@@ -463,7 +466,9 @@ firebase deploy --config firebase/firebase.json --project YOUR_PROJECT --only da
 **1. Create a project**
 
 - [console.firebase.google.com](https://console.firebase.google.com) → New project
-- Enable **Anonymous** sign-in (Authentication → Sign-in method)
+- Enable **Email/Password** sign-in (Authentication → Sign-in method). Enable
+  **Anonymous** only if you want the explicit guest-identity option; current
+  startup never signs in anonymously.
 - Create a **Realtime Database** (start in locked mode)
 - Create a **Firestore** database (start in production mode)
 
@@ -524,7 +529,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 | Feature                                        | Status                          | Notes                                                                    |
 | ---------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------ |
-| Week 13 project report                         | DONE — docs + build checks      | [Report](docs/REPORT.md), 98 JVM tests; device checklist remains pending |
+| Week 13 project report                         | DONE — docs + build checks      | [Report](docs/REPORT.md), 300 JVM tests and 22 Python contracts; device checklist remains pending |
 | Lifecycle logs + restored filters and scroll   | DONE — JVM + APK builds         | Rotation code reviewed; device check blocked by emulator disk space      |
 | New install notifications + parent feed        | DONE — JVM + APK builds         | Dynamic package receiver, ignores updates; Firestore event rules tested  |
 | Daily WorkManager refresh                      | DONE — APK builds               | Unique connected 24-hour work; exponential retry; last result shown      |
@@ -544,13 +549,16 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 | Allowlist override                             | ✅ Verified                     | Long-press any blocked row                                               |
 | Live query log                                 | ✅ Verified                     | 500-entry ring, 700 ms refresh                                           |
 | Custom trend bar chart                         | ✅ Verified                     | 1-min buckets, `TrendView` custom view                                   |
-| Room history + ContentProvider                 | ✅ Verified                     | 1.5 s batch, 1-week retention                                            |
+| Room history + ContentProvider                 | ✅ Verified                     | 1.5 s batch, PIN-gated clear, configurable 0/1/3/7-day retention          |
 | CSV export                                     | DONE — JVM + APK builds         | PIN-gated FileProvider CSV; ACTION_SEND chooser                          |
 | Bilingual (English + Bengali)                  | ✅ Verified                     | `values-bn/`                                                             |
 | Boot notification                              | ✅ Verified                     | `BootReceiver`                                                           |
-| SVCB / HTTPS type blocking                     | ✅ Compiled, 98/98 tests        | Limits encrypted-DNS discovery                                           |
+| SVCB / HTTPS type blocking                     | ✅ Compiled, 231 core tests     | Limits encrypted-DNS discovery; counters and optional audit rows         |
 | Private DNS warning banner                     | ✅ Compiled                     | Reads `Settings.Global` on resume                                        |
-| Firebase Auth (anonymous)                      | 🔄 Compiles                     | Needs real `google-services.json`                                        |
+| Privacy controls + retention                   | DONE — JVM + APK builds         | PIN-gated cloud/history/app-name consent, clear and bounded deletion     |
+| Connection diagnostics                         | DONE — JVM + APK build          | Session counters, PIN-gated HTTPS/SVCB audit rows, zeroed panel observed |
+| Feed health + removable seeds                  | DONE — JVM + APK builds         | Read-only on entry, PIN-gated policy/refresh, exact-revision shrink approval |
+| Firebase Auth (email/password)                 | 🔄 Compiles                     | Email/password is the only remote method; startup never signs in         |
 | Realtime Database rules listener               | 🔄 Compiles                     | Needs real `google-services.json`                                        |
 | Firestore history mirror                       | 🔄 Compiles                     | Needs real `google-services.json`                                        |
 | Remote category toggles                        | 🔄 Compiles                     | RTDB `rules/categories`                                                  |
@@ -563,7 +571,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 **Key:** DONE = implemented and built; notes distinguish JVM/emulator checks from
 device verification. ✅ marks earlier verification evidence (some rows are JVM-only,
 as labeled); it does not verify every new change. 🔄 = builds, device checks pending.
-Current continuation: **98 JVM tests**, both APK builds, **70 Firebase emulator checks**.
+Current continuation: **300 JVM tests**, **22 Python contracts**, both APK builds and **70 Firebase emulator checks**.
 See [syllabus coverage](docs/SYLLABUS_COVERAGE.md) and [Week 13 report](docs/REPORT.md).
 
 ---
@@ -597,13 +605,13 @@ free host disk space. Verify both filters/scroll offsets and confirm a single
 
 Device and production limitations are also detailed in the report.
 
-- **Parent-side UID entry has no app picker.** The dashboard takes a raw
-  Android UID to block. The parent app cannot see the child's installed app list
-  (it is on a different device), so there is no friendly name-to-UID resolver.
+- **Parent app picker needs consent.** The parent app can search consented
+  app-name snapshots and block by package/UID; without that consent it falls back
+  to raw Android UID entry. The child remains the authority for what is shared.
 
 - **No Firestore retention.** The Firestore history collection grows unboundedly.
-  The on-device Room database prunes rows older than one week; the Firestore
-  mirror has no equivalent TTL or Cloud Function cleanup job.
+  The on-device Room database prunes by the selected 0/1/3/7-day window; the
+  Firestore mirror has no equivalent TTL or Cloud Function cleanup job.
 
 - **Pairing spans two databases.** Claims and revocations cannot be atomic
   across RTDB and Firestore. See the Security model for recovery and live-code
@@ -622,8 +630,9 @@ Device and production limitations are also detailed in the report.
   lockdown, then opens Android VPN settings; this still needs device testing.
 
 - **Tamper reporting is best effort.** Android may kill or force-stop a process
-  without a lifecycle callback. Events cannot be guaranteed in that case; anonymous
-  Firebase sign-in must have succeeded for offline event queueing. A local PIN
+  without a lifecycle callback. Events cannot be guaranteed in that case; an
+  authenticated, identity-anchored account must be bound for offline event
+  queueing. A local PIN
   cannot prevent uninstall, clearing app data, or changing system settings.
 
 - **VPN cannot self-restart after a reboot.** `BootReceiver` posts a notification
