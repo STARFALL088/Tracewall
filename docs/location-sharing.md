@@ -74,7 +74,9 @@ and strict data validation.
 - On the Samsung SM-A127F, the English child screen, runtime permission flow,
   foreground notification, Stop action, and service teardown were verified. The
   parent osmdroid screen loaded OpenStreetMap tiles and visible attribution.
-- Production rules have not been deployed and a physical latest-point upload/map
-  marker round trip remains pending until the project owner explicitly authorizes
-  a rules deployment. The currently deployed rules rejected the new path as
-  expected; no production security configuration was changed.
+- After explicit project-owner approval, only `firebase/firestore.rules` was
+  deployed to `tracewall-2307006` on 7 November 2026. No RTDB rules, providers,
+  hosting, accounts, or app data were changed. A physical round trip then passed:
+  the child foreground service uploaded a fresh GPS point and the verified parent
+  rendered and centered its osmdroid marker with a current timestamp and reported
+  accuracy. No location screenshot or coordinates are retained in the repository.
