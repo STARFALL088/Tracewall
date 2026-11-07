@@ -32,7 +32,7 @@
     <string name="nav_always_status_lockdown">Android সর্বদা চালু VPN: Tracewall নির্বাচিত, লকডাউন চালু।</string>
     <string name="nav_always_status_off">Android সর্বদা চালু VPN: Tracewall-এর জন্য সেট করা নেই। Android সুরক্ষা স্বয়ংক্রিয়ভাবে আবার চালু না করতে পারে।</string>
     <string name="nav_always_status_other">Android সর্বদা চালু VPN: অন্য একটি অ্যাপ নির্বাচিত। Tracewall এটি বদলাতে পারে না।</string>
-    <string name="nav_always_status_unknown">Android সর্বদা চালু VPN: এই বিল্ডে অবস্থা পাওয়া যাচ্ছে না।</string>
+    <string name="nav_always_status_unknown">Android সর্বদা চালু VPN: এই বিল্ড Tracewall-কে নির্বাচিত অ্যাপ দেখায় না। Android VPN সেটিংসে দেখুন।</string>
     <string name="nav_stat_requests">অনুরোধ</string>
     <string name="nav_stat_blocked">ব্লক করা</string>
     <string name="nav_stat_rules">তালিকার ডোমেইন</string>

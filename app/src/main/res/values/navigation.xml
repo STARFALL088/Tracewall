@@ -32,7 +32,7 @@
     <string name="nav_always_status_lockdown">Android always-on VPN: Tracewall is selected with lockdown on.</string>
     <string name="nav_always_status_off">Android always-on VPN: not configured for Tracewall. Android may not restart protection automatically.</string>
     <string name="nav_always_status_other">Android always-on VPN: another app is selected. Tracewall cannot change this.</string>
-    <string name="nav_always_status_unknown">Android always-on VPN: status unavailable on this build.</string>
+    <string name="nav_always_status_unknown">Android always-on VPN: this build does not expose the selected app to Tracewall. Check Android VPN settings.</string>
     <string name="nav_stat_requests">Requests</string>
     <string name="nav_stat_blocked">Blocked</string>
     <string name="nav_stat_rules">Domains in lists</string>
