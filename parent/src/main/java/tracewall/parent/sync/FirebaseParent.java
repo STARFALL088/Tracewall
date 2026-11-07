@@ -18,6 +18,7 @@ import java.util.Map;
 import tracewall.security.PairingPlan;
 import tracewall.data.RuleEdits;
 import tracewall.data.AppInventory;
+import tracewall.data.LocationSnapshot;
 import tracewall.security.PairingCode;
 
 /**
@@ -248,6 +249,31 @@ public class FirebaseParent {
                     ready.accept(new AppSnapshot(AppInventory.parse(rows), snapshot.getMetadata().isFromCache()
                         || snapshot.getMetadata().hasPendingWrites()));
                 } catch (IllegalArgumentException invalid) { failed.run(); }
+            });
+    }
+
+    public static final class LocationResult {
+        public final LocationSnapshot location;
+        public final boolean cached;
+        private LocationResult(LocationSnapshot location, boolean cached) {
+            this.location = location;
+            this.cached = cached;
+        }
+    }
+
+    /** Latest-only location document. Access is still enforced by verified parent membership. */
+    public ListenerRegistration listenLocation(String childUid,
+            java.util.function.Consumer<LocationResult> ready, Runnable failed) {
+        return fs.collection("devices").document(childUid).collection("location").document("current")
+            .addSnapshotListener(com.google.firebase.firestore.MetadataChanges.INCLUDE, (snapshot, error) -> {
+                if (error != null || snapshot == null) { failed.run(); return; }
+                boolean cached = snapshot.getMetadata().isFromCache() || snapshot.getMetadata().hasPendingWrites();
+                if (!snapshot.exists()) { ready.accept(new LocationResult(null, cached)); return; }
+                try { ready.accept(new LocationResult(LocationSnapshot.parse(snapshot.getData()), cached)); }
+                catch (IllegalArgumentException invalid) {
+                    Log.w(TAG, "Rejected malformed location snapshot", invalid);
+                    failed.run();
+                }
             });
     }
 

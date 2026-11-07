@@ -31,6 +31,8 @@
         <activity android:name=".AppPickerActivity" android:exported="false"
             android:label="@string/apps_picker_title"
             android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".LocationActivity" android:exported="false"
+            android:label="@string/location_parent_title" />
 
     </application>
 </manifest>

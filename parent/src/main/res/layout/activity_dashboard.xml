@@ -71,6 +71,11 @@
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="16dp" android:text="@string/parent_open_activity"
                     app:icon="@drawable/ic_tw_activity" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/openLocation"
+                    style="@style/Widget.Tracewall.Parent.Button.Outlined"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="@string/location_parent_open"
+                    app:icon="@drawable/ic_tw_location" />
                 <TextView android:id="@+id/overviewActivityStatus"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" android:text="@string/parent_feed_loading"

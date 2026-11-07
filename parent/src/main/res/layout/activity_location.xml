@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/tw_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/locationToolbar"
+        style="@style/Widget.Tracewall.Toolbar"
+        android:layout_width="match_parent" android:layout_height="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_tw_arrow_back"
+        app:navigationContentDescription="@string/apps_back"
+        app:title="@string/location_parent_title" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="20dp" android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp" android:orientation="vertical"
+        android:background="@drawable/tw_panel" android:padding="16dp">
+        <TextView android:id="@+id/locationParentStatus"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/location_parent_loading"
+            android:textAppearance="@style/TextAppearance.Tracewall.Section"
+            android:accessibilityLiveRegion="polite" />
+        <TextView android:id="@+id/locationParentDetail"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="6dp" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+    </LinearLayout>
+
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:layout_margin="20dp"
+        android:background="@drawable/tw_inset_panel" android:padding="1dp">
+        <org.osmdroid.views.MapView android:id="@+id/locationMap"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:contentDescription="@string/location_parent_title" />
+    </FrameLayout>
+
+    <com.google.android.material.button.MaterialButton android:id="@+id/locationCenter"
+        style="@style/Widget.Tracewall.Parent.Button.Outlined"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="20dp" android:layout_marginEnd="20dp"
+        android:text="@string/location_parent_center" app:icon="@drawable/ic_tw_location" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="20dp" android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp" android:layout_marginBottom="16dp"
+        android:text="@string/location_parent_map_note"
+        android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+</LinearLayout>

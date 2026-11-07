@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string translatable="false" name="location_parent_title">Latest child location</string>
+    <string translatable="false" name="location_parent_open">View latest location</string>
+    <string translatable="false" name="location_parent_loading">Verifying parent access and checking for a shared location…</string>
+    <string translatable="false" name="location_parent_empty">No current location is shared. The child must enable cloud mode and start visible location sharing with the parent PIN.</string>
+    <string translatable="false" name="location_parent_failed">The location could not be loaded. Check connectivity and verified parent access.</string>
+    <string translatable="false" name="location_parent_live">Latest shared location</string>
+    <string translatable="false" name="location_parent_stale">Last known location — it is more than five minutes old</string>
+    <string translatable="false" name="location_parent_mock">Android marked this location as simulated.</string>
+    <string translatable="false" name="location_parent_detail">Updated %1$s · accuracy about %2$.0f m · %3$s provider</string>
+    <string translatable="false" name="location_parent_cached">Showing a cached snapshot; server freshness is not confirmed.</string>
+    <string translatable="false" name="location_parent_center">Center on child</string>
+    <string translatable="false" name="location_parent_map_note">Map tiles © OpenStreetMap contributors. Tracewall stores only the latest point, not a route history.</string>
+</resources>

@@ -123,6 +123,7 @@ public class DashboardActivity extends AppCompatActivity {
         ui.forgetSavedButton.setOnClickListener(v -> forgetSavedDevice());
         ui.dashboardAccountButton.setOnClickListener(v -> openAccount());
         ui.openActivity.setOnClickListener(v -> ui.bottomNavigation.setSelectedItemId(R.id.nav_activity));
+        ui.openLocation.setOnClickListener(v -> startActivity(new android.content.Intent(this, LocationActivity.class)));
         ui.openRules.setOnClickListener(v -> ui.bottomNavigation.setSelectedItemId(R.id.nav_rules));
         ui.overviewApps.setOnClickListener(v -> openApps());
         ui.rulesApps.setOnClickListener(v -> openApps());

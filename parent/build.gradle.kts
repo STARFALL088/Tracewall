@@ -45,6 +45,9 @@ dependencies {
     implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    // OpenStreetMap rendering requested for the isolated child-tracking feature.
+    // 6.1.20 is the final Maven Central release; upstream was archived in 2024.
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
 
