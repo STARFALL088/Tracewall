@@ -52,6 +52,8 @@
             android:label="@string/rules9_title" />
         <activity android:name=".ui.ListHealthActivity" android:exported="false"
             android:label="@string/feeds_title" />
+        <activity android:name=".ui.PrivacyActivity" android:exported="false"
+            android:label="@string/privacy_title" />
 
         <!-- Boot receiver: reports that protection did not come back. It
              cannot restart the tunnel itself on Android 8+, so it does not try. -->

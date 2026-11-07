@@ -4,7 +4,7 @@
     <string name="history_quick_export">Recent CSV (up to 200 rows)</string>
     <string name="history_title">Stored DNS history</string>
     <string name="history_back">Back</string>
-    <string name="history_retention">Local history is retained for seven days. Exported text cells are protected against spreadsheet formulas with a leading apostrophe where needed.</string>
+    <string name="history_retention">Local history follows the retention choice in Privacy controls. Exported text cells are protected against spreadsheet formulas with a leading apostrophe where needed.</string>
     <string name="history_filters">Filters</string>
     <string name="history_refresh">Refresh snapshot</string>
     <string name="history_newer">Newer page</string>

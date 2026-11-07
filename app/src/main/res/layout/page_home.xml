@@ -41,6 +41,14 @@
         </LinearLayout>
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
             android:text="@string/nav_session_help" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:text="@string/nav_diagnostics_title" android:textAppearance="@style/TextAppearance.Tracewall.Section" android:accessibilityHeading="true" />
+        <TextView android:id="@+id/diagnostics" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+            android:textAppearance="@style/TextAppearance.Tracewall.Body" android:lineSpacingExtra="3dp" android:accessibilityLiveRegion="polite" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/logHttpsProbes" style="@style/Widget.Tracewall.Button.Outlined"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/nav_log_https_on" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
+            android:text="@string/nav_log_https_help" android:textAppearance="@style/TextAppearance.Tracewall.Caption" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/tw_panel"
             android:layout_marginTop="24dp" android:padding="20dp">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_traffic_title"

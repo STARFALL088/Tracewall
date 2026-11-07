@@ -22,6 +22,17 @@
     <string name="nav_enable_label">Filter DNS requests</string>
     <string name="nav_session_title">This session</string>
     <string name="nav_session_help">Live counters reset when the app process restarts. Saved history is kept separately.</string>
+    <string name="nav_diagnostics_title">Connection diagnostics</string>
+    <string name="nav_diagnostics_summary">Allowed: %1$d · Blocked: %2$d\nSERVFAIL: %3$d · DNS queue drops: %4$d · History drops: %5$d\nUnknown app: %6$d · HTTPS/SVCB probes blocked: %7$d</string>
+    <string name="nav_log_https_on">Record blocked HTTPS/SVCB probes: on</string>
+    <string name="nav_log_https_off">Record blocked HTTPS/SVCB probes: off</string>
+    <string name="nav_log_https_help">When on, each blocked SVCB/HTTPS discovery probe appears in Activity and saved history as a local block. No query content is forwarded. Changing this needs the parent PIN; the counters above always run.</string>
+    <string name="nav_log_https_failed">The diagnostics setting could not be saved.</string>
+    <string name="nav_always_status_on">Android always-on VPN: Tracewall is selected.</string>
+    <string name="nav_always_status_lockdown">Android always-on VPN: Tracewall is selected with lockdown on.</string>
+    <string name="nav_always_status_off">Android always-on VPN: not configured for Tracewall. Android may not restart protection automatically.</string>
+    <string name="nav_always_status_other">Android always-on VPN: another app is selected. Tracewall cannot change this.</string>
+    <string name="nav_always_status_unknown">Android always-on VPN: status unavailable on this build.</string>
     <string name="nav_stat_requests">Requests</string>
     <string name="nav_stat_blocked">Blocked</string>
     <string name="nav_stat_rules">Domains in lists</string>
@@ -61,6 +72,7 @@
     <string name="nav_pair_body">Generate a one-time QR code, then scan it in Tracewall Parent. A parent can view synced activity and manage remote rules.</string>
     <string name="nav_pair_action">Create pairing code</string>
     <string name="nav_pair_local">An account is needed for pairing. Local protection works without one.</string>
+    <string name="nav_pair_cloud_off">Cloud mode is off. Enable it in Privacy controls before pairing or managing parents.</string>
     <string name="nav_pair_identity">Device ID: %1$s</string>
     <string name="nav_pair_account">Set up an account</string>
     <string name="nav_sharing_title">Sharing and access</string>

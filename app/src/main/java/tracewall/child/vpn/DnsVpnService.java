@@ -29,6 +29,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import tracewall.blocklist.PolicyEngine;
+import tracewall.data.DnsMetrics;
 import tracewall.child.R;
 import tracewall.child.ui.Notifications;
 import tracewall.child.sync.FirebaseSync;
@@ -80,8 +81,12 @@ public class DnsVpnService extends VpnService implements Runnable {
     private static final AtomicBoolean running = new AtomicBoolean(false);
     private static final AtomicBoolean starting = new AtomicBoolean(false);
     private static final AtomicLong rejectedPackets = new AtomicLong();
+    private static final DnsMetrics METRICS = new DnsMetrics();
 
     public static long rejectedPackets() { return rejectedPackets.get(); }
+
+    /** Process-lifetime counters for the Home diagnostics panel. */
+    public static DnsMetrics.Snapshot diagnostics() { return METRICS.snapshot(); }
 
     /** True between establish() and teardown, for the UI to trust. */
     public static boolean isRunning() {
@@ -126,6 +131,7 @@ public class DnsVpnService extends VpnService implements Runnable {
     public void onCreate() {
         super.onCreate();
         rejectedPackets.set(0);
+        METRICS.reset();
         workers = BoundedWorkPool.create("tracewall-dns", 4, 128);
         events = BoundedWorkPool.create("tracewall-events", 1, 16);
         uidAttributor = new UidAttributor(this);
@@ -309,6 +315,7 @@ public class DnsVpnService extends VpnService implements Runnable {
             } catch (RejectedExecutionException ignored) {
                 if (!workers.isShutdown()) {
                     long dropped = rejectedPackets.incrementAndGet();
+                    METRICS.recordQueueDropped();
                     // Log only at powers of two, not once per packet during a burst.
                     if ((dropped & (dropped - 1)) == 0) Log.w(TAG, "DNS queue full; dropped packets=" + dropped);
                 }
@@ -331,6 +338,7 @@ public class DnsVpnService extends VpnService implements Runnable {
             q.qType() == DnsMessage.TYPE_SVCB ||
             q.qType() == DnsMessage.TYPE_HTTPS
         ) {
+            METRICS.recordHttpsBlocked();
             byte[] nxd = DnsMessage.buildNxDomain(q);
             if (nxd != null) {
                 byte[] reply = pkt.buildResponse(
@@ -340,6 +348,23 @@ public class DnsVpnService extends VpnService implements Runnable {
                     pkt.identification()
                 );
                 if (reply != null) write(reply);
+            }
+            // The probe is still blocked even when the optional audit row is
+            // suppressed. Attribution is skipped because nothing is forwarded.
+            if (DnsDiagnostics.logHttpsProbes(this)) {
+                QueryLog.Entry entry = new QueryLog.Entry(
+                    System.currentTimeMillis(),
+                    q.qName(),
+                    q.qType(),
+                    true,
+                    pkt.srcPort(),
+                    UidAttributor.UNKNOWN_UID,
+                    "svcb",
+                    (System.nanoTime() - t0) / 1_000_000L,
+                    "local"
+                );
+                QueryLog.get().add(entry);
+                HistoryWriter.get().offer(entry.toRecord());
             }
             return;
         }
@@ -380,6 +405,8 @@ public class DnsVpnService extends VpnService implements Runnable {
                 resolver = "servfail";
             }
         }
+        METRICS.recordDecision(blocked, uid == UidAttributor.UNKNOWN_UID);
+        if (!blocked && "servfail".equals(resolver)) METRICS.recordServfail();
         if (answer == null) return;
 
         byte[] reply = pkt.buildResponse(

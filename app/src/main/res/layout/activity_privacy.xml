@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/privacyScroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <Button android:id="@+id/privacyBack" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/privacy_back" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:text="@string/privacy_title" android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_intro" />
+        <TextView android:id="@+id/privacyStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" android:text="@string/privacy_stopping" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/privacy_mode_title" android:textAppearance="?attr/textAppearanceTitleLarge" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_mode_help" />
+        <Button android:id="@+id/privacyMode" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_use_cloud" android:saveEnabled="false" />
+        <Button android:id="@+id/privacyRetryNetwork" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_retry_network" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/privacy_sharing_title" android:textAppearance="?attr/textAppearanceTitleLarge" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_sharing_help" />
+        <Button android:id="@+id/privacyHistorySharing" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_history_off" android:saveEnabled="false" />
+        <Button android:id="@+id/privacyInventorySharing" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_inventory_off" android:saveEnabled="false" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/privacy_retention_title" android:textAppearance="?attr/textAppearanceTitleLarge" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_retention_help" />
+        <Button android:id="@+id/privacyRetention" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:saveEnabled="false" />
+        <Button android:id="@+id/privacyClearLocal" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_clear_local" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/privacy_cloud_delete_title" android:textAppearance="?attr/textAppearanceTitleLarge" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_cloud_delete_help" />
+        <TextView android:id="@+id/privacyDeletionStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:text="@string/privacy_delete_never" />
+        <Button android:id="@+id/privacyDeleteCloud" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:minHeight="48dp" android:text="@string/privacy_delete_cloud" android:saveEnabled="false" />
+        <ProgressBar android:id="@+id/privacyProgress" style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:indeterminate="true"
+            android:visibility="gone" />
+        <TextView android:id="@+id/privacyResult" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:accessibilityLiveRegion="polite" />
+    </LinearLayout>
+</ScrollView>

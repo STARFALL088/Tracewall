@@ -5,4 +5,5 @@
     <string name="inventory_consent">অ্যাপের নাম, প্যাকেজ ও ইউআইডি শেয়ার করুন</string>
     <string name="inventory_on">অ্যাপের নাম শেয়ার: চালু</string>
     <string name="inventory_off">অ্যাপের নাম শেয়ার: বন্ধ</string>
+    <string name="inventory_change_rejected">ক্লাউড মুছা অপেক্ষমাণ থাকায় অ্যাপের নাম শেয়ার বদলায়নি।</string>
 </resources>

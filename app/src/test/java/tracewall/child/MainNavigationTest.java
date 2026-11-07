@@ -53,8 +53,10 @@ public class MainNavigationTest {
             .build());
         FirebaseAuth.getInstance().useEmulator("127.0.0.1", 9099);
         FirebaseDatabase.getInstance().useEmulator("127.0.0.1", 9000);
-        FirebaseSync.get().initialize(app);
+        // The privacy facade disables Firestore networking in its constructor,
+        // which finalizes the instance; configure the emulator first.
         FirebaseFirestore.getInstance().useEmulator("127.0.0.1", 8080);
+        FirebaseSync.get().initialize(app);
         FirebaseFirestore.getInstance().disableNetwork();
         app.getSharedPreferences("tracewall.account.ui", Application.MODE_PRIVATE).edit()
             .putBoolean("account_choice_made", true).commit();

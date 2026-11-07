@@ -5,4 +5,5 @@
     <string name="inventory_consent">Share app names, packages and UIDs</string>
     <string name="inventory_on">App-name sharing: on</string>
     <string name="inventory_off">App-name sharing: off</string>
+    <string name="inventory_change_rejected">App-name sharing did not change because cloud deletion is pending.</string>
 </resources>

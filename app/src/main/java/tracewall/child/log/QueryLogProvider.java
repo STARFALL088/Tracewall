@@ -93,7 +93,9 @@ public final class QueryLogProvider extends ContentProvider {
                       @Nullable String[] selectionArgs) {
         Context ctx = getContext();
         if (ctx == null) return 0;
-        return TracewallDb.get(ctx).queries().clear();
+        // The trusted in-app caller must authorize with PinGate before invoking delete().
+        // Direct DAO clear races with queued/drained writer batches; invalidate them under the insert monitor.
+        return HistoryWriter.get().clearStored(ctx);
     }
 
     @Nullable

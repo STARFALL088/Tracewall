@@ -22,6 +22,17 @@
     <string name="nav_enable_label">DNS অনুরোধ ফিল্টার করুন</string>
     <string name="nav_session_title">এই সেশন</string>
     <string name="nav_session_help">অ্যাপ প্রসেস আবার শুরু হলে লাইভ গণনা নতুন করে শুরু হয়। সংরক্ষিত ইতিহাস আলাদা থাকে।</string>
+    <string name="nav_diagnostics_title">সংযোগের ডায়াগনস্টিকস</string>
+    <string name="nav_diagnostics_summary">অনুমোদিত: %1$d · ব্লক করা: %2$d\nSERVFAIL: %3$d · DNS সারি বাদ: %4$d · ইতিহাস বাদ: %5$d\nঅজানা অ্যাপ: %6$d · ব্লক করা HTTPS/SVCB প্রোব: %7$d</string>
+    <string name="nav_log_https_on">ব্লক করা HTTPS/SVCB প্রোব রেকর্ড: চালু</string>
+    <string name="nav_log_https_off">ব্লক করা HTTPS/SVCB প্রোব রেকর্ড: বন্ধ</string>
+    <string name="nav_log_https_help">চালু থাকলে প্রতিটি ব্লক করা SVCB/HTTPS ডিসকভারি প্রোব Activity ও সংরক্ষিত ইতিহাসে স্থানীয় ব্লক হিসেবে দেখা যায়। কোনো কুয়েরি সামনে পাঠানো হয় না। এটি বদলাতে অভিভাবকের PIN লাগে; উপরের গণনা সবসময় চলে।</string>
+    <string name="nav_log_https_failed">ডায়াগনস্টিকস সেটিং সংরক্ষণ করা যায়নি।</string>
+    <string name="nav_always_status_on">Android সর্বদা চালু VPN: Tracewall নির্বাচিত।</string>
+    <string name="nav_always_status_lockdown">Android সর্বদা চালু VPN: Tracewall নির্বাচিত, লকডাউন চালু।</string>
+    <string name="nav_always_status_off">Android সর্বদা চালু VPN: Tracewall-এর জন্য সেট করা নেই। Android সুরক্ষা স্বয়ংক্রিয়ভাবে আবার চালু না করতে পারে।</string>
+    <string name="nav_always_status_other">Android সর্বদা চালু VPN: অন্য একটি অ্যাপ নির্বাচিত। Tracewall এটি বদলাতে পারে না।</string>
+    <string name="nav_always_status_unknown">Android সর্বদা চালু VPN: এই বিল্ডে অবস্থা পাওয়া যাচ্ছে না।</string>
     <string name="nav_stat_requests">অনুরোধ</string>
     <string name="nav_stat_blocked">ব্লক করা</string>
     <string name="nav_stat_rules">তালিকার ডোমেইন</string>
@@ -61,6 +72,7 @@
     <string name="nav_pair_body">একবার ব্যবহারযোগ্য QR কোড তৈরি করে Tracewall Parent দিয়ে স্ক্যান করুন। অভিভাবক সিঙ্ক করা অ্যাক্টিভিটি দেখতে ও দূরের নিয়ম পরিচালনা করতে পারবেন।</string>
     <string name="nav_pair_action">পেয়ারিং কোড তৈরি করুন</string>
     <string name="nav_pair_local">পেয়ার করতে একটি অ্যাকাউন্ট লাগবে। অ্যাকাউন্ট ছাড়াও স্থানীয় সুরক্ষা কাজ করে।</string>
+    <string name="nav_pair_cloud_off">ক্লাউড মোড বন্ধ। পেয়ারিং বা অভিভাবক পরিচালনার আগে গোপনীয়তার নিয়ন্ত্রণ থেকে এটি চালু করুন।</string>
     <string name="nav_pair_identity">ডিভাইস আইডি: %1$s</string>
     <string name="nav_pair_account">অ্যাকাউন্ট সেটআপ করুন</string>
     <string name="nav_sharing_title">শেয়ারিং ও অ্যাক্সেস</string>

@@ -3,24 +3,19 @@ package tracewall.child;
 import android.app.Application;
 import android.util.Log;
 import tracewall.child.block.BlocklistStore;
+import tracewall.child.log.HistoryWriter;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.data.RemoteRules;
 
 /**
- * Application subclass: the single startup hook that wires Firebase into the
- * rest of the app before any Activity or Service starts.
+ * Application subclass: local filtering always starts warm; cloud work only
+ * runs after a PIN-approved cloud opt-in and an authenticated, bound identity.
  *
- * Two things happen here and nowhere else:
+ * <p>The account screen chooses the identity. This class never creates an
+ * anonymous or replacement user in the background. A rule listener is attached
+ * only while cloud mode is enabled and the same identity remains bound.
  *
- *   1. Observe authentication. The account screen explicitly chooses named
- *      sign-in, a guest identity, or local use without an account. Background
- *      startup never silently creates or replaces an identity.
- *
- *   2. Rules listener. Once signed in, we subscribe to the parent's rule
- *      pushes for the lifetime of the process. We never detach this listener
- *      because the Application lives as long as the process does.
- *
- * Registered in AndroidManifest.xml via android:name=".TracewallApp".
+ * <p>Registered in AndroidManifest.xml via android:name=".TracewallApp".
  */
 public class TracewallApp extends Application {
 
@@ -32,18 +27,51 @@ public class TracewallApp extends Application {
         super.onCreate();
 
         final android.content.Context ctx = getApplicationContext();
-        FirebaseSync.get().initialize(ctx);
+        FirebaseSync sync = FirebaseSync.get();
+        sync.initialize(ctx);
         if (BlocklistStore.isEnabled(ctx)) tracewall.child.net.ListRefreshWorker.schedule(ctx);
+        // Prune/no-persistence also applies when the VPN is not currently running.
+        HistoryWriter.get().start(ctx);
         // Parse the category lists off the main thread. First paint, the rules
         // listener and the VPN toggle then reuse the warm policy instead of
         // blocking the UI for the duration of a cold parse.
         BlocklistStore.get().preload(ctx);
 
+        // Establish the already-authenticated identity before the first
+        // reconfigure so startup does not attach the same listeners twice.
+        com.google.firebase.auth.FirebaseUser existing =
+            com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (existing != null && tracewall.auth.IdentityAnchor.bind(ctx, existing.getUid()))
+            attachedUid = existing.getUid();
+        else if (existing != null)
+            Log.e(TAG, "Account does not match this protected device; cloud synchronization paused");
+
+        // Process-lifetime rule handler; FirebaseSync attaches/detaches the
+        // actual listener when cloud mode and the bound identity permit it.
+        sync.start(snapshot -> {
+            if (attachedUid == null || !attachedUid.equals(sync.uid())) return;
+            try {
+                // An absent snapshot explicitly clears the remote keys. Local
+                // rules remain separate in BlocklistStore and are never erased.
+                RemoteRules rules = RemoteRules.parse(snapshot.getValue());
+                BlocklistStore.get().applyRemoteRulesAsync(ctx, rules.allow,
+                    rules.blockedUids, rules.categories);
+            } catch (IllegalArgumentException e) {
+                Log.w(TAG, "Rejected invalid remote rules; retaining last valid state", e);
+            }
+        });
+
         com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener(auth -> {
             com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
-            if (user == null || user.getUid().equals(attachedUid)) return;
+            if (user == null) {
+                attachedUid = null;
+                sync.onIdentityLost();
+                return;
+            }
+            if (user.getUid().equals(attachedUid)) return;
             if (!tracewall.auth.IdentityAnchor.bind(ctx, user.getUid())) {
                 Log.e(TAG, "Account does not match this protected device; cloud synchronization paused");
+                sync.onIdentityLost();
                 return;
             }
             if (attachedUid != null) {
@@ -53,24 +81,7 @@ public class TracewallApp extends Application {
             }
             attachedUid = user.getUid();
             Log.i(TAG, "Firebase session ready; starting child synchronization");
-
-            FirebaseSync.get().watchPairing();
-            FirebaseSync.get().refreshInstalledApps();
-
-            // Process-lifetime subscription: the parent writes to
-            // /devices/{uid}/rules and we apply it immediately.
-            FirebaseSync.get().listenForRules(snapshot -> {
-                if (!attachedUid.equals(FirebaseSync.get().uid())) return;
-                try {
-                    // An absent snapshot explicitly clears the remote keys. Local
-                    // rules remain separate in BlocklistStore and are never erased.
-                    RemoteRules rules = RemoteRules.parse(snapshot.getValue());
-                    BlocklistStore.get().applyRemoteRulesAsync(ctx, rules.allow,
-                        rules.blockedUids, rules.categories);
-                } catch (IllegalArgumentException e) {
-                    Log.w(TAG, "Rejected invalid remote rules; retaining last valid state", e);
-                }
-            });
+            sync.onIdentityReady();
         });
     }
 }

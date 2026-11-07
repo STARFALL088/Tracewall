@@ -4,7 +4,7 @@
     <string name="history_quick_export">সাম্প্রতিক সিএসভি (সর্বোচ্চ ২০০ সারি)</string>
     <string name="history_title">সংরক্ষিত ডিএনএস ইতিহাস</string>
     <string name="history_back">ফিরুন</string>
-    <string name="history_retention">স্থানীয় ইতিহাস সাত দিন রাখা হয়। স্প্রেডশিটে সূত্র চালু হওয়া ঠেকাতে প্রয়োজনীয় রপ্তানি করা টেক্সটের আগে অ্যাপস্ট্রফি যোগ হয়।</string>
+    <string name="history_retention">স্থানীয় ইতিহাস গোপনীয়তার নিয়ন্ত্রণে নির্বাচিত সময়সীমা অনুযায়ী রাখা হয়। স্প্রেডশিটে সূত্র চালু হওয়া ঠেকাতে প্রয়োজনীয় রপ্তানি করা টেক্সটের আগে অ্যাপস্ট্রফি যোগ হয়।</string>
     <string name="history_filters">ফিল্টার</string>
     <string name="history_refresh">স্ন্যাপশট হালনাগাদ</string>
     <string name="history_newer">নতুনের পৃষ্ঠা</string>

@@ -30,6 +30,7 @@
     <string name="clear_body">ডিভাইসে থাকা প্রশ্নের ইতিহাস মুছে যাবে। নিয়মগুলো থাকবে।</string>
     <string name="clear_yes">মুছুন</string>
     <string name="clear_done">%1$d সারি মুছে ফেলা হয়েছে</string>
+    <string name="clear_failed">সংরক্ষিত ইতিহাস মোছা যায়নি। সাফল্য দাবি করা হচ্ছে না।</string>
     <string name="notif_channel">সুরক্ষার অবস্থা</string>
     <string name="notif_channel_desc">ফিল্টার চালু না থাকলে জানায়।</string>
     <string name="notif_title">Tracewall ফিল্টার করছে না</string>

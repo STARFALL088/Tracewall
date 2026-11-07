@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
@@ -35,15 +34,17 @@ import tracewall.child.databinding.PageHomeBinding;
 import tracewall.child.databinding.PageProtectBinding;
 import tracewall.child.databinding.PageSettingsBinding;
 import tracewall.child.log.AppLabels;
+import tracewall.child.log.HistoryWriter;
 import tracewall.child.log.QueryLog;
-import tracewall.child.log.QueryLogProvider;
 import tracewall.child.sync.FirebaseSync;
 import tracewall.child.ui.AppBlockActivity;
 import tracewall.child.ui.QueryAdapter;
 import tracewall.child.ui.PinGate;
 import tracewall.child.ui.TrendView;
 import tracewall.child.ui.RulesActivity;
+import tracewall.child.vpn.DnsDiagnostics;
 import tracewall.child.vpn.DnsVpnService;
+import tracewall.data.DnsMetrics;
 
 /**
  * Five focused destinations share the live service state, not a crowded screen.
@@ -190,11 +191,18 @@ public class MainActivity extends AppCompatActivity {
         protect.openRules.setOnClickListener(v -> openRules(RulesActivity.PAGE_DOMAINS));
         protect.openSchedules.setOnClickListener(v -> openRules(RulesActivity.PAGE_SCHEDULES));
         settings.openBackup.setOnClickListener(v -> openRules(RulesActivity.PAGE_BACKUP));
+        settings.openPrivacy.setOnClickListener(v -> PinGate.require(this, () ->
+            startActivity(new Intent(this, tracewall.child.ui.PrivacyActivity.class))));
         settings.accountButton.setOnClickListener(v -> PinGate.require(this, () -> openAccount(false)));
         family.familyAccount.setOnClickListener(v -> PinGate.require(this, () -> openAccount(false)));
         home.homeActivity.setOnClickListener(v -> ui.navigation.setSelectedItemId(R.id.nav_activity));
         home.homeProtection.setOnClickListener(v -> ui.navigation.setSelectedItemId(R.id.nav_protect));
         home.privateDnsSettings.setOnClickListener(v -> openPrivateDnsSettings());
+        home.logHttpsProbes.setOnClickListener(v -> PinGate.require(this, () -> {
+            if (!DnsDiagnostics.setLogHttpsProbes(this, !DnsDiagnostics.logHttpsProbes(this)))
+                Toast.makeText(this, R.string.nav_log_https_failed, Toast.LENGTH_LONG).show();
+            render();
+        }));
         feed.clearSearch.setOnClickListener(v -> feed.queryFilter.setText(""));
         feed.emptyAction.setOnClickListener(v -> {
             if (feed.queryFilter.length() > 0) feed.queryFilter.setText("");
@@ -302,6 +310,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void manageParents() {
+        if (!FirebaseSync.get().isCloudEnabled()) {
+            Toast.makeText(this, R.string.nav_pair_cloud_off, Toast.LENGTH_LONG).show();
+            return;
+        }
         FirebaseSync.get().listParents(parents -> {
             if (isFinishing() || isDestroyed()) return;
             if (parents.isEmpty()) {
@@ -417,22 +429,29 @@ public class MainActivity extends AppCompatActivity {
         settings.settingsAccountStatus.setText(status);
     }
 
-    /** Pairing stays visible with an explanation when no account is connected. */
+    /** Pairing stays visible with an explanation when no account or local mode blocks it. */
     private void updateDeviceCode() {
         String uid = FirebaseSync.get().uid();
-        boolean available = uid != null;
+        boolean account = uid != null;
+        boolean available = account && FirebaseSync.get().isCloudEnabled();
         family.deviceCode.setEnabled(available);
         family.manageParents.setEnabled(available);
         family.pairingAvailability.setVisibility(available ? View.GONE : View.VISIBLE);
-        family.deviceIdentity.setVisibility(available ? View.VISIBLE : View.GONE);
-        if (available) family.deviceIdentity.setText(getString(R.string.nav_pair_identity, uid));
-        family.familyAccount.setText(available ? R.string.nav_account_action : R.string.nav_pair_account);
+        if (!available) family.pairingAvailability.setText(account
+            ? R.string.nav_pair_cloud_off : R.string.nav_pair_local);
+        family.deviceIdentity.setVisibility(account ? View.VISIBLE : View.GONE);
+        if (account) family.deviceIdentity.setText(getString(R.string.nav_pair_identity, uid));
+        family.familyAccount.setText(account ? R.string.nav_account_action : R.string.nav_pair_account);
     }
 
     /** Tap: show the UID as a QR code the parent can scan directly. */
     private void showQrDialog() {
         String uid = FirebaseSync.get().uid();
         if (uid == null) return;
+        if (!FirebaseSync.get().isCloudEnabled()) {
+            Toast.makeText(this, R.string.nav_pair_cloud_off, Toast.LENGTH_LONG).show();
+            return;
+        }
         configureInventorySharing(() -> FirebaseSync.get().createPairing(pairing -> showPairingQr(pairing), () ->
             Toast.makeText(this, R.string.pairing_create_failed, Toast.LENGTH_LONG).show()));
     }
@@ -444,8 +463,14 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this).setTitle(R.string.pairing_share_title)
             .setMessage(R.string.pairing_share_body).setView(share)
             .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                FirebaseSync.get().setInventorySharingEnabled(share.isChecked());
-                family.shareAppNames.setText(share.isChecked() ? R.string.inventory_on : R.string.inventory_off);
+                boolean accepted = FirebaseSync.get().setInventorySharingEnabled(share.isChecked());
+                // Always show the persisted consent, not the unchecked dialog wish.
+                family.shareAppNames.setText(FirebaseSync.get().isInventorySharingEnabled()
+                    ? R.string.inventory_on : R.string.inventory_off);
+                if (!accepted) {
+                    Toast.makeText(this, R.string.inventory_change_rejected, Toast.LENGTH_LONG).show();
+                    return;
+                }
                 if (after != null) after.run();
             }).setNegativeButton(android.R.string.cancel, null).show();
     }
@@ -583,6 +608,18 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.no_handler, Toast.LENGTH_LONG).show();
         }
     }
+    /** Read-only reflection of Android's always-on VPN choice; this app cannot change it. */
+    private int alwaysOnStatus() {
+        try {
+            String selected = Settings.Secure.getString(getContentResolver(), "always_on_vpn_app");
+            if (selected == null || selected.isEmpty()) return R.string.nav_always_status_off;
+            if (!getPackageName().equals(selected)) return R.string.nav_always_status_other;
+            boolean lockdown = Settings.Secure.getInt(getContentResolver(), "always_on_vpn_lockdown", 0) != 0;
+            return lockdown ? R.string.nav_always_status_lockdown : R.string.nav_always_status_on;
+        } catch (RuntimeException unavailable) {
+            return R.string.nav_always_status_unknown;
+        }
+    }
     private void openVpnSettings() {
         for (String action : new String[] {Settings.ACTION_VPN_SETTINGS, Settings.ACTION_SETTINGS}) {
             Intent intent = new Intent(action);
@@ -606,22 +643,23 @@ public class MainActivity extends AppCompatActivity {
 
     private void clearHistory() {
         new Thread(() -> {
-            int removed = 0;
+            int removed;
+            boolean failed = false;
             try {
-                removed = getContentResolver().delete(
-                    Uri.parse(QueryLogProvider.CONTENT_URI + "?limit=5000"),
-                    null,
-                    null
-                );
-            } catch (RuntimeException ignored) {
-                // the toast reports what actually happened, including a failure
+                // The writer's clear invalidates queued/drained batches under the
+                // same monitor as Room insertion, so old rows cannot reappear.
+                removed = HistoryWriter.get().clearStored(this);
+            } catch (RuntimeException error) {
+                removed = 0;
+                failed = true;
             }
             final int count = removed;
+            final boolean failure = failed;
             runOnUiThread(() -> {
                 QueryLog.get().clear();
                 Toast.makeText(
                     this,
-                    getString(R.string.clear_done, count),
+                    failure ? getString(R.string.clear_failed) : getString(R.string.clear_done, count),
                     Toast.LENGTH_SHORT
                 ).show();
             });
@@ -683,6 +721,16 @@ public class MainActivity extends AppCompatActivity {
         home.statQueries.setText(numbers.format(s.total));
         home.statBlocked.setText(numbers.format(s.blocked));
         home.statRules.setText(numbers.format(BlocklistStore.get().size()));
+
+        DnsMetrics.Snapshot diagnostics = DnsVpnService.diagnostics();
+        home.diagnostics.setText(getString(R.string.nav_diagnostics_summary,
+            diagnostics.allowed, diagnostics.blocked, diagnostics.servfail, diagnostics.queueDropped,
+            HistoryWriter.get().droppedRowCount(), diagnostics.unknownUid, diagnostics.httpsBlocked));
+        home.logHttpsProbes.setText(DnsDiagnostics.logHttpsProbes(this)
+            ? R.string.nav_log_https_on : R.string.nav_log_https_off);
+        settings.alwaysOnStatus.setText(alwaysOnStatus());
+        family.shareAppNames.setText(FirebaseSync.get().isInventorySharingEnabled()
+            ? R.string.inventory_on : R.string.inventory_off);
 
         List<QueryLog.Entry> recent = QueryLog.get().snapshot(500);
         List<QueryLog.Entry> visible = new java.util.ArrayList<>();
